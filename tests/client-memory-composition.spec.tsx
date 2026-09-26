@@ -33,15 +33,18 @@ function fixture(entries: MemoryPluginEntryView[], options: { failApply?: boolea
     if (channel === '/dsh-mnemon-view-settings' && endpoint === 'apply') {
       if (options.failApply) return { ok: false as const, error: { code: 'internal' as const, message: 'selected memory Strategy type is unavailable', details: {} } }
       const request = (payload as { configuration: MemoryViewConfigurationRequest }).configuration
+      if (request.expectedRevision !== dashboard.revision) return { ok: false as const, error: { code: 'conflict' as const, message: 'memory View revision conflict', details: {} } }
       applied.push(request)
-      dashboard = { ...dashboard, revision: 'view-2', strategyTypeId: request.strategyTypeId, entries: dashboard.entries.map(value => request.entries[value.entryId] === undefined
+      dashboard = { ...dashboard, revision: `view-${Number(dashboard.revision.slice(5)) + 1}`, strategyTypeId: request.strategyTypeId, entries: dashboard.entries.map(value => request.entries[value.entryId] === undefined
         ? value
         : { ...value, enabled: request.entries[value.entryId]!.enabled, active: request.entries[value.entryId]!.enabled }) }
       return { ok: true as const, value: { saved: true as const } }
     }
     return { ok: false as const, error: { code: 'internal' as const, message: `unsupported ${channel} ${endpoint}`, details: {} } }
   })
-  return { applied, connection: { rpc: { call }, isLoopback: true } as ClientConnectionHandle }
+  /** Another writer, such as a second window, changes the View. */
+  const external = (strategyTypeId: string) => { dashboard = { ...dashboard, revision: 'view-9', strategyTypeId } }
+  return { applied, external, connection: { rpc: { call }, isLoopback: true } as ClientConnectionHandle }
 }
 
 describe('memory composition controls', () => {
@@ -88,6 +91,34 @@ describe('memory composition controls', () => {
     const { connection } = fixture([{ ...threeTier, enabled: false, active: false }, { ...general, enabled: true, active: true }])
     render(<MemoryCompositionSections connection={connection} language="en" t={translateEn} />)
     expect(await screen.findByRole('status')).toHaveProperty('textContent', translateEn('config.strategyInactive'))
+  })
+
+  it('keeps Settings and the Plugins page controls apart and in step when both are open', async () => {
+    const { connection } = fixture([threeTier, general, capture])
+    const { container } = render(<>
+      <MemoryCompositionSections connection={connection} language="en" t={translateEn} />
+      <MemoryCompositionSections connection={connection} language="en" t={translateEn} />
+    </>)
+    await waitFor(() => expect(screen.getAllByRole('radio', { name: 'General' })).toHaveLength(2))
+    const ids = [...container.querySelectorAll('[id]')].map(element => element.id)
+    expect(new Set(ids).size).toBe(ids.length)
+    // Each card's label targets its own input, so the second instance applies the change.
+    fireEvent.click(screen.getAllByText('General')[1]!)
+    await waitFor(() => expect(screen.getAllByRole('radio', { name: 'General' }).map(radio => (radio as HTMLInputElement).checked)).toEqual([true, true]))
+    fireEvent.click(screen.getAllByRole('checkbox', { name: 'Active capture' })[0]!)
+    await waitFor(() => expect(screen.getAllByRole('checkbox', { name: 'Active capture' }).map(box => (box as HTMLInputElement).checked)).toEqual([true, true]))
+  })
+
+  it('shows the Host state after a change meets a newer revision', async () => {
+    const { applied, connection, external } = fixture([threeTier, general, capture])
+    render(<MemoryCompositionSections connection={connection} language="en" t={translateEn} />)
+    const toggle = await screen.findByRole('checkbox', { name: 'Active capture' })
+    external('general')
+    fireEvent.click(toggle)
+    expect(await screen.findByRole('alert')).toHaveProperty('textContent', translateEn('config.enhancementsFailed'))
+    await waitFor(() => expect((screen.getByRole('radio', { name: 'General' }) as HTMLInputElement).checked).toBe(true))
+    expect((screen.getByRole('checkbox', { name: 'Active capture' }) as HTMLInputElement).checked).toBe(false)
+    expect(applied).toEqual([])
   })
 
   it('renders the Plugins page section only for its page view', async () => {

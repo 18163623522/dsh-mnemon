@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type JSX } from 'react'
 import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import type { ClientConnectionHandle } from '../host/protocol.ts'
 import type { MemoryPluginEntryView, MemoryPluginPreference, MemoryViewDashboard } from '../host/view-protocol.ts'
@@ -18,6 +18,9 @@ const SHIPPED_COPY: Readonly<Record<string, { label: MnemonKey; hint: MnemonKey 
 
 const domId = (prefix: string, entryId: string): string => `${prefix}-${entryId.replace(/[^a-zA-Z0-9_-]/gu, '-')}`
 
+/** Settings and the Plugins page can show these controls at once; a committed change reloads the other. */
+const changes = new EventTarget()
+
 export interface MemoryCompositionProps {
   connection?: ClientConnectionHandle
   sessionId?: string
@@ -35,6 +38,8 @@ export interface MemoryCompositionProps {
  * cannot be read.
  */
 export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.Element | null {
+  // Per-instance ids keep each label, heading and radio group bound to its own controls.
+  const instance = useId()
   const client = useMemo(() => props.connection === undefined
     ? undefined
     : new MnemonClient(props.connection, props.sessionId, props.workspaceId), [props.connection, props.sessionId, props.workspaceId])
@@ -43,6 +48,7 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
   const [working, setWorking] = useState<string | null>(null)
   const [failure, setFailure] = useState<'strategy' | 'enhancement' | 'refresh' | null>(null)
   const request = useRef(0)
+  const busy = useRef(false)
 
   const load = useCallback(async (): Promise<void> => {
     if (client === undefined) {
@@ -53,7 +59,8 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
     }
     const ticket = request.current + 1
     request.current = ticket
-    setState('loading')
+    // A reload keeps the current controls on screen until the new state arrives.
+    setState(current => current === 'ready' ? current : 'loading')
     try {
       const next = await client.viewDashboard()
       if (request.current !== ticket) return
@@ -71,6 +78,13 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
     void load()
     return () => { request.current += 1 }
   }, [load])
+
+  useEffect(() => {
+    // An apply in flight refreshes itself when it settles.
+    const reload = (event: Event): void => { if ((event as CustomEvent<string>).detail !== instance && !busy.current) void load() }
+    changes.addEventListener('change', reload)
+    return () => changes.removeEventListener('change', reload)
+  }, [instance, load])
 
   if (state !== 'ready' || dashboard === null) return null
   const mains = dashboard.entries.filter(entry => entry.roles.includes('strategy') && entry.typeId !== undefined)
@@ -90,6 +104,7 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
     const previous = dashboard
     const ticket = request.current + 1
     request.current = ticket
+    busy.current = true
     setWorking(key)
     setFailure(null)
     setDashboard({ ...dashboard, strategyTypeId, entries: dashboard.entries.map(entry => entries[entry.entryId] === undefined
@@ -97,6 +112,7 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
       : { ...entry, enabled: entries[entry.entryId]!.enabled }) })
     try {
       await client.applyView({ expectedRevision: previous.revision, strategyTypeId, entries })
+      changes.dispatchEvent(new CustomEvent('change', { detail: instance }))
       try {
         const next = await client.viewDashboard()
         if (request.current !== ticket) return
@@ -110,9 +126,12 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
       }
     } catch {
       if (request.current !== ticket) return
-      setDashboard(previous)
       setFailure(kind)
+      // Show what the Host now holds; the rejected change may have met a newer revision.
+      const current = await client.viewDashboard().catch(() => previous)
+      if (request.current === ticket) setDashboard(current)
     } finally {
+      busy.current = false
       if (request.current === ticket) setWorking(null)
     }
   }
@@ -132,28 +151,28 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
   }
 
   return <>
-    {mains.length > 1 && <section className={css.section} aria-labelledby="mnemon-strategy-heading" aria-busy={working !== null}>
+    {mains.length > 1 && <section className={css.section} aria-labelledby={`${instance}-strategy-heading`} aria-busy={working !== null}>
       <div className={css.sectionHeading}>
-        <div><h2 id="mnemon-strategy-heading">{props.t('config.strategyTitle')}</h2><p>{props.t('config.strategyDescription')}</p></div>
+        <div><h2 id={`${instance}-strategy-heading`}>{props.t('config.strategyTitle')}</h2><p>{props.t('config.strategyDescription')}</p></div>
       </div>
       <div className={css.choiceGrid} role="radiogroup" aria-label={props.t('config.strategyTitle')}>
         {mains.map(entry => {
           const text = copy(entry)
-          return <ChoiceCard key={entry.entryId} id={domId('mnemon-strategy', entry.entryId)} name="mnemon-main-strategy" label={text.label} detail={text.hint}
+          return <ChoiceCard key={entry.entryId} id={domId(`${instance}-strategy`, entry.entryId)} name={`${instance}-main-strategy`} label={text.label} detail={text.hint}
             checked={entry.typeId === dashboard.strategyTypeId} disabled={disabled || !entry.writable} onChange={() => choose(entry)} />
         })}
       </div>
       {(selected === undefined || !selected.active) && working === null && <p className={css.error} role="status">{props.t('config.strategyInactive')}</p>}
       {failure === 'strategy' && <p className={css.error} role="alert">{props.t('config.strategyFailed')}</p>}
     </section>}
-    {enhancements.length > 0 && <section className={`${css.section} ${css.enhancementsSection}`} aria-labelledby="mnemon-enhancements-heading" aria-busy={working !== null}>
+    {enhancements.length > 0 && <section className={`${css.section} ${css.enhancementsSection}`} aria-labelledby={`${instance}-enhancements-heading`} aria-busy={working !== null}>
       <div className={css.sectionHeading}>
-        <div><h2 id="mnemon-enhancements-heading">{props.t('config.enhancementsTitle')}</h2><p>{props.t('config.enhancementsDescription')}</p></div>
+        <div><h2 id={`${instance}-enhancements-heading`}>{props.t('config.enhancementsTitle')}</h2><p>{props.t('config.enhancementsDescription')}</p></div>
       </div>
       <div className={css.rowGroup}>
         {enhancements.map(entry => {
           const text = copy(entry)
-          return <ToggleRow key={entry.entryId} id={domId('mnemon-enhancement', entry.entryId)} label={text.label} hint={text.hint}
+          return <ToggleRow key={entry.entryId} id={domId(`${instance}-enhancement`, entry.entryId)} label={text.label} hint={text.hint}
             checked={entry.enabled} disabled={disabled || !entry.writable} onChange={() => toggle(entry)} />
         })}
       </div>

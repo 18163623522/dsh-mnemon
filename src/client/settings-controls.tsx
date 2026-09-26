@@ -3,7 +3,7 @@ import css from './MnemonSettingsCard.module.css'
 
 /** Radio card shared by Mnemon Settings and the Plugins page composition. */
 export function ChoiceCard(props: { id: string; name: string; label: string; detail: string; checked: boolean; disabled: boolean; onChange: () => void }): JSX.Element {
-  return <label className={css.choiceCard} htmlFor={props.id}><input id={props.id} name={props.name} type="radio" aria-label={props.label} checked={props.checked} disabled={props.disabled} onChange={props.onChange} /><span className={css.choiceFace}><strong>{props.label}</strong><small>{props.detail}</small><span className={css.check} aria-hidden="true">✓</span></span></label>
+  return <label className={css.choiceCard} htmlFor={props.id}><input id={props.id} name={props.name} type="radio" aria-label={props.label} checked={props.checked} disabled={props.disabled} onChange={props.onChange} /><span className={css.choiceFace}><strong>{props.label}</strong><small title={props.detail}>{props.detail}</small><span className={css.check} aria-hidden="true">✓</span></span></label>
 }
 
 /** Switch row shared by Mnemon Settings and the Plugins page composition. */
