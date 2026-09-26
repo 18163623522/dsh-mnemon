@@ -8,7 +8,7 @@ import {
   type MnemonDisplayMode,
 } from "../host/protocol.ts"
 import { MnemonSettingsHost } from './MnemonSettingsHost.tsx'
-import { MnemonTurnTail, selectMnemonTurnTail } from './MnemonTurnTail.tsx'
+import { MnemonTurnTail } from './MnemonTurnTail.tsx'
 import { MnemonSaveAction } from './MnemonSaveAction.tsx'
 import { en, zh, type MnemonKey } from './locales.ts'
 import { MnemonSettingsScope } from './settings.ts'
@@ -48,21 +48,17 @@ const INTERACTION_UNITS: Record<'turnBar' | 'saveAction', InteractionUnit> = {
     slot: 'conversation.chat.turnTail',
     enabled: (value: unknown): boolean => enabledOf(value, 'turnBar'),
     register(ctx: MnemonClientContext, namespace: MnemonNamespace, translate: (key: MnemonKey, params?: Record<string, unknown>) => string): () => void {
-      // RC hosts use a chain; alpha hosts use a list. A named options value
-      // satisfies both public contracts while retaining each runtime's field.
-      const options = {
-        name: 'conversation.chat.turnTail' as const,
+      return ctx.slots.register({
+        name: 'conversation.chat.turnTail',
         id: 'dsh-mnemon/turn-tail',
         locale: namespace,
-        select: selectMnemonTurnTail,
         inject: (sessionId: unknown): { sessionId?: string; connection: ClientConnectionHandle; localeRuntime: MnemonClientContext['locale']; t: (key: MnemonKey, params?: Record<string, unknown>) => string } => ({
           ...(typeof sessionId === 'string' && sessionId !== '' ? { sessionId } : {}),
           connection: ctx.connection,
           localeRuntime: ctx.locale,
           t: translate as (key: MnemonKey, params?: Record<string, unknown>) => string,
         }),
-      }
-      return ctx.slots.register(options, MnemonTurnTail)
+      }, MnemonTurnTail)
     },
   },
   saveAction: {

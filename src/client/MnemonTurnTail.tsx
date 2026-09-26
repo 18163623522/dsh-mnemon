@@ -36,11 +36,6 @@ export function memoryPageForTool(name: string): MnemonAnchorPage {
   return 'memory-spaces/spaces'
 }
 
-/** Whether this entry renders for the owner; chain selectors decline quietly. */
-export function selectMnemonTurnTail(owner: { turn: unknown }): Record<string, never> | null {
-  return isClosedTurn(owner.turn) ? {} : null
-}
-
 /** One-line memory-activity bar under a completed turn; hides when the turn touched no memory. */
 export const MnemonTurnTail = memo(function MnemonTurnTail({ turn, seq, sessionId, connection, localeRuntime, t }: MnemonTurnTailProps): JSX.Element | null {
   const subscribeLocale = useCallback((listener: () => void) => localeRuntime.subscribe(listener), [localeRuntime])
@@ -49,7 +44,7 @@ export const MnemonTurnTail = memo(function MnemonTurnTail({ turn, seq, sessionI
   const [activity, setActivity] = useState<TurnMemoryActivity | null | undefined>(undefined)
   const [open, setOpen] = useState(false)
   const number = turnNumber(turn)
-  // List-slot hosts render every entry without calling its chain selector.
+  // The turn-tail list renders every entry, so the entry itself waits for the closing Turn.
   const closed = isClosedTurn(turn)
 
   useEffect(() => {
