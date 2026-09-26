@@ -48,11 +48,12 @@ function makeCtx(initialValue: unknown, coreValue: Record<string, unknown> = {})
     on: vi.fn(() => () => {}),
     sessions: { list: { getSnapshot: () => ({ current: 'session-a', byId: {} }) } },
     uiSession: { adapter: { current: { getSnapshot: () => ({ key: 'session-a' }), subscribe: () => () => {} } } },
+    layout: { selectPanel: vi.fn() },
     slots: {
       inject: (slot: string, factory: () => unknown) => {
         injects.push(slot)
-        let dispose: (() => void) | undefined
-        dispose = factory() as (() => void) | undefined
+        // Like DSH, wait for the declaration: this root leaves the native Sidebar seats undeclared.
+        let dispose = core.specDynamic(slot) === undefined ? undefined : factory() as (() => void) | undefined
         const disposer = () => { dispose?.(); dispose = undefined }
         injectDisposers.set(slot, disposer)
         return disposer
