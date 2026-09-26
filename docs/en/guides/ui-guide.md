@@ -2,7 +2,7 @@
 
 [简体中文](../../zh-CN/guides/ui-guide.md) | **English** | [Documentation hub](../README.md)
 
-The default entry is Sidebar. Optional Builtin placement embeds the same pages in a conversation. v0.5 keeps the familiar workflow and adds three Memory enhancement switches under **Settings → Memory System**, not a View page or generic plugin manager.
+The default entry is Sidebar. Optional Builtin placement embeds the same pages in a conversation. v0.5 keeps the familiar workflow and adds a main Strategy choice and three Memory enhancement switches under **Settings → Memory System** and on the `dsh-mnemon` page under **Plugins**, not a View page or generic plugin manager.
 
 ## See it in use
 
@@ -27,7 +27,7 @@ All four pages use the same content inset and one page scroll area. Their primar
 | Visible action | What happens after the click | Independent task Agent? |
 |---|---|---|
 | Refresh status, synchronize now, click a Memory Space card | The Host reads asynchronously; one region spinner or the card's state dot shows progress | No |
-| Toggle a Memory enhancement | Enable or disable one shipped behavior for future turns | No |
+| Choose a main Strategy or toggle a Memory enhancement | Switch how future turns compose memory, or enable or disable one shipped behavior | No |
 | Direct search, browse Content, inspect Entities | Provider-native read contracts run concurrently and render progressively | No |
 | Agent query | Recall runs first; bounded evidence goes to a clean top-level task Agent | Yes, read-only |
 | Remember / Save to memory | An editable confirmation precedes qualification, deduplication, distillation, routing, and writing | Starts after confirmation |
@@ -54,13 +54,18 @@ Expand **Subpackage versions** under dsh-mnemon to inspect Sources, Strategies, 
 
 ![Default memory layers and three optional enhancements](../../assets/webui-v0.5.4/en/enhancements.jpg)
 
-There is no standalone View page, and Status exposes no plugin catalog, dependency graph, or installation flow. The Starter ships three disabled enhancements using the same switches as other settings under **Settings → Memory System → Memory enhancements**:
+There is no standalone View page, and Status exposes no plugin catalog, dependency graph, or installation flow. **Main Strategy** chooses how memory is composed; exactly one applies at a time:
+
+- **Default three-tier** keeps Runtime memory resident, reads Documents and Memory Spaces on demand, and runs the automatic maintenance of earlier releases;
+- **General** offers every available Source in one budget and lets the model decide how to use each one, without automatic review or capacity maintenance.
+
+The choice appears only while both are installed. The Starter also ships three disabled enhancements under **Memory enhancements**; they work with either main Strategy:
 
 - **Active capture** identifies and records facts worth retaining from the current conversation;
 - **Light context** reduces resident content while preserving on-demand reads;
 - **Scoped composition** combines the currently available memory sources in stable order.
 
-A switch applies immediately to future turns; it never rewrites a turn that already pinned its View. All three may be enabled together, and disabling one never deletes Source data. The UI describes observable behavior only—never package names, Entries, dependencies, or conflicts. Third-party Sources and Strategies continue to use DSH Profile/Loader installation and composition; see [Building Memory Plugins](../development/extensions.md) for the author contract and contribution path.
+The same controls appear on the `dsh-mnemon` page under **Plugins**, and DSH's own component switches there stay consistent with them. A change applies immediately to future turns; it never rewrites a turn that already pinned its View. All three enhancements may be enabled together, and disabling one never deletes Source data. The UI describes observable behavior only—never package names, Entries, dependencies, or conflicts. Third-party Sources and Strategies continue to use DSH Profile/Loader installation and composition; see [Building Memory Plugins](../development/extensions.md) for the author contract and contribution path.
 
 ## 2. Runtime: maintain every-turn context
 
@@ -184,12 +189,12 @@ The 390 × 844 captures cover [directory navigation](../../assets/webui-v0.5.4/e
 Settings centralizes stable user choices and reusable **service configuration**:
 
 - Memory Source cards come from the live Catalog. Runtime, Documents, and Memory Spaces each have one master switch, with no additional participation-mode controls;
-- Memory enhancements provide three shipped switches—Active capture, Light context, and Scoped composition—disabled by default and applied immediately to future turns;
+- Main Strategy chooses Default three-tier or General when both are installed; Memory enhancements provide three shipped switches—Active capture, Light context, and Scoped composition—disabled by default. Both apply immediately to future turns;
 - every external Provider has its own switch and is off by default;
 - endpoint, API Key, and Provider-specific fields appear only after enabling;
 - OpenViking's optional **User key owner (skip admin)** field selects one user namespace for keys without Admin API access; fill the account and user key as well. A rejected data-plane check leaves the previous service configuration unchanged. [Setup and limits](./memory-providers.md#operational-boundaries);
 - API Keys use a conventional password field whose eye button toggles visible/hidden; there is no clear-credential checkbox, dedicated Remove row, or saved-secret caption;
-- the three enhancement switches apply immediately; the footer Save action persists all other changes without waiting for discovery or recall. Health belongs on Status and instances belong on Overview;
+- the main Strategy choice and the enhancement switches apply immediately; the footer Save action persists all other changes without waiting for discovery or recall. Health belongs on Status and instances belong on Overview;
 - global / workspace / custom tags show effective scope; Providers with the same scope semantics reuse Mnemon's configuration framework.
 - Choose **Settings → Memory System → Memory scope → Centralized · isolated by workspace** to collect project-isolated memory in one directory. Its optional **Central root directory** field is in the same section; leave it empty for `MNEMON_DATA_DIR` or `~/.mnemon`. The independent **Global user profile** option remains available.
 

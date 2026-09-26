@@ -76,7 +76,7 @@ The same public contracts serve the default plugins and external repositories. S
 
 ## Official plugins
 
-The Starter ships **3 Sources, 1 default Strategy, 3 optional Strategy contributions and 9 Providers**. Packages are independently versioned and published; the Starter pins an exact tested combination.
+The Starter ships **3 Sources, 2 main Strategies (one selected at a time), 3 optional enhancements and 9 Providers**. Packages are independently versioned and published; the Starter pins an exact tested combination.
 
 | Package | Responsibility | Default |
 |---|---|---|
@@ -84,11 +84,12 @@ The Starter ships **3 Sources, 1 default Strategy, 3 optional Strategy contribut
 | [dsh-mnemon-source-documents](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-source-documents/README.md) | Markdown, search, revisions and archiving | Enabled |
 | [dsh-mnemon-source-memory-spaces](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-source-memory-spaces/README.md) | Durable evidence and Source-owned Provider children | Enabled |
 | [dsh-mnemon-strategy-default-three-tier](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-default-three-tier/README.md) | The familiar three-tier View and turn retrieval policy | Selected |
+| [dsh-mnemon-strategy-general](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-general/README.md) | Every available Source in one budget; the model decides how to use each | Off |
 | [dsh-mnemon-strategy-auto-capture](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-auto-capture/README.md) | In-turn guidance to retain useful facts | Off |
 | [dsh-mnemon-strategy-light-context](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-light-context/README.md) | A shared resident-projection ceiling | Off |
 | [dsh-mnemon-strategy-scoped](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-scoped/README.md) | Ordered Source selection and a writable subset | Off |
 
-The three enhancements occupy different slots of the default Strategy and can coexist. They still produce one View. Capture is guidance, not an autonomous recorder; a projection ceiling is not token accounting or delta injection; scoped selection does not create storage.
+Choose one main Strategy and any enhancements under **Settings → Memory System** or on the `dsh-mnemon` page under **Plugins**. The enhancements use Core's standard selection, projection and capture slots, so they work with either main Strategy and can coexist. They still produce one View. Capture is guidance, not an autonomous recorder; a projection ceiling is not token accounting or delta injection; scoped selection does not create storage.
 
 Memory Spaces can use these Provider plugins:
 

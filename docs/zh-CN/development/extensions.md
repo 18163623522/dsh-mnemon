@@ -73,11 +73,11 @@ Entry id 标识实例，type id 标识实现。不能剥掉 Loader 的 include �
 
 ## 完整 Strategy 与可叠加贡献
 
-用 `defineMemoryStrategy` 定义，再以 `{ strategies: [definition] }` 安装。声明确定性、支持角色与上限；纯 `compose` 返回 `MemoryViewSpec`，选择准确的 Source key、eager/routed 投影预算和 Source 本地 route/action id。组合阶段不执行网络、存储或凭据访问。
+用 `defineMemoryStrategy` 定义，再以 `{ strategies: [definition] }` 安装。声明确定性、支持角色与上限（与角色无关的 Strategy 只列出 `ANY_MEMORY_SOURCE_ROLE`，即 `'*'`）；纯 `compose` 返回 `MemoryViewSpec`，选择准确的 Source key、eager/routed 投影预算和 Source 本地 route/action id。组合阶段不执行网络、存储或凭据访问。
 
-完整 Strategy 用可选 `extensionSlots` 声明自有的独占扩展槽。小插件使用 `defineMemoryStrategyExtension`，以 `{ strategyExtensions: [definition] }` 安装。启用后向目标 Strategy 的一个槽贡献有界 JSON，停用只撤销自身贡献；不同槽同时参与一个 View，同一目标的重复槽会拒绝注册，不按安装顺序覆盖。目标 Strategy 未被选择时，贡献保持可观察但不执行；不支持的槽会拒绝候选运行代，并保留已有 Serving。
+可以同时安装多个主策略，每个 View 只由其中一个组合：`memoryView.strategyTypeId` 负责选择；所选主策略被停用且只剩另一个主策略时，Host 改用那一个并报告 `strategy-fallback` 诊断。完整 Strategy 用可选 `extensionSlots` 声明自有的独占扩展槽。小插件使用 `defineMemoryStrategyExtension`，以 `{ strategyExtensions: [definition] }` 安装。启用后向目标 Strategy 的一个槽贡献有界 JSON，停用只撤销自身贡献；不同槽同时参与一个 View，同一目标的重复槽会拒绝注册，不按安装顺序覆盖。目标 Strategy 未被选择时，贡献保持可观察但不执行；不支持的槽会拒绝候选运行代，并保留已有 Serving。
 
-Core 只处理目标/槽身份、JSON、64,000 字符上限、确定性回放、生命周期和最终 View 的原有预算/权限，不解释业务槽名。扩展回调只接收 request 和权限过滤后的 Source facts，没有 Source 对象、grant 或写入回调。槽语义由目标 Strategy 的公开 SDK 定义。动态回调或槽值在具体回合中不合法时，该回合拒绝，不偷偷回退到忽略插件的 View。
+Core 只处理目标/槽身份、JSON、64,000 字符上限、确定性回放、生命周期和最终 View 的原有预算/权限；它只定义下文 `selection`、`projection` 与 `capture` 三个标准槽的取值契约，其他槽名归目标 Strategy 所有。扩展回调只接收 request 和权限过滤后的 Source facts，没有 Source 对象、grant 或写入回调。槽语义由目标 Strategy 的公开 SDK 定义。动态回调或槽值在具体回合中不合法时，该回合拒绝，不偷偷回退到忽略插件的 View。
 
 ### 可选的配置声明
 
@@ -85,13 +85,15 @@ Core 只处理目标/槽身份、JSON、64,000 字符上限、确定性回放、
 
 helper 校验并冻结元信息副本，不执行 factory；返回的 `create(config)` 会校验传入字段与所声明的贡献，省略值的默认行为仍由 factory 负责。`number` 必须是有限整数；列表最多 32 个不重复、非空且不超过 500 字符的字符串；文本默认上限为 4,000 字符。Host 对未使用 helper 的模块复用同一套校验，同时保留 Loader 身份检查和局部错误隔离。
 
-v0.5 不向普通用户提供通用的记忆插件发现、依赖图或安装弹窗。本版稳定 Source/Strategy 契约和单 View 编译边界，同时不把插件心智加入 v0.4 的日常工作流。三个随 Starter 安装的增强只以“设置 → 记忆系统 → 记忆增强”中的行为开关呈现；包名、Entry、依赖和互斥关系不进入这层界面。
+普通用户看不到通用的记忆插件发现、依赖图或安装弹窗。主策略与增强以行为控件呈现在“设置 → 记忆系统”和“插件”中的 `dsh-mnemon` 页面；包名、Entry、依赖和互斥关系不进入这层界面。DSH 插件管理器可用时，它们的启停保存在 DSH profile patch 中，因此插件页的原生组件开关与 Mnemon 控件始终一致；Mnemon 只保存所选主策略和各 Entry 的配置。
 
 第三方插件仍走 DSH 原生 Profile/Loader 流程：用准确包名执行 `dsh plugin --profile <Profile> add <包名>@<版本> --save-exact`，检查其 `peerDependencies` 与 `dsh.bundle.patch`，重启后在 Profile 装配中明确激活。下载 npm 包本身不等于激活，Mnemon 也不会在当前进程热加载新代码。欢迎外部作者按本页契约贡献独立仓库；通用图形化管理会在接口和社区用例稳定后再评估，不是 v0.5 承诺。
 
-### 默认三层扩展
+<a id="默认三层扩展"></a>
 
-默认三层的 `dsh-mnemon-strategy-default-three-tier/extension-sdk` 提供 `defineThreeTierExtension` 和三个槽：
+### 标准 View 扩展
+
+`dsh-mnemon/extension-sdk` 的 `defineMemoryViewExtension` 以 `ANY_MEMORY_STRATEGY`（`'*'`）为目标：扩展跟随声明了该槽的所选 Strategy，否则保持停用并给出诊断。每个被选中的槽在 `'*'` 扩展与指定 Strategy 的扩展之间只有一个所有者。`validateMemoryViewExtension` 与 `memoryViewExtensionValues` 让 Strategy 读取同样经过校验的值。`dsh-mnemon-strategy-default-three-tier/extension-sdk` 保留 `defineThreeTierExtension`，供只作用于该 Strategy 的扩展使用。随附增强使用以下标准槽：
 
 | 可选插件 | 槽 | 贡献与边界 |
 |---|---|---|
@@ -99,7 +101,7 @@ v0.5 不向普通用户提供通用的记忆插件发现、依赖图或安装弹
 | `dsh-mnemon-strategy-light-context` | `projection` | 一份共享投影上限，只收紧 Host 预算；不是增量注入或摘要压缩 |
 | `dsh-mnemon-strategy-auto-capture` | `capture` | 当前对话的记录指引、目标与明确 Action id；不启动后台 Agent、不直接写入 |
 
-Starter 会安装这三个包并注册为停用的 DSH Entry，因此 v0.5 的三个开关始终可用，但默认组合、预算和提醒保持 v0.4 行为。打开开关后，对应贡献自动参与 `default-three-tier`，不需要修改 `strategyId`；关闭只撤销该贡献，不删除任何 Source 数据。Runtime 当前没有展开 route；把常驻预算压得很低可能隐藏热记忆，需要针对实际任务评测。
+Starter 会安装这三个包并注册为停用的 DSH Entry，因此开关始终可用，但默认组合、预算和提醒保持 v0.4 行为。打开开关后，对应贡献自动参与当前主策略，不改变主策略；关闭只撤销该贡献，不删除任何 Source 数据。通用主策略（`dsh-mnemon-strategy-general`）同样接受这三个槽。Runtime 当前没有展开 route；把常驻预算压得很低可能隐藏热记忆，需要针对实际任务评测。
 
 `scoped` 的 Source key 若包含 Loader 的 include 前缀，应使用实例目录中的完整 key；省略配置时按角色/key 确定性组合现有实例，不创建新的存储。内置界面只提供稳定的开关，复杂字段仍由高级 Profile 配置管理。
 
@@ -107,12 +109,11 @@ Starter 会安装这三个包并注册为停用的 DSH Entry，因此 v0.5 的�
 
 ```ts
 import type { Context } from '@deepseek-ai/cordis'
-import { installMemory } from 'dsh-mnemon/extension-sdk'
-import { defineThreeTierExtension } from 'dsh-mnemon-strategy-default-three-tier/extension-sdk'
+import { defineMemoryViewExtension, installMemory } from 'dsh-mnemon/extension-sdk'
 
 export const inject = ['mnemonMemory']
 export function apply(ctx: Context): void {
-  installMemory(ctx, { strategyExtensions: [defineThreeTierExtension({
+  installMemory(ctx, { strategyExtensions: [defineMemoryViewExtension({
     typeId: 'my-light-context', packageName: 'dsh-mnemon-strategy-my-light-context',
     slot: 'projection', contribute: () => ({ maxProjectionCharacters: 4096 }),
   })] })
