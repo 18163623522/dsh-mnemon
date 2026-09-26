@@ -122,7 +122,6 @@
   },
   "scripts": {
     "build": "tsdown && tsc -p tsconfig.types.json && node scripts/link-bundle-declarations.mjs",
-    "bundle": "tsdown",
     "prepublishOnly": "pnpm run verify",
     "lint:package": "publint --strict && attw --pack . --profile esm-only --quiet",
     "typecheck": "tsc -p tsconfig.json --noEmit",
