@@ -14,7 +14,7 @@ const ICON_SELECTOR = '[data-dsh-plugin="dsh-mnemon"][data-dsh-part="sidebar-ico
 
 /** The native Sidebar owns the surrounding button, label, tooltip and state. */
 export function MnemonSidebarIcon({ size }: Pick<PropsRuntime<'sidebar.panellist'>, 'size'>): JSX.Element {
-  return <svg data-dsh-plugin="dsh-mnemon" data-dsh-part="sidebar-icon" aria-hidden="true" viewBox="0 0 16 16" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+  return <svg data-dsh-plugin="dsh-mnemon" data-dsh-part="sidebar-icon" aria-hidden="true" viewBox="0 0 16 16" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
     <ellipse cx="8" cy="3.5" rx="5" ry="2" />
     <path d="M3 3.5v4c0 1.1 2.2 2 5 2s5-.9 5-2v-4M3 7.5v4c0 1.1 2.2 2 5 2s5-.9 5-2v-4" />
   </svg>

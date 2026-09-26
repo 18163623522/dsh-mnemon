@@ -30,7 +30,7 @@ function createIcon(): SVGSVGElement {
   icon.setAttribute('height', '18')
   icon.setAttribute('fill', 'none')
   icon.setAttribute('stroke', 'currentColor')
-  icon.setAttribute('stroke-width', '1.5')
+  icon.setAttribute('stroke-width', '1')
   icon.setAttribute('stroke-linecap', 'round')
   icon.setAttribute('stroke-linejoin', 'round')
   icon.setAttribute('aria-hidden', 'true')
