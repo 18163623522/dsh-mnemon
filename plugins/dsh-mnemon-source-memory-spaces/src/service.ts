@@ -319,8 +319,6 @@ export function mutationResultCommitted(result: unknown): boolean {
 
 export class MemorySpacesService {
   readonly memorySpaces: MemorySpaceRegistry
-  /** @deprecated Use memorySpaces. Both names share the same registry authority. */
-  readonly memoryBodies: MemorySpaceRegistry
   private readonly providers: Map<MemorySpace['provider']['id'], MemoryProviderAdapter>
   private readonly recallQualityPolicy: RecallQualityPolicy
   private spacesInFlight: Promise<MemorySpaceCatalog> | undefined
@@ -352,7 +350,6 @@ export class MemorySpacesService {
     this.memorySpaces = memorySpaces === undefined
       ? new MemorySpaceRegistry(runner, true, () => new Date(), providerCatalog)
       : providerCatalog === EMPTY_MEMORY_PROVIDER_CATALOG ? memorySpaces : memorySpaces.withProviderCatalog(providerCatalog)
-    this.memoryBodies = this.memorySpaces
     this.recallQualityPolicy = recallQualityPolicyRegistry.resolve(config.recallQuality.policy)
     this.providers = providerAdapterRegistry.create({ memorySpaces: this.memorySpaces, memoryBodies: this.memorySpaces, config: this.config, nativeRunner: this.runner })
   }
@@ -1278,54 +1275,4 @@ export class MemorySpacesService {
   private assertWritable(): void {
     if (!this.config.writeEnabled) throw new Error('dsh-mnemon is configured read-only (writeEnabled: false)')
   }
-  /** @deprecated Use spaces. */
-  bodies(...args: Parameters<MemorySpacesService['spaces']>): ReturnType<MemorySpacesService['spaces']> {
-    return this.spaces(...args)
-  }
-
-  /** @deprecated Use spaceDirectory. */
-  bodyDirectory(...args: Parameters<MemorySpacesService['spaceDirectory']>): ReturnType<MemorySpacesService['spaceDirectory']> {
-    return this.spaceDirectory(...args)
-  }
-
-  /** @deprecated Use reconnectSpace. */
-  reconnectBody(...args: Parameters<MemorySpacesService['reconnectSpace']>): ReturnType<MemorySpacesService['reconnectSpace']> {
-    return this.reconnectSpace(...args)
-  }
-
-  /** @deprecated Use prepareSpacePlacement. */
-  prepareBodyPlacement(...args: Parameters<MemorySpacesService['prepareSpacePlacement']>): ReturnType<MemorySpacesService['prepareSpacePlacement']> {
-    return this.prepareSpacePlacement(...args)
-  }
-
-  /** @deprecated Use createSpace. */
-  createBody(...args: Parameters<MemorySpacesService['createSpace']>): ReturnType<MemorySpacesService['createSpace']> {
-    return this.createSpace(...args)
-  }
-
-  /** @deprecated Use createSpaceForPersistence. */
-  createBodyForPersistence(...args: Parameters<MemorySpacesService['createSpaceForPersistence']>): ReturnType<MemorySpacesService['createSpaceForPersistence']> {
-    return this.createSpaceForPersistence(...args)
-  }
-
-  /** @deprecated Use updateSpace. */
-  updateBody(...args: Parameters<MemorySpacesService['updateSpace']>): ReturnType<MemorySpacesService['updateSpace']> {
-    return this.updateSpace(...args)
-  }
-
-  /** @deprecated Use updateSpaceMetadata. */
-  updateBodyMetadata(...args: Parameters<MemorySpacesService['updateSpaceMetadata']>): ReturnType<MemorySpacesService['updateSpaceMetadata']> {
-    return this.updateSpaceMetadata(...args)
-  }
-
-  /** @deprecated Use deleteSpace. */
-  deleteBody(...args: Parameters<MemorySpacesService['deleteSpace']>): ReturnType<MemorySpacesService['deleteSpace']> {
-    return this.deleteSpace(...args)
-  }
-
-  /** @deprecated Use mergeSpaces. */
-  mergeBodies(...args: Parameters<MemorySpacesService['mergeSpaces']>): ReturnType<MemorySpacesService['mergeSpaces']> {
-    return this.mergeSpaces(...args)
-  }
-
 }
