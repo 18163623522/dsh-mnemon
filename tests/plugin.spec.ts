@@ -148,30 +148,26 @@ describe('dsh-mnemon plugin composition', () => {
     expect(routes.size).toBe(0)
   })
 
-  it('keeps the installed DSH prerelease family coherent', () => {
+  it('keeps the installed DSH release family coherent', () => {
+    // Every direct DSH package, peer range and locked DSH package follows one release.
+    const baseline = manifest.devDependencies['@deepseek-ai/dsh']
     const legacyProjection = '@deepseek-ai/dsh-session-projection-legacy'
     const directDshDependencies = Object.entries(manifest.devDependencies)
       .filter(([name]) => name === '@deepseek-ai/dsh' || name.startsWith('@deepseek-ai/dsh-'))
       .filter(([name]) => name !== legacyProjection)
-    const lockedDshVersions = [...lockfile.matchAll(/(@deepseek-ai\/dsh(?:-[a-z0-9-]+)?)@(\d+\.\d+\.\d+-(?:alpha|rc)\.\d+)/g)]
+    const lockedDshVersions = [...lockfile.matchAll(/(@deepseek-ai\/dsh(?:-[a-z0-9-]+)?)@(\d+\.\d+\.\d+(?:-(?:alpha|rc)\.\d+)?)(?=[:'(_\s])/g)]
       // Only this aliased regression fixture may use the older host contract.
       .filter(([, name, version]) => name !== '@deepseek-ai/dsh-session-projection' || version !== '0.1.0-rc.8')
       .map(match => match[2])
-    const lockedRcReleases = [...lockfile.matchAll(/^  '(@deepseek-ai\/dsh(?:-[a-z0-9-]+)?)@(0\.1\.5-rc\.1)':$/gm)]
-      .map(([, name, version]) => `${name}@${version}`)
-    const releaseAgeExclusions = [...workspaceConfig.matchAll(/^  - '(@deepseek-ai\/dsh(?:-[a-z0-9-]+)?@0\.1\.5-rc\.1)'$/gm)]
-      .map(match => match[1])
 
-    expect(directDshDependencies).toHaveLength(29)
-    expect(new Set(directDshDependencies.map(([, version]) => version))).toEqual(new Set(['0.1.5-rc.1']))
+    expect(baseline).toMatch(/^\d+\.\d+\.\d+(?:-(?:alpha|rc)\.\d+)?$/)
+    expect(new Set(directDshDependencies.map(([, version]) => version))).toEqual(new Set([baseline]))
     expect(manifest.engines.node).toBe('>=20')
     for (const name of ['@deepseek-ai/dsh-client-ui-primitives', '@deepseek-ai/dsh-typert-protocol']) {
-      expect(manifest.peerDependencies[name]).toBe('^0.1.5-rc.1 || ^0.1.6-alpha.2 || ^0.1.7-alpha.1')
+      expect(manifest.peerDependencies[name]).toBe(`^${baseline}`)
     }
     expect(lockedDshVersions.length).toBeGreaterThan(100)
-    expect(new Set(lockedDshVersions)).toEqual(new Set(['0.1.5-rc.1']))
-    expect(new Set(releaseAgeExclusions)).toEqual(new Set(lockedRcReleases))
-    expect(releaseAgeExclusions).toHaveLength(new Set(lockedRcReleases).size)
+    expect(new Set(lockedDshVersions)).toEqual(new Set([baseline]))
     expect(workspaceConfig).not.toMatch(/^  - ['"]@deepseek-ai\/\*/m)
   })
 

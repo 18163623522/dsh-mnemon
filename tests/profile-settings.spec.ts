@@ -1,6 +1,6 @@
 import { Context, type Fiber } from '@deepseek-ai/cordis'
 import { createVolatile } from '@deepseek-ai/cosmokit'
-import z from 'schemastery'
+import z from '@deepseek-ai/schemastery'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Config, InteractionConfig } from '../src/host/config.ts'
 import type { HostContextShape, HostSettingsService } from '../src/host/dsh.ts'

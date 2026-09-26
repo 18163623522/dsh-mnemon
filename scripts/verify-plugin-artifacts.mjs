@@ -15,10 +15,12 @@ const configuredConcurrency = process.env.MNEMON_PLUGIN_VERIFY_CONCURRENCY ?? '4
 assert.match(configuredConcurrency, /^[1-9]\d*$/, 'MNEMON_PLUGIN_VERIFY_CONCURRENCY must be a positive integer')
 const concurrency = Math.min(Number(configuredConcurrency), names.length)
 const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
-const upgradeBaseResponse = await fetch('https://registry.npmjs.org/dsh-mnemon/0.4.7')
-assert(upgradeBaseResponse.ok, `Unable to read the published v0.4.7 upgrade base (${upgradeBaseResponse.status})`)
+// The newest release that runs on the supported DSH is the realistic upgrade base.
+const upgradeBase = '0.5.16'
+const upgradeBaseResponse = await fetch(`https://registry.npmjs.org/dsh-mnemon/${upgradeBase}`)
+assert(upgradeBaseResponse.ok, `Unable to read the published v${upgradeBase} upgrade base (${upgradeBaseResponse.status})`)
 const upgradeBaseManifest = await upgradeBaseResponse.json()
-assert.equal(upgradeBaseManifest.version, '0.4.7')
+assert.equal(upgradeBaseManifest.version, upgradeBase)
 const temporary = await mkdtemp(join(tmpdir(), 'mnemon-plugin-artifacts-'))
 assert(!inside(root, temporary), 'The consumer must be outside the development workspace')
 const artifacts = new Map()
@@ -189,7 +191,7 @@ try {
     { label: 'real DSH Starter upgrade', priority: 10, action: () => run(process.execPath, [
       join(root, 'scripts/verify-headless-profile.mjs'),
       '--package', 'file:' + artifacts.get(manifest.name), '--registry', registryUrl,
-      '--upgrade-from', 'dsh-mnemon@0.4.7', '--upgrade-registry', 'https://registry.npmjs.org',
+      '--upgrade-from', `dsh-mnemon@${upgradeBase}`, '--upgrade-registry', 'https://registry.npmjs.org',
     ], root, 'real DSH: install only the packed Starter and activate its plugins') },
     { label: 'real DSH Strategy composition', priority: 10, action: () => run(process.execPath, [
       join(root, 'scripts/verify-headless-profile.mjs'),

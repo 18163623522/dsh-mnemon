@@ -1,4 +1,4 @@
-import z from 'schemastery'
+import z from '@deepseek-ai/schemastery'
 import { homedir } from 'node:os'
 import { isAbsolute, join } from 'node:path'
 import type { MemoryPersistenceStrategy, ResolvedMemoryPersistenceStrategy, MemoryPlacementCapability, MemoryPlacementPreference, MemoryProviderId, MemoryProviderConnection, MnemonEmbeddingConfig, ResolvedMnemonEmbeddingConfig, RecallQualityConfig, ResolvedRecallQualityConfig } from './contracts.ts'

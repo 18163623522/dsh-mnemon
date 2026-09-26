@@ -1,5 +1,5 @@
 import type { Context } from '@deepseek-ai/cordis'
-import z from 'schemastery'
+import z from '@deepseek-ai/schemastery'
 import { defineMemoryPlugin, installMemory, memoryConfigurationDigest } from 'dsh-mnemon/extension-sdk'
 import { createMemorySpacesSource } from './source.ts'
 import { PrivateMemorySpaceProviderHost } from './providers/host.ts'

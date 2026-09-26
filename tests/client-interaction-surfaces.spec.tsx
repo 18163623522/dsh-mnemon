@@ -8,6 +8,17 @@ import { MnemonSaveAction } from '../src/client/MnemonSaveAction.tsx'
 import { MnemonTurnTail, memoryPageForTool } from '../src/client/MnemonTurnTail.tsx'
 import { consumeMnemonAnchor, dispatchMnemonAnchor, subscribeMnemonAnchor } from '../src/client/anchor.ts'
 
+// DSH's Modal and Tooltip measure their surfaces before showing them; jsdom
+// has no layout engine, so report an empty box as soon as one is observed.
+globalThis.ResizeObserver ??= class {
+  constructor(private readonly callback: ResizeObserverCallback) {}
+  observe(target: Element): void {
+    this.callback([{ target, borderBoxSize: [{ inlineSize: 0, blockSize: 0 }] } as unknown as ResizeObserverEntry], this as unknown as ResizeObserver)
+  }
+  unobserve(): void {}
+  disconnect(): void {}
+} as unknown as typeof ResizeObserver
+
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
