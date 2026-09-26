@@ -4,7 +4,7 @@
 
 ## 环境与命令
 
-插件的 Node engine 下限为 20；锁定的完整 DSH 开发 Profile 是正式发布的 0.1.5-rc.1，需要 Node `^22.19.0 || >=24.0.0`，建议开发使用 Node 24。Root、Source Client 测试和外部制品消费者均使用该 rc.1 依赖族；`dsh-invariants` 闭合 peer 图，`dsh-client-store` 则提供子 Agent projection 适配器使用的公开 selector 类型。CI 另在 Node 20 冒烟导入公开 Node 入口；源码覆盖工具保留用于明确请求的调查。
+插件的 Node engine 下限为 20；锁定的完整 DSH 开发 Profile 是正式发布的 0.1.5-rc.1，需要 Node `^22.19.0 || >=24.0.0`，建议开发使用 Node 24。Root、Source Client 测试和外部制品消费者均使用该 rc.1 依赖族；`dsh-invariants` 闭合 peer 图，`dsh-client-store` 则提供子 Agent projection 适配器使用的公开 selector 类型。CI 另在 Node 20 冒烟导入公开 Node 入口。
 
 DSH 0.1.5 UI primitives 在制品中导入 Markdown/高亮依赖，但其已发布 manifest 将这些包列为开发依赖。Root、三个 Source 与外部消费者显式声明完整依赖族，使独立 Client 测试可执行；Host 制品仍使用 DSH 提供的 UI 模块。测试同步使用公开的异步 Agent 工厂及持久化 `assistant/message` 事件。`tests/legacy-session-repair.spec.ts` 对普通和压缩格式的合成历史日志执行已发布 v0 → v3 迁移，检查显式副本修复、冷启动重读和带时间戳的 stream 回放。审计用例覆盖三个旧 Mnemon summary、兼容 v2 descriptor、packed 占位值展开、null→空字符串 delta name，以及具有已记录 provider ID 的闭合工具链；另验证多调用 provenance、owner 引用拒绝、原件及其他插件保留。`pnpm e2e:serve --legacy-session-replay` 还要求实际 WebUI 的回环续写服务器核对历史 wire call/result ID 与正文，匹配后才返回成功。
 
@@ -142,13 +142,7 @@ Issue #233 使用 `node scripts/fixtures/openviking-protocol.mjs` 与 `pnpm e2e:
 
 Runtime 写入范围回归使用 `MNEMON_CLI_PATH=/absolute/path/to/mnemon pnpm e2e:serve --runtime-write-scope --strategy-extensions`，并启动全新临时夹具。在 Mnemon E2E 中发送 `archive-scope-250`。脚本模型先保存两条检查点，在已固定的 View 内创建并激活两个真实 Native 空间，再新增一条越限检查点。基线版本会在空间已激活的情况下拒绝新增；修复后的 Host 会把原文归档到两个有权限的目标，再提交新增内容。发送 `archive-scope-250 retry` 可在新回合重试同一份待新增输入。夹具限制子 Agent 调用次数，且必须收到真实 create/update 回执才完成调用。
 
-## 可选 DSH 源码覆盖
-
 `pnpm e2e:serve --idle-review --strategy-extensions` 通过确定性回环模型选择验证部分失败。连续发送两个至少 150 字符的合成用户回合，再等待五秒；真实 reviewer 创建一份档案和一条 Runtime 记忆后，夹具故意返回模型错误。刷新记忆系统状态核对两份已提交回执，再发送更多回合，确认每会话一次的上限阻止新增子 Agent。与生产默认值的差别只有防抖和最小尝试间隔（均为 5 秒）以及 1 次会话上限。该夹具不模拟真实 Agent Teams policy；该组合由上文的可选 Agent Teams 矩阵覆盖。不使用个人凭据或记忆。详见[双语复现与证据](../../pr-assets/idle-review-agent-team/README.zh-CN.md)。
-
-默认使用 registry 制品，本次 0.1.5 验证也全部使用已发布包。维护者明确要求调查源码版时，可通过 `DSH_SOURCE_ROOT` 指定独立构建的 Harness checkout，使用 `pnpm dsh:link-source` 链接，结束后用 `pnpm dsh:restore-registry` 恢复原始链接。工具只更改生成的 `node_modules`，不改已发布依赖版本或 tsconfig 源码路径。目标 checkout 必须提供当前依赖族，再按该目标选择适用检查。
-
-历史 0.1.2-alpha.5 的完整测试流程只属于原记录对应的 revision；当前夹具需要 0.1.5 的会话迁移和消息契约，不能将旧流程当成本 checkout 的验证命令。参见[早期 registry/源码记录](../../pr-assets/main-rebase-20260904/README.md)与[当前 0.1.5 验证](../../pr-assets/issue-223-dsh-015/README.zh-CN.md)。
 
 ## 发布
 

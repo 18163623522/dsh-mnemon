@@ -139,8 +139,6 @@
     "release:intent": "node scripts/check-release-intent.mjs",
     "release:status": "changeset status",
     "release:version": "changeset version && node scripts/sync-release-metadata.mjs && pnpm install --lockfile-only",
-    "dsh:link-source": "node scripts/link-dsh-source.mjs",
-    "dsh:restore-registry": "node scripts/link-dsh-source.mjs --restore",
     "release:check": "node scripts/release.mjs --check"
   },
   "dependencies": {
