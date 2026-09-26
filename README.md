@@ -54,7 +54,7 @@ dsh plugin --profile web add dsh-mnemon
 dsh web
 ```
 
-The pinned development baseline is DSH `0.1.5-rc.1`; additional verified versions are recorded in the [compatibility matrix](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/reference/compatibility.md). Existing Sessions with `source summary requires notice form` need the explicit `dsh-mnemon-repair-session --input FILE --output NEW_FILE` copy repair; see [legacy Session recovery](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/operations.md#dsh-015-compatibility-and-legacy-session-recovery) before replacing any artifact.
+dsh-mnemon supports DSH `0.1.7-rc.2`, its pinned development baseline; keep `v0.5.16` on older hosts. See the [compatibility matrix](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/reference/compatibility.md). Existing Sessions with `source summary requires notice form` need the explicit `dsh-mnemon-repair-session --input FILE --output NEW_FILE` copy repair; see [legacy Session recovery](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/operations.md#dsh-015-compatibility-and-legacy-session-recovery) before replacing any artifact.
 
 For Headless, add the same package to that profile with `dsh plugin --profile headless add dsh-mnemon`.
 

@@ -53,7 +53,7 @@ The opt-in SQLite incompatibility first called out for DSH rc.8 remains in DSH 0
 
 ## DSH 0.1.5 compatibility and legacy Session recovery
 
-DSH `0.1.5-rc.1` is the pinned development baseline; see the [compatibility matrix](../reference/compatibility.md) for additional verified versions. Restart the Web Profile after upgrading Mnemon: the Starter patch gives the owning `connection` entry both `webRuntime` and `webServer`. This restores all seven Mnemon RPC channels when **Memory System** or its Settings page previously returned HTTP 405. Custom profiles that install the Host without the Starter must apply the same dependency declaration to their connection entry, preserving any additional dependencies in their own composition. No DSH package source is changed; browser authentication and Mnemon grants still apply.
+DSH `0.1.7-rc.2` is the supported host; see the [compatibility matrix](../reference/compatibility.md). Restart the Web Profile after upgrading Mnemon: the Starter patch gives the owning `connection` entry both `webRuntime` and `webServer`. This restores all seven Mnemon RPC channels when **Memory System** or its Settings page previously returned HTTP 405. Custom profiles that install the Host without the Starter must apply the same dependency declaration to their connection entry, preserving any additional dependencies in their own composition. No DSH package source is changed; browser authentication and Mnemon grants still apply.
 
 The separate error `source summary requires notice form; source v0 artifact remains unchanged` comes from older Mnemon messages in DSH Session logs. New recall/instruction messages omit that invalid summary. Updating the plugin does not rewrite an existing Session. To repair one affected log:
 
@@ -152,9 +152,9 @@ Existing turns and delegated child activations may still use the old runtime. Wa
 
 <a id="cloud-hosted-webui"></a>
 
-## Cloud-hosted WebUI on DSH 0.1.5-rc.1
+## Cloud-hosted WebUI
 
-DSH 0.1.5-rc.1 is the recommended registry target. It authenticates the page, every RPC, and every stream through an authority-bound browser session created from the launch-token URL printed by the Host. `--trusted-host` remains a Host/Origin fence; it does not replace HTTPS or deployment access controls.
+DSH 0.1.7-rc.2 is the supported registry target. It authenticates the page, every RPC, and every stream through an authority-bound browser session created from the launch-token URL printed by the Host. `--trusted-host` remains a Host/Origin fence; it does not replace HTTPS or deployment access controls.
 
 1. Terminate HTTPS at a reverse proxy or access gateway and protect the public entry for its intended users. Proxy the same-origin `/` and `/api` traffic, including streams, to `http://127.0.0.1:3080` while preserving the external `Host` authority.
 2. Start the loopback service with the external authority. Use a bare `host[:port]`, not a URL:
@@ -185,7 +185,7 @@ This disables the Core/Host, all three bundled Sources, the default Strategy, an
 
 ### Remote management and DSH 0.1.1-rc.2 rollback
 
-The DSH `0.1.1-rc.2` procedure below is historical. Current Mnemon Client code requires DSH `0.1.5-rc.1` or the verified newer cohorts in the [compatibility matrix](../reference/compatibility.md). When rolling back, pair the older DSH with its previously verified Mnemon release and restore the corresponding pre-upgrade Session backup.
+The DSH `0.1.1-rc.2` procedure below is historical. Current Mnemon requires DSH `0.1.7-rc.2`; see the [compatibility matrix](../reference/compatibility.md). When rolling back, pair the older DSH with its previously verified Mnemon release and restore the corresponding pre-upgrade Session backup.
 
 For v0.5.5 authenticated Gateway clients, `remoteAccess: trusted-host` grants management operations; default remote reads and narrow activation do not need it. The previous DSH rc.2 line enforces the same local configuration through legacy method-authority tiers, with settings, backups and broad mutations loopback-only by default. Configure management only for the intended authenticated users.
 
@@ -274,13 +274,12 @@ Report vulnerabilities privately through [SECURITY.md](../../../SECURITY.md), no
 | Custom directory rejected | Use an absolute path, `~`, or `~/...` |
 | `memoryBodyId is required...` | Active count is not exactly one; select a target explicitly |
 | `memory space is not active for reading` | Activate it in Overview; inactive writes are allowed, reads are not |
-| Provider error | Review needs guarded local child publication; use bounded `spawn` or opt-in `fork`. With DSH/Teams 0.1.7-rc.1, opt into `idleReview.agentTeams: scoped`; keep `pause` for older policies. Inspect partial-write receipts before retrying |
+| Provider error | Review needs guarded local child publication; use bounded `spawn` or opt-in `fork`. With DSH/Teams 0.1.7-rc.2, opt into `idleReview.agentTeams: scoped`; `pause` stays the default. Inspect partial-write receipts before retrying |
 | Runtime replace exceeds capacity | Shorten it or organize first; automatic maintenance handles add overflow only |
 | Document source path rejected | Keep it inside the session workspace and outside managed Documents |
 | CLI timeout | Increase `timeoutMs`; large Stores may need more than 10 seconds for status or graph |
 | Lock timeout | Check other writers; never delete a lock owned by a live process |
 | Memory System goes blank with a `refreshSnapshot` or settings-store error | Upgrade dsh-mnemon to v0.4.1 and restart the owning DSH profile; settings callbacks preserve their host store receiver |
-| DSH alpha reports `list slot "conversation.chat.turnTail" requires options.id` | Install a dsh-mnemon release containing the DSH `0.1.6-alpha.2` turn-tail fix, restart the owning Web profile, and reload the page. The fix retains the turn-memory toggle and requires no data repair |
 | ZIP export reports `date not in range 1980-2099` | Upgrade dsh-mnemon to v0.4.1; fixed local ZIP date fields work in timezones behind UTC and keep identical exports byte-stable across timezones |
 | ZIP export reports WAL busy | Wait for Memory Space writes to settle; do not bypass the uncheckpointed-WAL guard |
 | ZIP import checksum/schema failure | The backup is damaged or incompatible; preserve the current root and never unzip over it manually |
