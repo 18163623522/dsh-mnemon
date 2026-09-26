@@ -7,7 +7,7 @@ import type { MnemonNativeSidebarSeat } from './native-sidebar-seat.ts'
 import type { MnemonWorkspaceController } from './workspace-controller.ts'
 import { mountMnemonSidebarEntry } from './sidebar-entry.ts'
 import { coordinateSidebarPanels } from './workspace-mount.tsx'
-import { MEMORY_ICON_PATHS } from './memory-icon.ts'
+import { MemoryIcon } from './memory-icon.tsx'
 import css from './MnemonWorkspace.module.css'
 
 export const MNEMON_MAIN_PANEL_ID = 'mnemon' as MainPanelId
@@ -15,9 +15,7 @@ const ICON_SELECTOR = '[data-dsh-plugin="dsh-mnemon"][data-dsh-part="sidebar-ico
 
 /** The native Sidebar owns the surrounding button, label, tooltip and state. */
 export function MnemonSidebarIcon({ size }: Pick<PropsRuntime<'sidebar.panellist'>, 'size'>): JSX.Element {
-  return <svg data-dsh-plugin="dsh-mnemon" data-dsh-part="sidebar-icon" aria-hidden="true" viewBox="0 0 16 16" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-    {MEMORY_ICON_PATHS.map(path => <path key={path} d={path} />)}
-  </svg>
+  return <MemoryIcon size={size} data-dsh-plugin="dsh-mnemon" data-dsh-part="sidebar-icon" />
 }
 
 /** DSH selects this seat; the shell registration retains Source render authority. */

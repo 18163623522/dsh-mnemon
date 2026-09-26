@@ -1,7 +1,7 @@
 import type { MnemonTranslate } from './locales.ts'
 import css from './MnemonWorkspace.module.css'
 import type { MnemonWorkspaceController } from './workspace-controller.ts'
-import { MEMORY_ICON_PATHS } from './memory-icon.ts'
+import { createMemoryIcon } from './memory-icon.tsx'
 
 export const MNEMON_ENTRY_SELECTOR = '[data-dsh-mnemon-entry]'
 
@@ -23,26 +23,6 @@ function newSessionButton(root: HTMLElement): HTMLButtonElement | undefined {
   return undefined
 }
 
-function createIcon(): SVGSVGElement {
-  const namespace = 'http://www.w3.org/2000/svg'
-  const icon = document.createElementNS(namespace, 'svg')
-  icon.setAttribute('viewBox', '0 0 16 16')
-  icon.setAttribute('width', '18')
-  icon.setAttribute('height', '18')
-  icon.setAttribute('fill', 'none')
-  icon.setAttribute('stroke', 'currentColor')
-  icon.setAttribute('stroke-width', '1')
-  icon.setAttribute('stroke-linecap', 'round')
-  icon.setAttribute('stroke-linejoin', 'round')
-  icon.setAttribute('aria-hidden', 'true')
-  for (const data of MEMORY_ICON_PATHS) {
-    const path = document.createElementNS(namespace, 'path')
-    path.setAttribute('d', data)
-    icon.append(path)
-  }
-  return icon
-}
-
 function createEntry(controller: MnemonWorkspaceController): { entry: HTMLButtonElement; label: HTMLSpanElement } {
   const entry = document.createElement('button')
   entry.type = 'button'
@@ -52,7 +32,7 @@ function createEntry(controller: MnemonWorkspaceController): { entry: HTMLButton
   entry.className = css.entry ?? ''
   const icon = document.createElement('span')
   icon.className = css.entryIcon ?? ''
-  icon.append(createIcon())
+  icon.append(createMemoryIcon(18))
   const label = document.createElement('span')
   label.className = css.entryLabel ?? ''
   entry.append(icon, label)
