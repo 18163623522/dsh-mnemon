@@ -75,6 +75,19 @@ describe('version maintenance', () => {
     expect(await screen.findByText('无法访问剪贴板，请选中命令手动复制。')).toBeTruthy()
   })
 
+  it('copies through the DSH execCommand fallback when the Clipboard API is absent', async () => {
+    const execCommand = vi.fn(() => true)
+    Object.defineProperty(document, 'execCommand', { value: execCommand, configurable: true })
+    try {
+      fixture([cli()])
+      fireEvent.click(await screen.findByRole('button', { name: '复制命令：mnemon update' }))
+      expect(await screen.findByText('已复制')).toBeTruthy()
+      expect(execCommand).toHaveBeenCalledWith('copy')
+    } finally {
+      Reflect.deleteProperty(document, 'execCommand')
+    }
+  })
+
   it('starts collapsed, groups packages, updates the selected package and keeps its restart state after recheck', async () => {
     const provider = child({ id: 'dsh-mnemon-provider-mnemon-native', name: 'dsh-mnemon-provider-mnemon-native', kind: 'provider', managedBy: 'starter', updateSupported: false, updateHint: 'starter' })
     const direct = child()

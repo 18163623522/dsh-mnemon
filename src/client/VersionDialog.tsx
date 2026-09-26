@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { writeClipboard } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { VersionComponentStatus, VersionInstallMode, VersionPackageStatus, VersionStatus, VersionUpdateResult } from '../host/protocol.ts'
 import { MnemonClient } from './api.ts'
 import type { MnemonTranslate } from './locales.ts'
@@ -44,11 +45,9 @@ function CommandSnippet({ command }: { command: string }): JSX.Element {
   const [copied, setCopied] = useState(false)
   const [failed, setFailed] = useState(false)
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(command)
-      setCopied(true)
-      setFailed(false)
-    } catch { setCopied(false); setFailed(true) }
+    const accepted = await writeClipboard(command)
+    setCopied(accepted)
+    setFailed(!accepted)
   }
   return <div className={css.versionCommand}>
     <code>{command}</code>
