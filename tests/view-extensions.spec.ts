@@ -95,6 +95,25 @@ describe('standard View extensions for any main Strategy', () => {
     expect(() => memoryViewExtensionValues([contribution, contribution])).toThrow('duplicate View extension slot: projection')
   })
 
+  it('falls back to the only installed Strategy only when the Host asks for it', async () => {
+    for (const strategyFallback of [undefined, 'sole-strategy'] as const) {
+      const runner = new MemoryCompositionRunner({ strategyTypeId: 'first', ...(strategyFallback === undefined ? {} : { strategyFallback }) })
+      try {
+        await runner.mount(plugin({ sources: [notes] }), { instanceId: 'notes' })
+        await runner.mount(plugin({ strategies: [strategy('second')] }), { instanceId: 'second' })
+        if (strategyFallback === undefined) {
+          expect(runner.inspect().evaluation).toMatchObject({ state: 'rejected', diagnostics: [{ message: expect.stringContaining('selected memory Strategy type is unavailable: first') }] })
+          continue
+        }
+        expect(runner.inspect().evaluation.diagnostics).toEqual([{ code: 'strategy-fallback', contributionInstanceKey: 'strategy:second',
+          message: 'Selected Strategy first is unavailable; composing with the only installed Strategy second.' }])
+        const turn = await runner.beginTurn()
+        expect(turn.view.strategyTypeId).toBe('second')
+        turn.release()
+      } finally { await runner.dispose() }
+    }
+  })
+
   it('runs an any-Strategy extension only for the selected Strategy', async () => {
     const contribute = vi.fn(() => ({ maxProjectionCharacters: 4 }))
     const runner = await fixture('second')

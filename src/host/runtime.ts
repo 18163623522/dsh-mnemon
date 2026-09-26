@@ -45,6 +45,9 @@ export function memoryGenerationOptions(config: ResolvedConfig, workspaceRoot: s
   const userDirectory = config.runtimeUserScope === 'global' ? createStorageRoot({ storageScope: 'global' }).effectiveDataDir() : directory
   return {
     strategyTypeId: config.memoryTopology.strategyId,
+    // A main Strategy switched off in the DSH Plugins page must not leave the
+    // Host without a View while exactly one other Strategy remains.
+    strategyFallback: 'sole-strategy',
     sourceTimeoutMs: config.timeoutMs,
     sourceCapabilities: installed => MEMORY_CAPABILITIES.filter(capability =>
       (config.writeEnabled || !['write', 'archive', 'link', 'forget', 'maintain', 'import'].includes(capability))

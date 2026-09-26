@@ -162,6 +162,8 @@ export interface CompileMemoryGenerationOptions {
   sourceCapabilities?: (source: InstalledMemorySource) => readonly MemoryCapability[]
   strategyInstanceKey?: string
   strategyTypeId?: string
+  /** Compose with the only installed Strategy when the selected type is unavailable, and report it. */
+  strategyFallback?: 'sole-strategy'
   /** Host adapter supplies scope defaults; each result is captured and digested. */
   sourceConfiguration?: (source: InstalledMemorySource) => Readonly<Record<string, MemoryJsonValue>>
   /** Per-Source facts/project deadline. Does not turn timed-out writes into failed receipts. */
@@ -184,6 +186,7 @@ function selectStrategy(strategies: readonly InstalledMemoryStrategy[], options:
   if (options.strategyTypeId !== undefined) {
     const type = id(options.strategyTypeId, 'selected memory Strategy typeId')
     const matches = strategies.filter(strategy => strategy.definition.manifest.typeId === type)
+    if (matches.length === 0 && options.strategyFallback === 'sole-strategy' && strategies.length === 1) return strategies[0]!
     if (matches.length === 0) throw new Error(`selected memory Strategy type is unavailable: ${type}`)
     if (matches.length > 1) throw new Error(`selected memory Strategy type is ambiguous: ${type}`)
     return matches[0]!
@@ -536,12 +539,15 @@ export class MemoryCompositionGeneration {
       strategyInstanceKey: this.strategy.instanceKey,
       ...(this.extensions.length === 0 ? {} : { strategyExtensionInstanceKeys: this.extensions.map(extension => extension.instanceKey) }),
       sourceInstanceKeys: [...this.sources.keys()],
-      diagnostics: (snapshot.strategyExtensions ?? []).filter(extension => !this.extensions.includes(extension)).map(extension => ({
+      diagnostics: [...(options.strategyTypeId === undefined || strategyManifest.typeId === options.strategyTypeId ? [] : [{
+        code: 'strategy-fallback', contributionInstanceKey: this.strategy.instanceKey,
+        message: `Selected Strategy ${options.strategyTypeId} is unavailable; composing with the only installed Strategy ${strategyManifest.typeId}.`,
+      }]), ...(snapshot.strategyExtensions ?? []).filter(extension => !this.extensions.includes(extension)).map(extension => ({
         code: 'strategy-extension-inactive', contributionInstanceKey: extension.instanceKey,
         message: extension.definition.manifest.strategyTypeId === ANY_MEMORY_STRATEGY
           ? `Selected Strategy ${strategyManifest.typeId} does not accept the ${extension.definition.manifest.slot} slot.`
           : `Strategy extension targets ${extension.definition.manifest.strategyTypeId}; selected Strategy is ${strategyManifest.typeId}.`,
-      })),
+      }))],
     })
   }
 

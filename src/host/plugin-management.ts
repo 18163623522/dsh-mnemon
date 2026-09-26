@@ -419,7 +419,9 @@ export class MemoryPluginManagement {
 
   private async evaluateSnapshot(snapshot: MemoryContributionSnapshot, config: ResolvedConfig, scope: MemoryOperationScope, strategyTypeId: string, signal?: AbortSignal) {
     signal?.throwIfAborted()
-    const generation = new MemoryCompositionGeneration(snapshot, { ...memoryGenerationOptions(config, scope.workspaceId), strategyTypeId })
+    // An explicit choice is validated strictly; the runtime fallback never hides it.
+    const { strategyFallback: _fallback, ...options } = memoryGenerationOptions(config, scope.workspaceId)
+    const generation = new MemoryCompositionGeneration(snapshot, { ...options, strategyTypeId })
     try {
       const view = await generation.compose({ scope, scenario: 'agent.root-turn', budget: { ...DEFAULT_MEMORY_VIEW_BUDGET } }, signal)
       signal?.throwIfAborted()
