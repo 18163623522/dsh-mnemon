@@ -23,6 +23,7 @@ export interface HostSettingsScope<T> {
   get(): T
 }
 
+/** Mnemon's settings namespaces over DSH profile Config, with revision-fenced writes. */
 export interface HostSettingsService {
   readonly writable: boolean
   register<T>(
@@ -39,6 +40,8 @@ export interface HostSettingsService {
     applies: 'live' | 'restart'
   }>
   mutate(namespace: string, ops: SettingsOperation[], expectedRevision?: number): Promise<void>
+  /** Observe committed namespace values; returns the unsubscribe function. */
+  onUpdated(listener: (namespace: string, value: unknown) => void): () => void
 }
 
 export interface ToolExecution {
@@ -265,7 +268,8 @@ export interface HostLlmService {
 export interface HostContextShape {
   tools: { register(definition: ToolDefinition): unknown }
   commands: CommandService
-  settings: HostSettingsService
+  /** DSH's profile settings forms; only the Mnemon settings facade reads them. */
+  settings: unknown
   /** Web-only transport; absent from non-Web profiles such as Headless. */
   connection?: HostConnectionHandle
   agents: HostAgentsService
