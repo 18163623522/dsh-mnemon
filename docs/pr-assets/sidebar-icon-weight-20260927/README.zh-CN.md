@@ -2,6 +2,8 @@
 
 [English](./README.md)
 
+本记录对应最初的线宽调整；后续最终采用的大脑图标见[独立验收记录](../sidebar-brain-icon-20260927/README.zh-CN.md)。
+
 实现提交：`de6cb7fd3032ba4dd800b0eb4e590b33bf4b8c1a`，基于最新 `main` 的 `a16ab47f8a61bed19537a07d53ad1030f4d3934b`。修复前截图来自已有命名预览 `364fe650644fa80d99c02cfed3c3360c4cc47a34`，其侧栏图标与该 main 完全相同。命名调整由独立的 [PR #290](https://github.com/omdsh-dev/dsh-mnemon/pull/290) 跟踪，因此两组预览中的插件描述不同。
 
 ## 结果

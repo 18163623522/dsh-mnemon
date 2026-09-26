@@ -2,6 +2,8 @@
 
 [简体中文](./README.zh-CN.md)
 
+This record covers the initial stroke correction. The final brain-icon follow-up is recorded [separately](../sidebar-brain-icon-20260927/README.md).
+
 Implementation: `de6cb7fd3032ba4dd800b0eb4e590b33bf4b8c1a`, based on `main` at `a16ab47f8a61bed19537a07d53ad1030f4d3934b`. The before screenshots use the existing naming preview at `364fe650644fa80d99c02cfed3c3360c4cc47a34`; its sidebar icon is identical to this main revision. The naming change is separately tracked in [PR #290](https://github.com/omdsh-dev/dsh-mnemon/pull/290), so the plugin description differs between these two previews.
 
 ## Result
