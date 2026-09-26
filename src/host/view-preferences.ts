@@ -32,7 +32,7 @@ export function preferences(value: MemoryViewPreferences): MemoryViewPreferences
   for (const [entryId, item] of Object.entries(entries)) {
     if (!ENTRY_ID.test(entryId)) throw new Error('Invalid memory plugin Entry id')
     const candidate = record(item)
-    if (typeof candidate.enabled !== 'boolean') throw new Error('Plugin enabled must be boolean')
+    if (candidate.enabled !== undefined && typeof candidate.enabled !== 'boolean') throw new Error('Plugin enabled must be boolean')
     record(candidate.config)
   }
   return clone(value)
