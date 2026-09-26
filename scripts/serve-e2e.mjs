@@ -50,7 +50,8 @@ for (const flag of flags) {
   throw new Error('Unknown option: ' + flag)
 }
 const extensionNames = ['dsh-mnemon-strategy-scoped', 'dsh-mnemon-strategy-light-context', 'dsh-mnemon-strategy-auto-capture']
-const extensionNameSet = new Set(extensionNames)
+// Strategy packages that also register themselves as bundles; the Starter row owns them.
+const selfRegistering = new Set([...extensionNames, 'dsh-mnemon-strategy-general'])
 const extensionsEnabled = flags.has('--strategy-extensions')
 const runtimeArchive = flags.has('--runtime-archive')
 const fixture = await mkdtemp(join(tmpdir(), 'mnemon-web-e2e-'))
@@ -205,7 +206,7 @@ try {
   const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
   // Root owns the disabled enhancement Entries. Adding their self-registering
   // bundles as separate Profile layers would intentionally duplicate ids.
-  const plugins = Object.keys(manifest.dependencies).filter(name => name.startsWith('dsh-mnemon-') && !extensionNameSet.has(name))
+  const plugins = Object.keys(manifest.dependencies).filter(name => name.startsWith('dsh-mnemon-') && !selfRegistering.has(name))
   const installer = spawn(process.execPath, [dshBin, 'plugin', '--profile', 'web', 'add',
     `link:${root}`, ...plugins.map(name => `link:${join(root, 'plugins', name)}`),
     ...(betterSidebarRoot === undefined ? [] : [`link:${betterSidebarRoot}`]),
