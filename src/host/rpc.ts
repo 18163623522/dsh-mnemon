@@ -1,5 +1,5 @@
 import { isDefaultSourceInstance, isWorkspaceStorageScope } from './protocol.ts'
-import type { HostConnectionHandle, HostRpcAuthority, HostRpcHandler, RpcResult } from './dsh.ts'
+import type { HostConnectionHandle, HostRpcHandler, RpcResult } from './dsh.ts'
 import type { MnemonLifecycle } from './lifecycle.ts'
 import type { LiveMnemonRuntime } from './runtime.ts'
 import { assertParticipation } from './access.ts'
@@ -365,7 +365,7 @@ export function createPackHandler(input: LiveMnemonRuntime): HostRpcHandler {
   }
 }
 
-export function registerRpc(connection: HostConnectionHandle, input: LiveMnemonRuntime, lifecycle?: MnemonLifecycle, versions?: VersionUpdateManager, managementAuthority: HostRpcAuthority = 'loopback'): {
+export function registerRpc(connection: HostConnectionHandle, input: LiveMnemonRuntime, lifecycle?: MnemonLifecycle, versions?: VersionUpdateManager): {
   read: HostRpcHandler
   activation: HostRpcHandler
   write: HostRpcHandler
@@ -376,9 +376,9 @@ export function registerRpc(connection: HostConnectionHandle, input: LiveMnemonR
   const activationHandler = createActivationHandler(input)
   const writeHandler = createWriteHandler(input, lifecycle, versionManager)
   const packHandler = createPackHandler(input)
-  connection.rpc.handle(MNEMON_READ_CHANNEL, readHandler, { authority: 'trusted-host' })
-  connection.rpc.handle(MNEMON_ACTIVATION_CHANNEL, activationHandler, { authority: 'trusted-host' })
-  connection.rpc.handle(MNEMON_WRITE_CHANNEL, writeHandler, { authority: managementAuthority })
-  connection.rpc.handle(MNEMON_PACK_CHANNEL, packHandler, { authority: managementAuthority })
+  connection.rpc.handle(MNEMON_READ_CHANNEL, readHandler)
+  connection.rpc.handle(MNEMON_ACTIVATION_CHANNEL, activationHandler)
+  connection.rpc.handle(MNEMON_WRITE_CHANNEL, writeHandler)
+  connection.rpc.handle(MNEMON_PACK_CHANNEL, packHandler)
   return { read: readHandler, activation: activationHandler, write: writeHandler, pack: packHandler }
 }

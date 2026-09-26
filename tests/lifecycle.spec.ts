@@ -16,6 +16,7 @@ import type {
 } from "../src/host/dsh.ts"
 import { MnemonLifecycle } from "../src/host/lifecycle.ts"
 import { IdleReviewError, type MnemonSubagentCoordinator } from "../src/host/subagent.ts"
+import { sessionLog } from './fixtures/session-log.ts'
 
 type Listener = (...args: unknown[]) => unknown
 
@@ -84,7 +85,7 @@ function fixture(config = resolveConfig({ cliPath: '/fake/mnemon' }), options: {
     id: 'session-1',
     status: 'idle',
     ...(taskModelRoute ? { options: { provider: 'deepseek', model: 'deepseek-chat' } } : {}),
-    session: { events },
+    session: { ...sessionLog(events) },
     ctx: agentCtx,
     followup,
     steer,
@@ -112,7 +113,7 @@ function fixture(config = resolveConfig({ cliPath: '/fake/mnemon' }), options: {
       id: options.sessionId,
       status: 'idle' as const,
       ...(options.agentOptions === undefined ? {} : { options: options.agentOptions }),
-      session: { header: options.meta ?? {}, events: [] },
+      session: { header: options.meta ?? {}, ...sessionLog() },
       ctx: taskCtx,
       followup: vi.fn(),
       steer: vi.fn(),
@@ -364,21 +365,6 @@ describe('Mnemon DSH lifecycle integration', () => {
     expect(second.kind === 'enter' && second.messages).toHaveLength(2)
   })
 
-  it('drives a new alpha session through snapshot and indexed event accessors', async () => {
-    const value = fixture()
-    const session = value.agent.session as HostSession
-    delete session.events
-    session.snapshotEvents = () => value.events
-    session.eventAt = seq => value.events[seq]
-
-    const decision = await value.preStep([userMessage()], 1)
-    expect(decision.kind).toBe('enter')
-    expect(value.lifecycle.snapshot('session-1').current?.memoryToolCalls).toBe(0)
-
-    await value.turnStopping(1)
-    expect(value.composableTurns.endTurn).toHaveBeenCalledWith('session-1:1')
-  })
-
   it('pins one immutable Wake across every model step and releases it at the turn boundary', async () => {
     const value = fixture()
     // The snapshot is no longer a shared runtime-context contribution.
@@ -448,7 +434,7 @@ describe('Mnemon DSH lifecycle integration', () => {
     const metadataAgent = vi.mocked(value.coordinator.maintainMetadata).mock.calls[0]?.[0] as HostAgent
     expect(metadataAgent).not.toBe(value.agent)
     expect(metadataAgent.session.header?.cwd).toBe('/tmp/workspace-two')
-    expect(value.coordinator.archiveDocument).toHaveBeenCalledWith(expect.objectContaining({ session: { header: { cwd: '/tmp/workspace-two', agentPreset: 'default' }, events: [] } }), 'doc-1', expect.any(AbortSignal))
+    expect(value.coordinator.archiveDocument).toHaveBeenCalledWith(expect.objectContaining({ session: expect.objectContaining({ header: { cwd: '/tmp/workspace-two', agentPreset: 'default' } }) }), 'doc-1', expect.any(AbortSignal))
     expect(value.defaultModel.currentSelection).toHaveBeenCalledTimes(2)
     expect(value.agentPresets.resolve).toHaveBeenCalledTimes(2)
     expect(value.agentPresets.mount).toHaveBeenCalledTimes(2)
@@ -461,7 +447,7 @@ describe('Mnemon DSH lifecycle integration', () => {
     const operation = vi.fn(async (agent: HostAgent) => {
       expect(agent).not.toBe(value.agent)
       expect(agent.session.header?.cwd).toBe('/tmp/workspace-two')
-      expect(agent.session.events).toEqual([])
+      expect(agent.session.snapshotEvents()).toEqual([])
       if (failed) throw new Error('model unavailable')
       return 'maintained'
     })

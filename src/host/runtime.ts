@@ -129,7 +129,7 @@ export class LiveMnemonRuntime implements MnemonAgentRuntimeSource {
   readonly storage: StorageScopeInspector
   readonly packs: MnemonPackManager
 
-  constructor(initial: MnemonRuntimeGraph, private readonly workspaceRegistry: HostWorkspaceRegistry | undefined, private readonly agents: HostAgentsService | undefined, private readonly extensions: MemoryRuntime) {
+  constructor(initial: MnemonRuntimeGraph, private readonly workspaceRegistry: HostWorkspaceRegistry | undefined, private readonly agents: Pick<HostAgentsService, 'get'> | undefined, private readonly extensions: MemoryRuntime) {
     this.current = initial
     this.config = liveProxy(() => this.current.config)
     this.storage = liveProxy(() => this.current.storage)

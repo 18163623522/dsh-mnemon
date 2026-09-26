@@ -12,6 +12,7 @@ import { MemoryRuntime } from '../src/core/runtime.ts'
 import type { MnemonMemoryService } from 'dsh-mnemon/extension-sdk'
 import { compositionFixture } from './fixtures/composition.ts'
 import { agentScope } from '../src/host/runtime.ts'
+import { sessionLog } from './fixtures/session-log.ts'
 
 const manifest = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
   dsh: { client: { inject: string[]; platform: string } }
@@ -43,7 +44,7 @@ function context(options: { connection?: boolean; workspaceRegistry?: boolean } 
   const sections: unknown[] = []
   const contexts: unknown[] = []
   const variables: unknown[] = []
-  const channels: unknown[] = []
+  const channels: unknown[][] = []
   const connection = {
     rpc: {
       handle: vi.fn((...args: unknown[]) => { channels.push(args) }),
@@ -151,13 +152,9 @@ describe('dsh-mnemon plugin composition', () => {
   it('keeps the installed DSH release family coherent', () => {
     // Every direct DSH package, peer range and locked DSH package follows one release.
     const baseline = manifest.devDependencies['@deepseek-ai/dsh']
-    const legacyProjection = '@deepseek-ai/dsh-session-projection-legacy'
     const directDshDependencies = Object.entries(manifest.devDependencies)
       .filter(([name]) => name === '@deepseek-ai/dsh' || name.startsWith('@deepseek-ai/dsh-'))
-      .filter(([name]) => name !== legacyProjection)
     const lockedDshVersions = [...lockfile.matchAll(/(@deepseek-ai\/dsh(?:-[a-z0-9-]+)?)@(\d+\.\d+\.\d+(?:-(?:alpha|rc)\.\d+)?)(?=[:'(_\s])/g)]
-      // Only this aliased regression fixture may use the older host contract.
-      .filter(([, name, version]) => name !== '@deepseek-ai/dsh-session-projection' || version !== '0.1.0-rc.8')
       .map(match => match[2])
 
     expect(baseline).toMatch(/^\d+\.\d+\.\d+(?:-(?:alpha|rc)\.\d+)?$/)
@@ -309,41 +306,14 @@ describe('dsh-mnemon plugin composition', () => {
     expect(guidance.length).toBeLessThan(360)
     expect(guidance).not.toContain('RECALL RESULT')
     expect(fixture.commands).toEqual([expect.objectContaining({ name: 'mnemon' })])
+    expect(fixture.channels.map(([channel]) => channel)).toEqual(expect.arrayContaining(['/dsh-mnemon-activation', '/dsh-mnemon-pack']))
     expect(fixture.channels).toHaveLength(7)
-    expect(fixture.channels).toEqual(expect.arrayContaining([
-      ['/dsh-mnemon-activation', expect.anything(), { authority: 'trusted-host' }],
-      ['/dsh-mnemon-pack', expect.anything(), { authority: 'loopback' }],
-    ]))
     expect(fixture.registrations).toEqual([
       expect.arrayContaining(['mnemon-view', expect.anything(), expect.objectContaining({ applies: 'live', base: { entries: {} } })]),
       expect.arrayContaining(['mnemon-plugins', expect.anything(), expect.objectContaining({ applies: 'live', base: { sources: {} } })]),
       expect.arrayContaining(['mnemon', expect.anything(), expect.objectContaining({ applies: 'live' })]),
       expect.arrayContaining(['mnemon-ui', expect.anything(), expect.objectContaining({ applies: 'live', base: { turnBar: true, saveAction: true } })]),
     ])
-  })
-
-  it('preserves rc.2 channel authorities with one call shape accepted by the authenticated alpha API', () => {
-    const fixture = context()
-    apply(fixture.ctx as never, { cliPath: '/fake/mnemon', dataDir: dataDir() })
-    for (const channel of ['/dsh-mnemon-write', '/dsh-mnemon-settings', '/dsh-mnemon-pack', '/dsh-mnemon-view-settings']) {
-      expect(fixture.channels).toEqual(expect.arrayContaining([
-        [channel, expect.anything(), { authority: 'loopback' }],
-      ]))
-    }
-    expect(fixture.channels).toEqual(expect.arrayContaining([
-      ['/dsh-mnemon-read', expect.anything(), { authority: 'trusted-host' }],
-      ['/dsh-mnemon-view', expect.anything(), { authority: 'trusted-host' }],
-    ]))
-  })
-
-  it('promotes management channels only through the explicit startup setting', () => {
-    const fixture = context()
-    apply(fixture.ctx as never, { cliPath: '/fake/mnemon', dataDir: dataDir(), remoteAccess: 'trusted-host' })
-    for (const channel of ['/dsh-mnemon-write', '/dsh-mnemon-settings', '/dsh-mnemon-pack', '/dsh-mnemon-view-settings']) {
-      expect(fixture.channels).toEqual(expect.arrayContaining([
-        [channel, expect.anything(), { authority: 'trusted-host' }],
-      ]))
-    }
   })
 
   it('keeps stable live surfaces while fencing every mutation in read-only mode', async () => {
@@ -355,10 +325,7 @@ describe('dsh-mnemon plugin composition', () => {
     }
     expect(() => runtimeTool.execute({ action: 'add', target: 'memory', content: 'blocked' }, { signal: new AbortController().signal })).toThrow('read-only')
     expect(fixture.channels).toHaveLength(7)
-    expect(fixture.channels).toEqual(expect.arrayContaining([
-      ['/dsh-mnemon-activation', expect.anything(), { authority: 'trusted-host' }],
-      ['/dsh-mnemon-pack', expect.anything(), { authority: 'loopback' }],
-    ]))
+    expect(fixture.channels.map(([channel]) => channel)).toEqual(expect.arrayContaining(['/dsh-mnemon-activation', '/dsh-mnemon-pack']))
     expect(fixture.contexts).toEqual([])
   })
 
@@ -369,7 +336,7 @@ describe('dsh-mnemon plugin composition', () => {
       action: 'create', title: 'Cold Archive Transaction Contract', description: 'Write-ahead archival ordering and recovery invariants.',
       content: 'Land the durable cold reference before moving the managed original.',
     })
-    const root = { id: 'root', session: { header: { cwd: f.workspace }, events: [] } } as unknown as HostAgent
+    const root = { id: 'root', session: { header: { cwd: f.workspace }, ...sessionLog() } } as unknown as HostAgent
     await f.graph.composableTurns.beginTurn('root:documents', agentScope(root, f.config), 'test')
     const tools: ToolDefinition[] = []
     const coordinator = new MnemonSubagentCoordinator({ list: () => [], getProvider: () => undefined, start: vi.fn() } as never, f.live)
@@ -392,7 +359,7 @@ describe('dsh-mnemon plugin composition', () => {
       action: 'create', title: 'Long incident record', description: 'A deliberately long managed record.', sourcePaths: ['reports/incident.md'],
       content: 'before '.repeat(1_500) + needle + '\n' + 'after '.repeat(1_500),
     })
-    const root = { id: 'root', session: { header: { cwd: f.workspace }, events: [] } } as unknown as HostAgent
+    const root = { id: 'root', session: { header: { cwd: f.workspace }, ...sessionLog() } } as unknown as HostAgent
     await f.graph.composableTurns.beginTurn('root:documents', agentScope(root, f.config), 'test')
     const tools: ToolDefinition[] = []
     const coordinator = new MnemonSubagentCoordinator({ list: () => [], getProvider: () => undefined, start: vi.fn() } as never, f.live)
@@ -409,7 +376,7 @@ describe('dsh-mnemon plugin composition', () => {
   it('shares one Documents route claim across the pinned root turn', async () => {
     const f = await compositionFixture()
     releases.push(f.dispose)
-    const root = { id: 'root', session: { header: { cwd: f.workspace }, events: [] } } as unknown as HostAgent
+    const root = { id: 'root', session: { header: { cwd: f.workspace }, ...sessionLog() } } as unknown as HostAgent
     const turn = await f.graph.composableTurns.beginTurn('root:documents', agentScope(root, f.config), 'test')
     const route = turn.view.routes.find(route => route.sourceRouteId === 'search')!
     const execute = vi.spyOn(f.graph.memoryComposition.current()!.sourceRuntime(route.sourceInstanceKey)!, 'query')

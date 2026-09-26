@@ -146,20 +146,16 @@ export function apply(rawContext: unknown, rawConfig: MnemonConfig | LiveHostCon
     // `inject` guarantees the service at runtime; retain the defensive guard
     // because HostContextShape also models profiles where it is absent.
     if (webContext.connection === undefined) return
-    // Keep one branch-free call shape across both supported DSH generations:
-    // rc.2 enforces this legacy channel authority, while 0.1.2-alpha.1 ignores
-    // the extra JavaScript argument and authenticates every Host API uniformly.
-    const managementAuthority = resolved.remoteAccess === 'trusted-host' ? 'trusted-host' : 'loopback'
-    const rpc = registerRpc(webContext.connection, runtime, lifecycle, undefined, managementAuthority)
-    const settings = registerSettingsRpc(webContext.connection, hostSettings, managementAuthority)
-    const view = registerViewRpc(webContext.connection, runtime, extensions, memoryPlugins, lifecycle, managementAuthority, pluginInstallation)
+    const rpc = registerRpc(webContext.connection, runtime, lifecycle)
+    const settings = registerSettingsRpc(webContext.connection, hostSettings)
+    const view = registerViewRpc(webContext.connection, runtime, extensions, memoryPlugins, lifecycle, pluginInstallation)
     if (Context.is(webContext)) {
       new MnemonRemoteService(webContext, {
         ...rpc,
         settings,
         view: view.read,
         viewWrite: view.write,
-        management: managementAuthority === 'trusted-host',
+        management: resolved.remoteAccess === 'trusted-host',
       })
     }
   })

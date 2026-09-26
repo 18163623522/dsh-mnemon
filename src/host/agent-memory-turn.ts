@@ -3,7 +3,6 @@ import type { MemoryOperationScope } from '../core/contracts/index.ts'
 import type { ComposableMemoryTurn } from '../core/turns.ts'
 import type { HostAgent } from './dsh.ts'
 import { agentScope, type MnemonAgentRuntimeSource, type MnemonRuntimeGraph } from './runtime.ts'
-import { hostSessionEvents } from './session-events.ts'
 import { inspectMemoryView, modelMemoryWake } from './view-presentation.ts'
 import type { MemoryViewInspection } from './view-protocol.ts'
 
@@ -24,7 +23,7 @@ export interface PinnedAgentMemoryTurn {
 /** The durable log, not a parent session id, identifies the executing turn. */
 export function openAgentTurn(agent: HostAgent): number | undefined {
   let open: number | undefined
-  for (const event of hostSessionEvents(agent.session)) {
+  for (const event of agent.session.snapshotEvents()) {
     const turn = typeof event.data.turn === 'number' ? event.data.turn : undefined
     if (event.type === 'turn/start' && turn !== undefined) open = turn
     else if (event.type === 'turn/end' && turn === open) open = undefined

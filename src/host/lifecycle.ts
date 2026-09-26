@@ -26,7 +26,6 @@ import type { AssistantMessageText, LifecycleAgentSnapshot, LifecycleCounters, L
 import type { PreparedMemoryPlacement } from 'dsh-mnemon-source-memory-spaces/contracts'
 import type { MemoryWake } from "../core/contracts/index.ts"
 import { agentScope, type MnemonAgentRuntimeSource } from './runtime.ts'
-import { hostSessionEventAt, hostSessionEvents } from './session-events.ts'
 
 declare module '@deepseek-ai/dsh-llm' {
   interface MessageSourceMap {
@@ -309,7 +308,7 @@ class MnemonAgentLifecycle {
       startSource: this.startSource,
       primePending: this.primePending,
       guidedTurns: this.guidedTurns.size,
-      memoryToolCalls: memoryToolCalls(hostSessionEvents(this.agent.session)),
+      memoryToolCalls: memoryToolCalls(this.agent.session.snapshotEvents()),
       idleReviewPending: this.idleReviewTimer !== undefined,
       reviewRunning: this.reviewRunning,
       reviewActivity: this.reviewActivity(),
@@ -334,12 +333,12 @@ class MnemonAgentLifecycle {
 
   /** Incremental snapshot of settled Mnemon activity in this durable log. */
   turnMemoryActivities(): TurnMemoryActivitySnapshot {
-    return this.memoryActivity.snapshot(hostSessionEvents(this.agent.session))
+    return this.memoryActivity.snapshot(this.agent.session.snapshotEvents())
   }
 
   /** Plain text of one finalized assistant message, from this agent's session log. */
   assistantMessageText(messageId: string): AssistantMessageText | null {
-    return assistantMessageText(hostSessionEvents(this.agent.session), messageId)
+    return assistantMessageText(this.agent.session.snapshotEvents(), messageId)
   }
 
   memoryWake(): MemoryWake | undefined {
@@ -364,7 +363,7 @@ class MnemonAgentLifecycle {
     const nodes = this.agent.session.surface?.nodes
     if (nodes === undefined) return this.cueInjected
     for (const seq of nodes) {
-      if (isOwnUserMessageEvent(hostSessionEventAt(this.agent.session, seq))) return true
+      if (isOwnUserMessageEvent(this.agent.session.eventAt(seq))) return true
     }
     return false
   }
@@ -465,7 +464,7 @@ class MnemonAgentLifecycle {
     // every third-party View Strategy. Explicit management remains available.
     if (this.config.memoryTopology.strategyId !== 'default-three-tier') return
     const activity = this.ensureTurnActivity(turn)
-    const tools = completedToolActivity(hostSessionEvents(this.agent.session), turn)
+    const tools = completedToolActivity(this.agent.session.snapshotEvents(), turn)
     activity.toolCallCount = tools.count
     activity.toolNames = tools.names
     if (!this.reviewActivity().eligible || !this.reviewAdmitted(turn)) return
@@ -477,7 +476,7 @@ class MnemonAgentLifecycle {
         return
       }
       if (this.agent.status !== 'idle') return
-      const completed = hostSessionEvents(this.agent.session).some(event => event.type === 'turn/end' && eventTurn(event) === turn)
+      const completed = this.agent.session.snapshotEvents().some(event => event.type === 'turn/end' && eventTurn(event) === turn)
       if (!completed || !this.reviewActivity().eligible || !this.reviewAdmitted(turn)) return
       void this.runIdleReview()
     }, Math.max(this.config.idleReviewMs, (this.lastReviewAttemptAt ?? -Infinity) + this.config.idleReview.minIntervalMs - Date.now()))
@@ -571,7 +570,7 @@ class MnemonAgentLifecycle {
       explicitCandidate ||= activity.explicitCandidate
       completedNonMemoryTool ||= activity.toolCallCount > 0 && [...activity.toolNames].some(name => !name.startsWith('mnemon_'))
     }
-    const assistantTextLength = hostSessionEvents(this.agent.session)
+    const assistantTextLength = this.agent.session.snapshotEvents()
       .filter(event => {
         const turn = eventTurn(event)
         return turn !== undefined && turns.has(turn)
@@ -661,9 +660,7 @@ export class MnemonLifecycle {
       idleReviewMs: this.config.idleReviewMs,
       activeAgents: this.owners.size,
       sessionAvailable: agent !== undefined,
-      taskAgentAvailable: this.ctx.agents.create === undefined
-        ? agent !== undefined
-        : this.taskAgentModelOptions(requestedId ?? '', workspaceRoot) !== undefined,
+      taskAgentAvailable: this.taskAgentModelOptions(requestedId ?? '', workspaceRoot) !== undefined,
       counters: { ...this.counters },
       subagents: this.coordinator.snapshot(),
       ...(owner === undefined ? {} : { current: owner.snapshot() }),
@@ -927,20 +924,13 @@ export class MnemonLifecycle {
     signal: AbortSignal,
     operation: (agent: HostAgent) => Promise<T>,
   ): Promise<T> {
-    const create = this.ctx.agents.create?.bind(this.ctx.agents)
-    if (create === undefined) {
-      const fallback = workspaceRoot === undefined ? this.ctx.agents.get(fallbackSessionId.trim()) ?? this.availableAgent() : this.availableAgent(workspaceRoot)
-      if (fallback === undefined) throw new Error('current DSH host cannot create a task Agent and no matching live Agent is available')
-      return operation(fallback)
-    }
-
     const sessionId = randomUUID()
     this.taskAgentIds.add(sessionId)
     let handle: HostAgentHandle | undefined
     let failure: unknown
     try {
       const creation = await this.taskAgentCreation(fallbackSessionId, workspaceRoot)
-      handle = await create({
+      handle = await this.ctx.agents.create({
         sessionId,
         ...creation,
         signal,

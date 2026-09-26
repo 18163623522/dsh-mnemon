@@ -12,20 +12,10 @@ export type {
 } from "./protocol.ts"
 
 export type HostRpcHandler = (endpoint: string, payload: unknown, signal?: AbortSignal) => Promise<RpcResult<unknown>>
-export type HostRpcAuthority = 'trusted-host' | 'loopback'
-
-/**
- * DSH rc.2 requires this registration policy. DSH 0.1.2-alpha.1 accepts only
- * the first two JavaScript arguments and safely ignores this trailing value.
- * Keeping one unconditional call shape avoids runtime version detection.
- */
-export interface HostRpcRegistrationOptions {
-  readonly authority: HostRpcAuthority
-}
 
 export interface HostConnectionHandle {
   rpc: {
-    handle(channel: string, handler: HostRpcHandler, options: HostRpcRegistrationOptions): unknown
+    handle(channel: string, handler: HostRpcHandler): unknown
   }
 }
 
@@ -148,19 +138,11 @@ export interface HostSessionEvent {
   data: Record<string, unknown>
 }
 
-/**
- * Minimum session log surface shared by the stable DSH rc line and the 0.1.2
- * alpha line. rc.2 exposes the immutable log through `events`; alpha.4+
- * replaces that property with range snapshots and indexed reads.
- */
+/** Minimum DSH Session surface: immutable header, range snapshots and indexed reads. */
 export interface HostSession {
   header?: { origin?: 'subagent'; parentSession?: string; delegationDepth?: number; cwd?: string; agentPreset?: string }
-  /** Stable rc.2 event-log accessor. */
-  events?: readonly HostSessionEvent[]
-  /** DSH 0.1.2-alpha.4+ event-log accessor. */
-  snapshotEvents?(fromSeq?: number, toSeqExclusive?: number): readonly HostSessionEvent[]
-  /** DSH 0.1.2-alpha.4+ indexed event accessor. */
-  eventAt?(seq: number): HostSessionEvent | undefined
+  snapshotEvents(fromSeq?: number, toSeqExclusive?: number): readonly HostSessionEvent[]
+  eventAt(seq: number): HostSessionEvent | undefined
   /**
    * Model-visible event sequences, in order. Optional because not every host
    * publishes a surface projection; when absent, callers fall back to
@@ -218,8 +200,8 @@ export interface HostAgentsService {
   /** Public DSH runtime ownership, independent of persisted session lineage. */
   isOwnedBy?(id: string, parent: HostAgent): boolean
   roots(): HostAgent[]
-  /** DSH rc.6+ factory for an owned, clean top-level Agent. */
-  create?(options: CreateHostAgentOptions): Promise<HostAgentHandle>
+  /** Factory for an owned, clean top-level Agent. */
+  create(options: CreateHostAgentOptions): Promise<HostAgentHandle>
 }
 
 export interface HostWorkspace {
@@ -236,7 +218,7 @@ export interface HostWorkspaceRegistry {
 export interface HostSubagentResult {
   output: Array<{ type: string; text?: string; [key: string]: unknown }>
   structured?: unknown
-  /** DSH rc.8+ provider-authored failure detail, including for remote children. */
+  /** Provider-authored failure detail; in-process children leave it unset. */
   diagnostic?: string
   stopReason: string
 }

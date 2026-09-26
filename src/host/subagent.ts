@@ -13,7 +13,6 @@ import { DEFAULT_MEMORY_VIEW_BUDGET, type ComposableMemoryView, type MemoryEvide
 import type { MemoryCompositionGeneration } from '../core/composition.ts'
 import { agentScope, type MnemonAgentRuntimeSource, type MnemonRuntimeGraph } from './runtime.ts'
 import type { ComposableMemoryTurn } from '../core/turns.ts'
-import { hostSessionEvents } from './session-events.ts'
 import { idleReviewBlockReason, startGuardedReview, type ReviewToolHost } from './review-tools.ts'
 import { reviewCheckpoint } from './review-checkpoint.ts'
 import type { IdleReviewFailure } from './protocol.ts'
@@ -411,13 +410,13 @@ function safeFailureDetail(value: string): string {
 
 /** Recover the contained DSH model/transport error without exposing the child transcript. */
 function subagentFailureDetail(run: HostSubagentRun, result: HostSubagentResult): string | undefined {
-  // rc.8 publishes a bounded provider diagnostic for both local and remote
-  // children. Prefer it over reaching into a local Agent's event history.
+  // Prefer a provider's bounded diagnostic. In-process children publish none,
+  // so fall back to the local Agent's last turn error.
   if (typeof result.diagnostic === 'string') {
     const diagnostic = safeFailureDetail(result.diagnostic)
     if (diagnostic !== '') return diagnostic
   }
-  const events = run.localAgent === undefined ? [] : hostSessionEvents(run.localAgent.session)
+  const events = run.localAgent === undefined ? [] : run.localAgent.session.snapshotEvents()
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index]
     if (event?.type !== 'turn/end') continue

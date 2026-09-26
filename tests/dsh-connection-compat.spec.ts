@@ -6,7 +6,6 @@ import { describe, expect, it, vi } from 'vitest'
 import type {
   HostConnectionHandle,
   HostRpcHandler,
-  HostRpcRegistrationOptions,
   HostSettingsService,
 } from "../src/host/dsh.ts"
 import { registerSettingsRpc } from "../src/host/settings.ts"
@@ -19,11 +18,7 @@ interface RegisteredRoute {
 
 interface BranchFreeConnection {
   rpc: {
-    handle(
-      channel: string,
-      handler: HostRpcHandler,
-      options: HostRpcRegistrationOptions,
-    ): () => Promise<void>
+    handle(channel: string, handler: HostRpcHandler): () => Promise<void>
   }
 }
 
@@ -37,8 +32,8 @@ type BranchFreeConnectionConstructor = new (
   },
 ) => BranchFreeConnection
 
-describe('released and source DSH Connection compatibility', () => {
-  it('registers the same legacy-options call against the active real implementation', async () => {
+describe('DSH Connection contract', () => {
+  it('registers a Mnemon channel with the real Connection service', async () => {
     const routes: RegisteredRoute[] = []
     const context = new Context()
     context.provide('webServer', {

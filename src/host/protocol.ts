@@ -221,7 +221,7 @@ export interface Config {
   displayMode?: MnemonDisplayMode | 'buildin'
   tabEnabled?: boolean
   writeEnabled?: boolean
-  /** DSH rc.2 management-channel authority; ignored by DSH 0.1.2-alpha.1. */
+  /** Remote management grant for paired pages; loopback pages keep full access. */
   remoteAccess?: 'read-only' | 'trusted-host'
   lifecycleEnabled?: boolean
   recallMode?: 'guided' | 'off'
@@ -299,7 +299,7 @@ export interface ResolvedConfig {
   displayMode: MnemonDisplayMode
   tabEnabled: boolean
   writeEnabled: boolean
-  /** DSH rc.2 management-channel authority; ignored by DSH 0.1.2-alpha.1. */
+  /** Remote management grant for paired pages; loopback pages keep full access. */
   remoteAccess: 'read-only' | 'trusted-host'
   lifecycleEnabled: boolean
   recallMode: 'guided' | 'off'
