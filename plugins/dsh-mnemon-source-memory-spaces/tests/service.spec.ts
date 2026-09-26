@@ -480,11 +480,9 @@ describe('MemorySpacesService', () => {
     const runner: MnemonRunner = {
       command: '/missing/mnemon',
       commandFound: false,
-      config,
       runJson: vi.fn(async () => ({})),
       runText: vi.fn(async () => ''),
       runTextBatch: vi.fn(async () => []),
-      withExclusive: vi.fn(async operation => operation()),
       effectiveDataDir: () => dataDir,
       persistedStore: () => 'default',
       effectiveStore: () => 'default',
