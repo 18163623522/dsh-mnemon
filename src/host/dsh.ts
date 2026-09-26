@@ -109,7 +109,7 @@ export interface HostTextContentBlock extends HostOpaqueContentBlock {
   text: string
 }
 
-/** Durable image metadata used by the DSH 0.1.1 prerelease line. */
+/** Durable image metadata, matching DSH's attachment reference. */
 export interface HostImageAttachmentRef {
   attachmentId: string
   mediaType: 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif'

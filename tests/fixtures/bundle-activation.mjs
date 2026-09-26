@@ -54,9 +54,7 @@ export async function apply(ctx, config) {
   await writeFile(configPath, '- id: connection\n  name: cordis:group\n  group: true\n  config: []\n')
   const retained = '# Operator comment\n- id: mnemon\n  config:\n    timeoutMs: 4321\n- id: mnemon-strategy-auto-capture\n  disabled: false\n- id: mnemon-source-documents\n  disabled: true\n'
   await writeFile(patchPath, retained)
-  const patches = () => app.readProfilePatches === undefined
-    ? [...app.loadProfileDirectory('dsh', profileDir, installAnchor).layers.flatMap(layer => layer.patches), ...app.loadOverlayPatches('dsh', patchPath)]
-    : app.readProfilePatches('dsh', profile)
+  const patches = () => app.readProfilePatches('dsh', profile)
   let Manager
   if (process.argv[3] === 'manager') Manager = (await load('@deepseek-ai/dsh-plugin-manager')).default
   const start = async () => {
@@ -88,10 +86,7 @@ export async function apply(ctx, config) {
     assert(saved.includes('# Operator comment'))
     assert(saved.includes('timeoutMs: 4321'))
   }
-  const reload = async () => {
-    if (app.reconcileProfilePatches) await app.reconcileProfilePatches(ctx, patches(), 'dsh')
-    else { await stop(); await start() }
-  }
+  const reload = () => app.reconcileProfilePatches(ctx, patches(), 'dsh')
   await start()
   assertEnabled()
   if (Manager) {
