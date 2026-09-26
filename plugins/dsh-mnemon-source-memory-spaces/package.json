@@ -110,9 +110,6 @@
   },
   "dsh": {
     "client": {
-      "inject": [
-        "slots"
-      ],
       "platform": "web",
       "external": [
         "dsh-mnemon/client"
