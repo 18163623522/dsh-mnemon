@@ -16,8 +16,7 @@ function textContent(content: unknown, toolResult = false): string {
 
 /** Use only the current public surface, so rewound or compacted evidence cannot reappear. */
 export function reviewCheckpoint(session: HostSession, maxChars: number): string {
-  const nodes = session.surface?.nodes
-  if (nodes === undefined) return 'No current checkpoint surface is available. Skip this review without a mutation.'
+  const nodes = session.surface.nodes
   const events = session.snapshotEvents()
   const completed = [...events].reverse().find(event => event.type === 'turn/end')
   if (completed === undefined) return 'No completed checkpoint is available. Skip this review without a mutation.'

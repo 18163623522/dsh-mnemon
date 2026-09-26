@@ -43,8 +43,7 @@ describe('bounded review checkpoint', () => {
     expect(checkpoint).not.toMatch(/Injected|wrapper|Runtime policy|Compacted|No known source/u)
   })
 
-  it('does not reconstruct discarded context when the current public surface is unavailable', () => {
-    expect(reviewCheckpoint({ ...sessionLog() }, 1_000)).toContain('Skip this review without a mutation')
-    expect(reviewCheckpoint({ ...sessionLog(), surface: { nodes: [] } }, 1_000)).toContain('No completed checkpoint')
+  it('skips review before any completed checkpoint', () => {
+    expect(reviewCheckpoint(sessionLog(), 1_000)).toContain('No completed checkpoint')
   })
 })

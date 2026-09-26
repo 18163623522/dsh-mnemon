@@ -146,12 +146,8 @@ export interface HostSession {
   header?: { origin?: 'subagent'; parentSession?: string; delegationDepth?: number; cwd?: string; agentPreset?: string }
   snapshotEvents(fromSeq?: number, toSeqExclusive?: number): readonly HostSessionEvent[]
   eventAt(seq: number): HostSessionEvent | undefined
-  /**
-   * Model-visible event sequences, in order. Optional because not every host
-   * publishes a surface projection; when absent, callers fall back to
-   * session-scoped state.
-   */
-  surface?: { readonly nodes: readonly number[] }
+  /** Model-visible event sequences, in order; rewinds and compaction replace them. */
+  surface: { readonly nodes: readonly number[] }
 }
 
 export type HostPreStepDecision = { kind: 'reject' } | { kind: 'enter'; messages: HostUserMessage[] }

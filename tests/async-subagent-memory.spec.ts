@@ -89,8 +89,7 @@ function fixture() {
     controls.set(agent, ctx)
     logs.set(agent, log)
     registry.set(id, agent)
-    hostEvents.emit('agent/created', { agent })
-    ctx.emit('agent/session-start', { agent, source: 'startup' })
+    hostEvents.emit('agent/created', { agent, source: 'startup' })
     return agent
   }
   const append = (agent: HostAgent, type: string, turn: number) => {
@@ -323,21 +322,6 @@ describe('asynchronous child memory authority', () => {
     await value.end(value.root, 1)
     await value.begin(child, 1)
     expect(value.views.activeTurn(child.id)!.scope).toMatchObject({ workspaceId: resolve('/workspace/project'), agentId: child.id, sessionId: child.id })
-  })
-
-  it('resets a child turn budget after clear without broadening its delegation', async () => {
-    const value = fixture()
-    await value.begin(value.root, 1)
-    const child = value.create('child', value.root)
-    await value.end(value.root, 1)
-    await value.begin(child, 1)
-    await value.recall(child, 'release history')
-    value.controls.get(child)!.emit('agent/session-start', { agent: child, source: 'clear' })
-    value.logs.get(child)!.length = 0
-    value.setIds(['replacement'])
-    await value.begin(child, 1)
-    expect((await value.recall(child, 'release history')).results.map(row => row.memoryBodyId)).toEqual(['project'])
-    expect(value.search).toHaveBeenCalledTimes(2)
   })
 
   it('releases a rejected child step pin but keeps its delegation for a later turn', async () => {

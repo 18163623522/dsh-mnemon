@@ -230,12 +230,6 @@ class MnemonAgentLifecycle {
     noMaintenance: boolean
   }>()
   /**
-   * Fallback presence marker for hosts that publish no surface projection.
-   * A host with a surface answers the question from what the model can
-   * actually see, which is what makes a rewind self-correcting.
-   */
-  private cueInjected = false
-  /**
    * Text of the runtime memory snapshot most recently injected as this
    * plugin's own message. `.context()` used to get supersede-on-change for free
    * from the host's runtime-context projection; carrying the snapshot as an own
@@ -270,20 +264,6 @@ class MnemonAgentLifecycle {
 
   start(): () => void {
     const disposers = [
-      this.agent.ctx.on('agent/session-start', ((payload: SessionStartPayload) => {
-        this.releaseView()
-        this.memoryTurn?.clearInspection()
-        this.cancelIdleReview(true)
-        this.guidedTurns.clear()
-        this.turnActivity.clear()
-        this.memoryActivity.reset()
-        this.startSource = payload.source
-        this.primePending = true
-        this.cueInjected = false
-        this.injectedMemoryText = undefined
-        this.lastError = undefined
-        this.mark('prime')
-      }) as never),
       this.agent.ctx.on('session/event', ((session: HostAgent['session'], event: HostSessionEvent) => this.sessionEvent(session, event)) as never),
       this.agent.ctx.on('system-prompt/assemble', ((assembly: PromptAssembly, context: PromptAssemblyContext, next: () => Promise<PromptAssembly>) => this.assemblePrompt(assembly, context, next)) as never),
       // `prepend: true` makes this the outermost pre-step participant, so it
@@ -350,19 +330,17 @@ class MnemonAgentLifecycle {
   /**
    * Whether the reminder is still visible to the model.
    *
-   * Read from the surface rather than from `cueInjected`, because a rewind is a
-   * surface replacement inside the same live session: it does not emit
-   * `agent/session-start`, so a session-scoped flag stays set and the reminder
-   * never returns. The durable event log cannot answer this either, since it is
-   * append-only and still contains the discarded message.
+   * Read from the surface rather than an Agent-scoped flag, because a rewind
+   * is a surface replacement inside the same live Agent: DSH does not recreate
+   * the Agent, so a flag would stay set and the reminder would never return.
+   * The durable event log cannot answer this either, since it is append-only
+   * and still contains the discarded message.
    *
    * Scanning forward is cheap: the reminder sits near the head of the surface,
    * so the loop exits after a few nodes even on a long session.
    */
   private cueAlreadyVisible(): boolean {
-    const nodes = this.agent.session.surface?.nodes
-    if (nodes === undefined) return this.cueInjected
-    for (const seq of nodes) {
+    for (const seq of this.agent.session.surface.nodes) {
       if (isOwnUserMessageEvent(this.agent.session.eventAt(seq))) return true
     }
     return false
@@ -420,7 +398,6 @@ class MnemonAgentLifecycle {
     if (this.cueAlreadyVisible()) return { kind: 'enter', messages: withSnapshot(decision.messages) }
     const reminder = guidedReminder(this.config, this.memoryTurn?.current?.context.view.guidance)
     if (reminder === undefined) return { kind: 'enter', messages: withSnapshot(decision.messages) }
-    this.cueInjected = true
     this.guidedTurns.add(payload.turn)
     if (this.config.recallMode === 'guided') this.counters.recallCues += 1
     if (this.config.writebackMode === 'guided' && this.config.writeEnabled) this.counters.writebackCues += 1
@@ -636,7 +613,8 @@ export class MnemonLifecycle {
   ) {}
 
   start(): () => void {
-    const stopCreated = this.ctx.on('agent/created', (({ agent }: AgentEventPayload) => { this.install(agent, 'startup') }) as never)
+    // DSH creates a new Agent for startup, resume, clear and compaction alike.
+    const stopCreated = this.ctx.on('agent/created', (({ agent, source }: SessionStartPayload) => { this.install(agent, source) }) as never)
     for (const agent of this.ctx.agents.roots()) this.install(agent, 'adopted')
     return () => {
       stopCreated()
@@ -1062,7 +1040,6 @@ export class MnemonLifecycle {
         }
       }
       try {
-        stops.push(agent.ctx.on('agent/session-start', (() => memory.end()) as never))
         stops.push(agent.ctx.on('system-prompt/assemble', (async (_assembly: PromptAssembly, context: PromptAssemblyContext, next: () => Promise<PromptAssembly>) => {
           if (context.agent !== undefined && context.agent !== agent) return next()
           const turn = openAgentTurn(agent)
