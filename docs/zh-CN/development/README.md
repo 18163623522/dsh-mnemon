@@ -66,7 +66,7 @@ pnpm --filter dsh-mnemon-source-runtime verify
 
 工作区身份、Client 平台边界和委派工作区范围测试还会在 Windows 的 Node 22.19 与 24 上运行。它们覆盖真实文件系统错误和 junction 别名，并包含模拟 Windows 对文件后代返回 `ENOENT` 的跨平台回归；该模拟不能替代真实 Windows 运行。
 
-`tests/bundle-activation.spec.mjs` 用正式发布的 DSH Loader 启动临时激活计数器，覆盖 Starter 的全部十七个包。锁定的宿主验证旧版 `mnemon` 配置／停用目标及组件独立选择。设置 `MNEMON_BUNDLE_TEST_PROFILE=/absolute/profile` 后，还会调用该安装的正式插件管理器（已在 `0.1.7-rc.2` 验证）：真实组件和 bundle 开关必须在重载、重启后保持，核心总开关必须停止全部运行中的子项，任何包都不能留下重复实例。夹具创建自己的临时 profile，不修改所提供的安装。它验证生命周期契约；真实 Mnemon 行为仍由制品 Headless 和 WebUI 检查负责。执行 `node --expose-internals tests/fixtures/bundle-activation.mjs /absolute/profile manager --check-declared-rows` 可额外要求每个声明的 bundle 组件都可由管理器操作；该诊断会在[兼容性说明](../reference/compatibility.md#dsh-017-bundle-组件列表)中的 `0.1.7-rc.2` 原生 group 列表缺陷处失败。
+`tests/bundle-activation.spec.mjs` 用正式发布的 DSH Loader 启动临时激活计数器，覆盖 Starter 的全部十七个包。它验证旧版 `mnemon` 配置／停用目标及组件独立选择，再调用正式插件管理器：真实组件和 bundle 开关必须在重载、重启后保持，核心总开关必须停止全部运行中的子项，任何包都不能留下重复实例。两组用例都在锁定的宿主上运行；设置 `MNEMON_BUNDLE_TEST_PROFILE=/absolute/profile` 可改为检查另一份安装。夹具创建自己的临时 profile，不修改所提供的安装。它验证生命周期契约；真实 Mnemon 行为仍由制品 Headless 和 WebUI 检查负责。执行 `node --expose-internals tests/fixtures/bundle-activation.mjs /absolute/profile manager --check-declared-rows` 可额外要求每个声明的 bundle 组件都可由管理器操作；该诊断会在[兼容性说明](../reference/compatibility.md#dsh-017-bundle-组件列表)中的 `0.1.7-rc.2` 原生 group 列表缺陷处失败。
 
 远程 Provider 使用可控 HTTP 响应；Native 进程测试使用可控命令 runner，另有可选 Windows 二进制冒烟。额外的 opt-in 测试接受经过官方 checksum 校验的 Native 二进制，创建临时记忆空间，通过 View 写入、召回并删除：
 
@@ -81,7 +81,7 @@ OpenViking 提供显式启用的回环集成测试：`MNEMON_OPENVIKING_TEST_END
 
 Runtime 用例在 View 固定后，通过真实 Host 工具创建并激活两个 Native 空间，归档两条完整检查点并验证待新增内容。路由决策由本地脚本固定，不调用模型 API。
 
-可选 Agent Teams 矩阵通过包出口加载隔离的正式 DSH profile：`MNEMON_TEAM_TEST_PROFILE=/absolute/profile pnpm exec vitest run tests/agent-team-review-host.spec.ts`。使用匹配的 DSH/Teams 0.1.7-rc.1 组合；DSH 0.1.5-rc.2 与 Teams 0.1.5-alpha.2 则另设 `MNEMON_TEAM_TEST_LEGACY=1`。测试执行真实 fork/spawn、原生/Code Mode 工具、全部三个 Strategy 增强、子代理执行限制、Runtime 提交与父 Team 工具。普通 CI 跳过这组额外安装。[Issue #275 记录](../../pr-assets/issue-275-agent-teams/README.zh-CN.md)提供复现 profile、制品 WebUI 夹具与人工验收证据。
+Agent Teams 矩阵只通过包出口加载正式发布的 DSH 包，并随常规测试在锁定的宿主上运行；`MNEMON_TEAM_TEST_PROFILE=/absolute/profile pnpm exec vitest run tests/agent-team-review-host.spec.ts` 可检查同一 DSH/Teams 版本的另一份安装。测试执行真实 fork/spawn、原生/Code Mode 工具、全部三个 Strategy 增强、子代理执行限制、Runtime 提交与父 Team 工具。[Issue #275 记录](../../pr-assets/issue-275-agent-teams/README.zh-CN.md)提供复现 profile、制品 WebUI 夹具与人工验收证据。
 
 可选的 Flash 压力测试使用四个真实 DSH 会话、委派写入者、独立维护任务和临时 Native 存储，保留默认 10 KiB 上限，验证反复归档后的精确原文、命名空间路由和无会话 Web 管理。通过 `DEEPSEEK_API_KEY` 提供 DeepSeek 凭据，通过 `MNEMON_NATIVE_TEST_CLI` 提供已验证的 CLI，然后运行：
 
