@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { JsonValue } from './contracts.ts'
 import type { MemoryMutationCompletion } from 'dsh-mnemon/contracts'
+import { memoryInputInteger as integer } from 'dsh-mnemon/extension-sdk'
 import type { ResolvedMemorySpacesConfig as ResolvedConfig } from './config.ts'
 import {
   MemorySpaceRegistry,
@@ -236,12 +237,6 @@ function insightColor(category: string | undefined): string {
   if (category === 'insight') return '#2ecc71'
   if (category === 'context') return '#f39c12'
   return '#6574d9'
-}
-
-function boundedInteger(value: number | undefined, fallback: number, min: number, max: number): number {
-  if (value === undefined) return fallback
-  if (!Number.isInteger(value) || value < min || value > max) throw new Error(`value must be an integer within ${min}..${max}`)
-  return value
 }
 
 function required(value: string, label: string, max: number): string {
@@ -635,7 +630,7 @@ export class MemorySpacesService {
 
   async search(request: SearchRequest, signal?: AbortSignal): Promise<{ query: string; mode: string; results: Insight[]; hint?: string; sources: MemoryReadSource[] }> {
     const query = required(request.query, 'query', 2000)
-    const limit = boundedInteger(request.limit, this.config.defaultRecallLimit, 1, 50)
+    const limit = integer(request.limit, this.config.defaultRecallLimit, 1, 50)
     const qualityContext: RecallQualityPolicyContext = { requestedLimit: limit, config: this.config.recallQuality }
     const preparedPolicy = prepareRecallQualityPolicy(this.recallQualityPolicy, qualityContext)
     const mode = allowed(request.mode, ['smart', 'keyword', 'basic'] as const, 'mode') ?? 'smart'
@@ -862,7 +857,7 @@ export class MemorySpacesService {
     const query = rawQuery.toLocaleLowerCase()
     if (rawQuery.length > 500) throw new Error('query is too long (max 500 characters)')
     const category = allowed(request.category, CATEGORIES, 'category')
-    const limit = boundedInteger(request.limit, 200, 1, 1000)
+    const limit = integer(request.limit, 200, 1, 1000)
     const spaces = this.readSpaces(request.memoryBodyIds)
     const batches = await Promise.all(spaces.map(async body => {
       const mode: MemoryReadMode = body.provider.capabilities.browse
@@ -928,7 +923,7 @@ export class MemorySpacesService {
     const readableIds = capable.filter(body => body.healthy).map(body => body.id)
     const insights = readableIds.length === 0
       ? []
-      : (await this.search({ query: selected, intent: 'ENTITY', limit: boundedInteger(limit, 20, 1, 50), memoryBodyIds: readableIds }, signal)).results
+      : (await this.search({ query: selected, intent: 'ENTITY', limit: integer(limit, 20, 1, 50), memoryBodyIds: readableIds }, signal)).results
     return { items, selected, insights, sources }
   }
 
@@ -988,7 +983,7 @@ export class MemorySpacesService {
     const selectedEdge = allowed(edge, EDGE_TYPES, 'edge')
     const provider = this.providerFor(body)
     if (provider.related === undefined || !body.provider.capabilities.related) throw new Error(`${body.provider.label} does not support related-memory traversal`)
-    const results = await provider.related(body, required(id, 'id', 2000), boundedInteger(depth, 2, 1, 5), selectedEdge, signal)
+    const results = await provider.related(body, required(id, 'id', 2000), integer(depth, 2, 1, 5), selectedEdge, signal)
     return results.map(entry => this.annotate(entry, body))
   }
 
@@ -1225,7 +1220,7 @@ export class MemorySpacesService {
     // enough for the Host to archive any valid hot-memory entry byte-for-byte;
     // the UI remains at its existing 8,000-character limit.
     const content = required(request.content, 'content', 8 * 1024)
-    const importance = boundedInteger(request.importance, 3, 1, 5)
+    const importance = integer(request.importance, 3, 1, 5)
     const category = allowed(request.category, CATEGORIES, 'category') ?? 'general'
     const source = allowed(request.source, SOURCES, 'source') ?? 'user'
     const tags = commaList(request.tags, 'tags', 20)?.split(',')
