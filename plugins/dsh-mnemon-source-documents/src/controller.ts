@@ -608,10 +608,4 @@ export class DocumentManager {
     }
     return controller
   }
-
-  forAgent(agent: { session: { header?: { cwd?: string } } }): DocumentController {
-    const cwd = agent.session.header?.cwd
-    if (cwd === undefined || cwd.trim() === '') throw new Error('the current DSH session has no workspace for Mnemon Documents')
-    return this.forWorkspace(cwd)
-  }
 }
