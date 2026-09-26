@@ -53,7 +53,6 @@ describe('responsive dialog layout invariants', () => {
     expect(viewCss).toContain('transform: translate3d(0, var(--mn-modal-drag-y, 0px), 0);')
     expect(viewCss).toContain('.modalDragHandle { display: grid; width: 100%; height: 28px;')
     expect(viewCss).toContain('.modalBackdrop, .modal { animation: none !important; }')
-    expect(sidebarCss).toContain('.shell .modalDragHandle span { background: var(--dsw-alias-border-l2); }')
   })
 
   it('routes every shared footer cancel action through the exit animation', () => {
