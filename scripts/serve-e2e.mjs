@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Real DSH WebUI with disposable state and a loopback-only model stub.
 // Run after pnpm build && pnpm --workspace-concurrency=4 -r build; stop with Ctrl-C to remove the fixture.
+// Set MNEMON_E2E_PORT to keep one WebUI address across SIGUSR2 restarts.
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -162,7 +163,7 @@ let web
 let stopping = false
 let restarting = false
 function launch() {
-  const args = [dshBin, 'web', '--no-open', '--host', '127.0.0.1', '--port', '0']
+  const args = [dshBin, 'web', '--no-open', '--host', '127.0.0.1', '--port', process.env.MNEMON_E2E_PORT ?? '0']
   const hostEnv = { ...env }
   if (electronExecutable !== undefined) {
     for (const key of Object.keys(hostEnv)) if (key.toUpperCase() === 'ELECTRON_RUN_AS_NODE') delete hostEnv[key]
