@@ -680,22 +680,19 @@ export function OverviewPage(props: { client: MemorySpacesPageClient; metadataCl
           generatedAt: new Date().toISOString(),
         }
       })
-      const normalizedProviders = nextCatalog.providers
-      const normalizedCatalog = { ...nextCatalog, providers: normalizedProviders, items: nextCatalog.items }
       if (request !== loadRequest.current) return
-      setProviderDrafts(current => mergeProviderDefaults(normalizedCatalog.providers, current))
-      setCatalog(normalizedCatalog)
+      setProviderDrafts(current => mergeProviderDefaults(nextCatalog.providers, current))
+      setCatalog(nextCatalog)
       setCatalogLoading(false)
       void props.client.bodies().then(next => {
         if (request !== loadRequest.current) return
-        const full = { ...next, providers: next.providers, items: next.items }
-        setCatalog(full)
+        setCatalog(next)
       }).catch(reason => {
         if (request === loadRequest.current && !quiet && !directoryUnavailable) setError(message(reason))
       }).finally(() => { if (request === loadRequest.current) setHealthLoading(false) })
       void props.client.graph().then(next => {
         if (request !== loadRequest.current) return
-        const enriched = enrichMultiSpaceGraph(next, normalizedCatalog.items)
+        const enriched = enrichMultiSpaceGraph(next, nextCatalog.items)
         setGraph(enriched)
         setSelected(current => current === null ? null : enriched.nodes.find(node => graphNodeKey(node) === graphNodeKey(current)) ?? null)
       }).catch(reason => {

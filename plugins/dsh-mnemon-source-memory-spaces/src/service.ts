@@ -999,9 +999,7 @@ export class MemorySpacesService {
 
   async createSpace(request: CreateMemorySpaceRequest, signal?: AbortSignal, placement?: MemoryPlacementDecision): Promise<MemorySpace> {
     this.assertWritable()
-    const body = await this.memorySpaces.create(request, signal, placement)
-
-    return body
+    return await this.memorySpaces.create(request, signal, placement)
   }
 
   /**
@@ -1043,39 +1041,27 @@ export class MemorySpacesService {
   async updateProviderService(providerId: MemorySpace['provider']['id'], settings: Record<string, string | number | boolean>, clearSecrets: readonly string[] = [], enabled = true, signal?: AbortSignal) {
     this.assertWritable()
     if (this.isNativeProvider(providerId)) throw new Error('Mnemon Native service settings are managed by the native configuration')
-    if (!enabled) {
-      const service = this.memorySpaces.updateProviderService(providerId, settings, clearSecrets, false)
-
-      return service
-    }
+    if (!enabled) return this.memorySpaces.updateProviderService(providerId, settings, clearSecrets, false)
     const connection = this.memorySpaces.resolveProviderService(providerId, settings, clearSecrets)
     const provider = this.providers.get(providerId)
     if (provider?.discover === undefined) throw new Error(`${this.providerCatalog.descriptor(providerId).label} does not support Memory Space discovery`)
     const discovered = await provider.discover(connection, signal)
-    const service = this.memorySpaces.syncProviderService(providerId, connection, discovered)
-
-    return service
+    return this.memorySpaces.syncProviderService(providerId, connection, discovered)
   }
 
   updateSpace(id: string, request: UpdateMemorySpaceRequest): MemorySpace {
     this.assertWritable()
-    const body = this.memorySpaces.update(id, request)
-
-    return body
+    return this.memorySpaces.update(id, request)
   }
 
   updateSpaceMetadata(updates: readonly MemorySpaceMetadataUpdate[]): MemorySpace[] {
     this.assertWritable()
-    const spaces = this.memorySpaces.updateMetadata(updates)
-
-    return spaces
+    return this.memorySpaces.updateMetadata(updates)
   }
 
   async deleteSpace(id: string, signal?: AbortSignal): Promise<MemorySpace> {
     this.assertWritable()
-    const body = await this.memorySpaces.remove(id, signal)
-
-    return body
+    return await this.memorySpaces.remove(id, signal)
   }
 
   async mergeSpaces(targetSpaceId: string, sourceSpaceIds: string[], deactivateSources = true, signal?: AbortSignal): Promise<JsonValue> {
