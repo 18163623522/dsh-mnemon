@@ -157,6 +157,7 @@
     "dsh-mnemon-source-runtime": "0.5.9",
     "dsh-mnemon-strategy-auto-capture": "0.5.4",
     "dsh-mnemon-strategy-default-three-tier": "0.5.6",
+    "dsh-mnemon-strategy-general": "0.5.0",
     "dsh-mnemon-strategy-light-context": "0.5.4",
     "dsh-mnemon-strategy-scoped": "0.5.4",
     "fflate": "^0.8.3",

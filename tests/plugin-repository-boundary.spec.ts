@@ -12,6 +12,7 @@ const providerImports = new Set(['dsh-mnemon-source-memory-spaces/provider-sdk',
 // Standard-slot extensions follow any main Strategy, so they do not depend on one.
 const viewExtensions = new Set(['dsh-mnemon-strategy-auto-capture', 'dsh-mnemon-strategy-light-context', 'dsh-mnemon-strategy-scoped'])
 const threeTierOwner = 'dsh-mnemon-strategy-default-three-tier'
+const mainStrategies = [threeTierOwner, 'dsh-mnemon-strategy-general']
 
 function inside(directory: string, path: string): boolean {
   const child = relative(directory, path)
@@ -41,11 +42,11 @@ function packageName(specifier: string): string {
 }
 
 describe('standalone plugin repository boundary', () => {
-  it('keeps three Sources, one complete Strategy, three optional contributions and nine private Providers explicit', () => {
+  it('keeps three Sources, two main Strategies, three optional contributions and nine private Providers explicit', () => {
     expect(pluginNames.filter(name => name.startsWith('dsh-mnemon-source-'))).toEqual([
       'dsh-mnemon-source-documents', 'dsh-mnemon-source-memory-spaces', 'dsh-mnemon-source-runtime',
     ])
-    expect(pluginNames.filter(name => name.startsWith('dsh-mnemon-strategy-'))).toEqual([...viewExtensions, threeTierOwner].sort())
+    expect(pluginNames.filter(name => name.startsWith('dsh-mnemon-strategy-'))).toEqual([...viewExtensions, ...mainStrategies].sort())
     expect(pluginNames.filter(name => name.startsWith('dsh-mnemon-provider-'))).toHaveLength(9)
   })
 
