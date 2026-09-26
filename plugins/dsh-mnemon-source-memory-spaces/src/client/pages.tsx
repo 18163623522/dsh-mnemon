@@ -35,10 +35,10 @@ function providerDraftComplete(provider: MemoryProviderDescriptor | undefined, c
   return provider.origin === 'native' || memoryProviderFields(provider).every(field => !field.required || String(connection?.[field.key] ?? '').trim() !== '')
 }
 
-/** Keep a ready provider; otherwise the first ready one, which is Mnemon Native while its CLI is available. */
+/** Keep a ready provider; otherwise Mnemon Native while its CLI is available, then the first other ready one. */
 function readyProviderId(providers: readonly MemoryProviderDescriptor[], current?: MemoryProviderId): MemoryProviderId | undefined {
-  const ready = (provider: MemoryProviderDescriptor): boolean => provider.serviceConfigured !== false
-  return providers.find(provider => provider.id === current && ready(provider))?.id ?? providers.find(ready)?.id
+  const ready = providers.filter(provider => provider.serviceConfigured !== false)
+  return ready.find(provider => provider.id === current)?.id ?? (ready.find(provider => provider.origin === 'native') ?? ready[0])?.id
 }
 
 /** Why a provider cannot be chosen: Mnemon Native needs its CLI, the others a service configured in Settings. */

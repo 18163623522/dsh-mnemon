@@ -303,11 +303,13 @@ export class MemorySpaceRegistry {
   }
 
   /**
-   * The provider used when none is named: the first one, in catalog order, that
-   * can take writes now. Mnemon Native comes first while its CLI is available.
+   * The provider used when none is named: Mnemon Native while its CLI is
+   * available, which keeps the long-standing default, otherwise the first
+   * other provider, in catalog order, that can take writes now.
    */
   defaultProviderId(): MemoryProviderId | undefined {
-    return this.providerCatalog.providers.find(provider => this.providerServiceEnabled(provider.id))?.id
+    const ready = this.providerCatalog.providers.filter(provider => this.providerServiceEnabled(provider.id))
+    return (ready.find(provider => this.isNative(provider.id)) ?? ready[0])?.id
   }
 
   providerServices(options: { includeSecrets?: boolean } = {}): MemoryProviderServiceCatalog {

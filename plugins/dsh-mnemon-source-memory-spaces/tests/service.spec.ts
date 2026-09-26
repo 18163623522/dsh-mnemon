@@ -4,7 +4,8 @@ import { join } from 'node:path'
 import { createHash } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resolveMemorySpacesConfig } from "../src/config.ts"
-import { createRegistry, installedCliStub } from './providers.ts'
+import { adapterRegistry, createRegistry, descriptors, installedCliStub } from './providers.ts'
+import { MemoryProviderCatalog } from '../src/providers/catalog.ts'
 import type { ProcessRunner } from '../src/providers/process.ts'
 import { createRunner } from '../src/runner.ts'
 import { mutationResultCompletion, mutationResultCommitted, type MemorySpacesService } from '../src/service.ts'
@@ -523,6 +524,19 @@ describe('MemorySpacesService', () => {
     expect(service.spaceDirectory().persistenceStrategy).toMatchObject({ mode: 'manual', providerId: 'holographic' })
     await expect(service.createSpaceForPersistence(body, undefined)).resolves.toMatchObject({ provider: expect.objectContaining({ id: 'holographic' }) })
     expect(runner.runText).not.toHaveBeenCalled()
+  })
+
+  it('keeps Mnemon Native as the default while its CLI is installed, beside other ready providers', async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), 'dsh-mnemon-native-first-'))
+    temporaryDirectories.push(dataDir)
+    const config = resolveMemorySpacesConfig({ dataDir, cliPath: FAKE_CLI })
+    const runner = createRunner(config, vi.fn<ProcessRunner>())
+    // The Source lists mounted Providers alphabetically, so Holographic comes before Mnemon Native.
+    const alphabetical = new MemoryProviderCatalog([...descriptors].sort((left, right) => left.id.localeCompare(right.id)))
+    const service = createService(runner, config, createRegistry(runner, true, undefined, alphabetical), undefined, adapterRegistry(), alphabetical)
+    await service.updateProviderService('holographic', {})
+    expect(service.memorySpaces.defaultProviderId()).toBe('mnemon-native')
+    expect(service.spaceDirectory().persistenceStrategy).toMatchObject({ providerId: 'mnemon-native' })
   })
 
   it('keeps an explicitly chosen persistence provider', async () => {
