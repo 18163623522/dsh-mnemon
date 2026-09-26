@@ -386,11 +386,11 @@ export class MemorySpacesService {
       items,
       providers: this.providerCatalog.providers.map(provider => ({
         ...provider,
-        serviceConfigured: (provider.typeId ?? provider.id) === 'mnemon-native' || enabled.has(provider.id),
+        serviceConfigured: (provider.typeId ?? provider.id) === 'mnemon-native' ? this.runner.commandFound : enabled.has(provider.id),
       })),
       persistenceStrategy: {
         mode: this.config.persistenceStrategy.mode,
-        providerId: this.config.persistenceStrategy.providerId,
+        providerId: this.persistenceProviderId() ?? this.config.persistenceStrategy.providerId,
         prompt: this.config.persistenceStrategy.prompt,
         rules: { ...this.config.persistenceStrategy.rules },
       },
@@ -499,11 +499,12 @@ export class MemorySpacesService {
   }
 
   async status(signal?: AbortSignal): Promise<StatusView> {
-    const hasNativeSpace = this.memorySpaces.list().some(body => this.isNativeSpace(body))
+    // Mnemon Native reports a version once its CLI is installed or one of its spaces exists.
+    const nativeInUse = this.runner.commandFound || this.memorySpaces.list().some(body => this.isNativeSpace(body))
     let versionError: unknown
     const [catalog, rawVersion] = await Promise.all([
       this.spaces(signal),
-      hasNativeSpace
+      nativeInUse
         ? this.runner.runText(['--version'], signal === undefined ? { globalFlags: false } : { signal, globalFlags: false }).catch(error => {
             versionError = error
             return undefined
@@ -552,7 +553,6 @@ export class MemorySpacesService {
       providerServices,
     }
     try {
-      if (versionError !== undefined) throw versionError
       const healthySpaces = active.filter(body => body.healthy && body.stats !== undefined)
       const topEntities = new Map<string, number>()
       const byCategory: Record<string, number> = {}
@@ -570,13 +570,17 @@ export class MemorySpacesService {
         topEntities: [...topEntities].map(([entity, count]) => ({ entity, count })).sort((left, right) => right.count - left.count),
         ...(active.length === 1 ? { dbPath: active[0]!.dbPath } : {}),
       }
-      const failed = active.filter(body => !body.healthy)
+      // A missing or failing Mnemon CLI affects only its own spaces; other providers keep their stats.
+      const errors = [
+        ...(versionError === undefined ? [] : [versionError instanceof Error ? versionError.message : String(versionError)]),
+        ...active.filter(body => !body.healthy).map(body => `${body.name}: ${body.error ?? 'unavailable'}`),
+      ]
       return {
         healthy: true,
         ...base,
         ...(rawVersion === undefined ? {} : { version: rawVersion.trim().replace(/^mnemon version\s+/i, '') }),
         stats,
-        ...(failed.length === 0 ? {} : { error: failed.map(body => `${body.name}: ${body.error ?? 'unavailable'}`).join('; ') }),
+        ...(errors.length === 0 ? {} : { error: errors.join('; ') }),
       }
     } catch (error) {
       return { healthy: true, ...base, error: error instanceof Error ? error.message : String(error) }
@@ -1015,11 +1019,12 @@ export class MemorySpacesService {
   ): Promise<MemorySpace> {
     const strategy = this.config.persistenceStrategy
     if (strategy.mode === 'manual') {
-      const connection = strategy.providerConnections[strategy.providerId]
+      const providerId = this.persistenceProviderId()
+      const connection = providerId === undefined ? undefined : strategy.providerConnections[providerId]
       return this.createSpace({
         ...body,
-        providerId: strategy.providerId,
-        ...(this.isNativeProvider(strategy.providerId) || connection === undefined ? {} : { connection }),
+        ...(providerId === undefined ? {} : { providerId }),
+        ...(providerId === undefined || this.isNativeProvider(providerId) || connection === undefined ? {} : { connection }),
       }, signal)
     }
 
@@ -1036,6 +1041,12 @@ export class MemorySpacesService {
     const decision = rulesOnlyPlacement(prepared)
       ?? finalizeLlmPlacement(prepared, selection ?? { providerId: '', reason: '', confidence: '' }, delegation)
     return this.createSpace(request, signal, decision)
+  }
+
+  /** A chosen provider stays fixed; the built-in default follows whichever provider is ready. */
+  private persistenceProviderId(): MemorySpace['provider']['id'] | undefined {
+    const strategy = this.config.persistenceStrategy
+    return strategy.providerDefaulted === true ? this.memorySpaces.defaultProviderId() : strategy.providerId
   }
 
   async updateProviderService(providerId: MemorySpace['provider']['id'], settings: Record<string, string | number | boolean>, clearSecrets: readonly string[] = [], enabled = true, signal?: AbortSignal) {

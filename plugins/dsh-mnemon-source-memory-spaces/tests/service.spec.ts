@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { createHash } from 'node:crypto'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resolveMemorySpacesConfig } from "../src/config.ts"
-import { createRegistry } from './providers.ts'
+import { createRegistry, installedCliStub } from './providers.ts'
 import type { ProcessRunner } from '../src/providers/process.ts'
 import { createRunner } from '../src/runner.ts'
 import { mutationResultCompletion, mutationResultCommitted, type MemorySpacesService } from '../src/service.ts'
@@ -12,6 +12,9 @@ import type { MnemonRunner } from '../src/runner.ts'
 import { parseMemoryGraph } from 'dsh-mnemon-provider-mnemon-native'
 import { createService } from './providers.ts'
 import { RecallQualityPolicyRegistry, STRICT_RECALL_QUALITY_POLICY, type RecallQualityPolicy } from '../src/recall-quality/index.ts'
+
+// The runner sees an installed Mnemon CLI; each test fakes the process it starts.
+const FAKE_CLI = installedCliStub()
 
 const VIZ_HTML = `<script>
 var nodes = new vis.DataSet([{id:"m2",label:"m2: [fact] Four graph memory",title:"Four graph memory",color:"#3498db",font:{color:"white"}},
@@ -69,7 +72,7 @@ function fixture(writeEnabled = true): { service: MemorySpacesService; process: 
   })
   const dataDir = populatedDataDir()
   const config = resolveMemorySpacesConfig({
-    cliPath: '/fake/mnemon',
+    cliPath: FAKE_CLI,
     dataDir,
     store: 'work',
     timeoutMs: 4321,
@@ -169,7 +172,7 @@ describe('MemorySpacesService', () => {
       stderr: '',
       exitCode: 0,
     }))
-    const config = resolveMemorySpacesConfig({ cliPath: '/fake/mnemon', dataDir: populatedDataDir(), store: 'work' })
+    const config = resolveMemorySpacesConfig({ cliPath: FAKE_CLI, dataDir: populatedDataDir(), store: 'work' })
     const runner = createRunner(config, process)
     const service = createService(runner, config, createRegistry(runner, true))
 
@@ -188,7 +191,7 @@ describe('MemorySpacesService', () => {
       }],
     })
     expect(JSON.stringify(result)).not.toContain('Weak clue')
-    expect(process).toHaveBeenCalledWith('/fake/mnemon', expect.arrayContaining(['--limit', '6']), expect.anything())
+    expect(process).toHaveBeenCalledWith(FAKE_CLI, expect.arrayContaining(['--limit', '6']), expect.anything())
   })
 
   it('resolves an injected recall quality policy without changing the service pipeline', async () => {
@@ -204,7 +207,7 @@ describe('MemorySpacesService', () => {
     }
     const registry = new RecallQualityPolicyRegistry()
     registry.register(policy)
-    const config = resolveMemorySpacesConfig({ cliPath: '/fake/mnemon', dataDir: populatedDataDir(), store: 'work', recallQuality: { policy: policy.id } })
+    const config = resolveMemorySpacesConfig({ cliPath: FAKE_CLI, dataDir: populatedDataDir(), store: 'work', recallQuality: { policy: policy.id } })
     const runner = createRunner(config, process)
     const service = createService(runner, config, createRegistry(runner, true), registry)
 
@@ -221,7 +224,7 @@ describe('MemorySpacesService', () => {
       ...Array.from({ length: 3 }, (_, index) => ({ id: `unknown-${index + 1}`, content: `Unknown evidence ${index + 1}` })),
     ]
     const process = vi.fn<ProcessRunner>(async () => ({ stdout: JSON.stringify({ results: rows }), stderr: '', exitCode: 0 }))
-    const config = resolveMemorySpacesConfig({ cliPath: '/fake/mnemon', dataDir: populatedDataDir(), store: 'work' })
+    const config = resolveMemorySpacesConfig({ cliPath: FAKE_CLI, dataDir: populatedDataDir(), store: 'work' })
     const runner = createRunner(config, process)
     const service = createService(runner, config, createRegistry(runner, true))
 
@@ -303,8 +306,8 @@ describe('MemorySpacesService', () => {
       stats: { totalInsights: 3, edgeCount: 4, byCategory: { decision: 2 } },
     })
     expect(status.memoryBodies).toEqual([expect.objectContaining({ id: 'work', active: true, mnemonDefault: true })])
-    expect(process).toHaveBeenCalledWith('/fake/mnemon', ['--data-dir', dataDir, '--store', 'work', 'status'], expect.anything())
-    expect(process).toHaveBeenCalledWith('/fake/mnemon', ['--version'], expect.anything())
+    expect(process).toHaveBeenCalledWith(FAKE_CLI, ['--data-dir', dataDir, '--store', 'work', 'status'], expect.anything())
+    expect(process).toHaveBeenCalledWith(FAKE_CLI, ['--version'], expect.anything())
   })
 
   it('reports the effective Mnemon embedding connection and coverage with strict response validation', async () => {
@@ -352,7 +355,7 @@ describe('MemorySpacesService', () => {
         stderr: '', exitCode: 0,
       })
     const dataDir = populatedDataDir()
-    const config = resolveMemorySpacesConfig({ cliPath: '/fake/mnemon', dataDir, store: 'work' })
+    const config = resolveMemorySpacesConfig({ cliPath: FAKE_CLI, dataDir, store: 'work' })
     const runner = createRunner(config, process)
     const service = createService(runner, config, createRegistry(runner, true))
 
@@ -374,7 +377,7 @@ describe('MemorySpacesService', () => {
       coverage: '75%',
     }
     await expect(service.embeddingStatus()).resolves.toEqual(expected)
-    expect(process).toHaveBeenNthCalledWith(1, '/fake/mnemon', [
+    expect(process).toHaveBeenNthCalledWith(1, FAKE_CLI, [
       '--data-dir', dataDir, '--store', 'work', 'embed', '--status',
     ], expect.anything())
     await expect(service.embeddingStatus()).resolves.toEqual(legacyExpected)
@@ -503,6 +506,53 @@ describe('MemorySpacesService', () => {
     ]))
   })
 
+  it('persists into the ready provider when none was chosen and the Mnemon CLI is absent', async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), 'dsh-mnemon-default-provider-'))
+    temporaryDirectories.push(dataDir)
+    const runner: MnemonRunner = {
+      command: '/missing/mnemon', commandFound: false,
+      runJson: vi.fn(async () => ({})), runText: vi.fn(async () => ''), runTextBatch: vi.fn(async () => []),
+      effectiveDataDir: () => dataDir, persistedStore: () => 'default', effectiveStore: () => 'default',
+    }
+    const service = createService(runner, resolveMemorySpacesConfig({ dataDir, cliPath: '/missing/mnemon' }))
+    const body = { name: 'Decisions', description: 'Durable product decisions.' }
+    expect(service.spaceDirectory().providers.find(provider => provider.id === 'mnemon-native')).toMatchObject({ serviceConfigured: false })
+    await expect(service.createSpaceForPersistence(body, undefined)).rejects.toThrow('No memory provider is ready')
+
+    await service.updateProviderService('holographic', {})
+    expect(service.spaceDirectory().persistenceStrategy).toMatchObject({ mode: 'manual', providerId: 'holographic' })
+    await expect(service.createSpaceForPersistence(body, undefined)).resolves.toMatchObject({ provider: expect.objectContaining({ id: 'holographic' }) })
+    expect(runner.runText).not.toHaveBeenCalled()
+  })
+
+  it('keeps an explicitly chosen persistence provider', async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), 'dsh-mnemon-chosen-provider-'))
+    temporaryDirectories.push(dataDir)
+    const runner: MnemonRunner = {
+      command: '/missing/mnemon', commandFound: false,
+      runJson: vi.fn(async () => ({})), runText: vi.fn(async () => ''), runTextBatch: vi.fn(async () => []),
+      effectiveDataDir: () => dataDir, persistedStore: () => 'default', effectiveStore: () => 'default',
+    }
+    const service = createService(runner, resolveMemorySpacesConfig({ dataDir, cliPath: '/missing/mnemon', persistenceStrategy: { mode: 'manual', providerId: 'mnemon-native' } }))
+    await service.updateProviderService('holographic', {})
+    // A saved choice never moves to another provider; the Native runner reports its own failure.
+    await expect(service.createSpaceForPersistence({ name: 'Decisions', description: 'Durable product decisions.' }, undefined))
+      .resolves.toMatchObject({ provider: expect.objectContaining({ id: 'mnemon-native' }) })
+    expect(runner.runText).toHaveBeenCalledWith(['store', 'create', 'default'], expect.anything())
+  })
+
+  it('keeps provider stats when the Mnemon CLI version probe fails', async () => {
+    const { service, process } = fixture()
+    const answer = process.getMockImplementation()!
+    process.mockImplementation(async (command, args, options) => args.includes('--version')
+      ? { stdout: '', stderr: 'mnemon: version probe failed', exitCode: 2 }
+      : answer(command, args, options))
+    const status = await service.status()
+    expect(status.stats).toMatchObject({ totalInsights: 3, edgeCount: 4 })
+    expect(status.error).toContain('version probe failed')
+    expect(status.version).toBeUndefined()
+  })
+
   it('refreshes one Memory Space health status in read-only mode', async () => {
     const { service } = fixture(false)
 
@@ -541,7 +591,7 @@ describe('MemorySpacesService', () => {
     expect(result.results).toEqual([expect.objectContaining({ id: 'm1', score: 0.91, confidence: 'high', memoryCapabilities: expect.objectContaining({ related: true, forget: true }) })])
     expect(result.sources).toEqual([expect.objectContaining({ memoryBodyId: 'work', mode: 'search', status: 'ready', itemCount: 1 })])
     expect(process).toHaveBeenCalledWith(
-      '/fake/mnemon',
+      FAKE_CLI,
       ['--data-dir', dataDir, '--store', 'work', 'recall', 'database choice', '--limit', '21'],
       expect.anything(),
     )
@@ -561,7 +611,7 @@ describe('MemorySpacesService', () => {
         stderr: '', exitCode: 0,
       }
     })
-    const config = resolveMemorySpacesConfig({ cliPath: '/fake/mnemon', dataDir: populatedDataDir(), store: 'work' })
+    const config = resolveMemorySpacesConfig({ cliPath: FAKE_CLI, dataDir: populatedDataDir(), store: 'work' })
     const runner = createRunner(config, process)
     const service = createService(runner, config, createRegistry(runner, true))
 
@@ -572,7 +622,7 @@ describe('MemorySpacesService', () => {
 
     expect(result.results.map(insight => insight.id)).toEqual(['target', 'incident'])
     expect(JSON.stringify(result.results)).not.toContain('当前 canary')
-    expect(process).toHaveBeenCalledWith('/fake/mnemon', expect.arrayContaining([
+    expect(process).toHaveBeenCalledWith(FAKE_CLI, expect.arrayContaining([
       'search', '35% 65% 12% 100%', '--limit', '3',
     ]), expect.anything())
   })
@@ -592,14 +642,14 @@ describe('MemorySpacesService', () => {
         stderr: '', exitCode: 0,
       }
     })
-    const config = resolveMemorySpacesConfig({ cliPath: '/fake/mnemon', dataDir: populatedDataDir(), store: 'work' })
+    const config = resolveMemorySpacesConfig({ cliPath: FAKE_CLI, dataDir: populatedDataDir(), store: 'work' })
     const runner = createRunner(config, process)
     const service = createService(runner, config, createRegistry(runner, true))
 
     const result = await service.search({ query, limit: 3 })
     expect(result.results.map(insight => insight.id)).toEqual(['target', 'generic'])
     expect(JSON.stringify(result.results)).not.toContain('收敛版移除')
-    expect(process).toHaveBeenCalledWith('/fake/mnemon', expect.arrayContaining(['search', query]), expect.anything())
+    expect(process).toHaveBeenCalledWith(FAKE_CLI, expect.arrayContaining(['search', query]), expect.anything())
   })
 
   it('prioritizes selected query-covering evidence before the smaller model envelope', async () => {
@@ -610,7 +660,7 @@ describe('MemorySpacesService', () => {
       ] }),
       stderr: '', exitCode: 0,
     }))
-    const config = resolveMemorySpacesConfig({ cliPath: '/fake/mnemon', dataDir: populatedDataDir(), store: 'work' })
+    const config = resolveMemorySpacesConfig({ cliPath: FAKE_CLI, dataDir: populatedDataDir(), store: 'work' })
     const runner = createRunner(config, process)
     const service = createService(runner, config, createRegistry(runner, true))
 
@@ -628,7 +678,7 @@ describe('MemorySpacesService', () => {
       }] }),
       stderr: '', exitCode: 0,
     }))
-    const config = resolveMemorySpacesConfig({ cliPath: '/fake/mnemon', dataDir: populatedDataDir(), store: 'work' })
+    const config = resolveMemorySpacesConfig({ cliPath: FAKE_CLI, dataDir: populatedDataDir(), store: 'work' })
     const runner = createRunner(config, process)
     const service = createService(runner, config, createRegistry(runner, true))
 
@@ -641,7 +691,7 @@ describe('MemorySpacesService', () => {
 
   it('keeps keyword searches single-pass even when the query contains exact anchors', async () => {
     const process = vi.fn<ProcessRunner>(async () => ({ stdout: '[]', stderr: '', exitCode: 0 }))
-    const config = resolveMemorySpacesConfig({ cliPath: '/fake/mnemon', dataDir: populatedDataDir(), store: 'work' })
+    const config = resolveMemorySpacesConfig({ cliPath: FAKE_CLI, dataDir: populatedDataDir(), store: 'work' })
     const runner = createRunner(config, process)
     const service = createService(runner, config, createRegistry(runner, true))
 
@@ -679,7 +729,7 @@ describe('MemorySpacesService', () => {
         stderr: '', exitCode: 0,
       }
     })
-    const config = resolveMemorySpacesConfig({ cliPath: '/fake/mnemon', dataDir: populatedDataDir(), store: 'work' })
+    const config = resolveMemorySpacesConfig({ cliPath: FAKE_CLI, dataDir: populatedDataDir(), store: 'work' })
     const runner = createRunner(config, process)
     const service = createService(runner, config, createRegistry(runner, true))
 
@@ -698,8 +748,8 @@ describe('MemorySpacesService', () => {
     ])
     expect(graph.edges).toEqual([expect.objectContaining({ sourceId: 'work:m1', targetId: 'work:m2', type: 'temporal', label: 'backbone' })])
     expect(graph.sources).toEqual([expect.objectContaining({ memoryBodyId: 'work', mode: 'graph', status: 'ready', itemCount: 2, edgeCount: 1 })])
-    expect(process).toHaveBeenCalledWith('/fake/mnemon', expect.arrayContaining(['viz', '--format', 'html']), expect.anything())
-    expect(process).toHaveBeenCalledWith('/fake/mnemon', expect.arrayContaining(['--readonly', 'recall', '', '--basic']), expect.anything())
+    expect(process).toHaveBeenCalledWith(FAKE_CLI, expect.arrayContaining(['viz', '--format', 'html']), expect.anything())
+    expect(process).toHaveBeenCalledWith(FAKE_CLI, expect.arrayContaining(['--readonly', 'recall', '', '--basic']), expect.anything())
   })
 
   it('lists active memories with readonly metadata and filters locally', async () => {
@@ -721,7 +771,7 @@ describe('MemorySpacesService', () => {
       method: 'native-basic',
       evidence: [{ content: 'Use SQLite for local-first storage.' }, { content: 'Four graph memory' }],
     })
-    expect(process).toHaveBeenCalledWith('/fake/mnemon', expect.arrayContaining([
+    expect(process).toHaveBeenCalledWith(FAKE_CLI, expect.arrayContaining([
       '--readonly', 'recall', '', '--basic', '--limit', '6',
     ]), expect.anything())
   })
@@ -761,7 +811,7 @@ describe('MemorySpacesService', () => {
       sources: [{ memoryBodyId: 'work', mode: 'entities', status: 'ready', itemCount: 1 }],
     })
     await expect(service.entities('SQLite', 5)).resolves.toMatchObject({ selected: 'SQLite', insights: [{ id: 'm1' }] })
-    expect(process).toHaveBeenCalledWith('/fake/mnemon', expect.arrayContaining(['--intent', 'ENTITY', '--limit', '15']), expect.anything())
+    expect(process).toHaveBeenCalledWith(FAKE_CLI, expect.arrayContaining(['--intent', 'ENTITY', '--limit', '15']), expect.anything())
   })
 
   it('rejects malformed visualization output', () => {
@@ -781,7 +831,7 @@ describe('MemorySpacesService', () => {
       stderr: '',
       exitCode: 0,
     }))
-    const config = resolveMemorySpacesConfig({ cliPath: '/fake/mnemon', dataDir: populatedDataDir(), store: 'work' })
+    const config = resolveMemorySpacesConfig({ cliPath: FAKE_CLI, dataDir: populatedDataDir(), store: 'work' })
     const runner = createRunner(config, process)
     const service = createService(runner, config, createRegistry(runner, true))
     await expect(service.search({ query: 'nested' })).resolves.toMatchObject({
@@ -793,7 +843,7 @@ describe('MemorySpacesService', () => {
     const { service, process } = fixture()
     await service.remember({ content: 'Use SQLite for local-first storage.', category: 'decision', importance: 5, tags: ['storage', 'local'] })
     expect(process).toHaveBeenCalledWith(
-      '/fake/mnemon',
+      FAKE_CLI,
       expect.arrayContaining(['remember', 'Use SQLite for local-first storage.', '--cat', 'decision', '--imp', '5', '--tags', 'storage,local']),
       expect.anything(),
     )
@@ -826,7 +876,7 @@ describe('MemorySpacesService', () => {
         exitCode: 0,
       }
     })
-    const config = resolveMemorySpacesConfig({ cliPath: '/fake/mnemon', dataDir: populatedDataDir(), store: 'work' })
+    const config = resolveMemorySpacesConfig({ cliPath: FAKE_CLI, dataDir: populatedDataDir(), store: 'work' })
     const runner = createRunner(config, process)
     const service = createService(runner, config, createRegistry(runner, true))
 
@@ -869,7 +919,7 @@ describe('MemorySpacesService', () => {
         exitCode: 0,
       }
     })
-    const config = resolveMemorySpacesConfig({ cliPath: '/fake/mnemon', dataDir: populatedDataDir(), store: 'work' })
+    const config = resolveMemorySpacesConfig({ cliPath: FAKE_CLI, dataDir: populatedDataDir(), store: 'work' })
     const runner = createRunner(config, process)
     const service = createService(runner, config, createRegistry(runner, true))
 
@@ -885,12 +935,12 @@ describe('MemorySpacesService', () => {
     const content = 'x'.repeat(8 * 1024)
 
     await expect(service.remember({ content })).resolves.toMatchObject({ action: 'added' })
-    expect(process).toHaveBeenCalledWith('/fake/mnemon', expect.arrayContaining(['remember', content]), expect.anything())
+    expect(process).toHaveBeenCalledWith(FAKE_CLI, expect.arrayContaining(['remember', content]), expect.anything())
     process.mockClear()
     await expect(service.rememberMany([{ content, memoryBodyId: 'work' }])).resolves.toEqual([
       expect.objectContaining({ action: 'added', memoryBodyId: 'work' }),
     ])
-    expect(process).toHaveBeenCalledWith('/fake/mnemon', expect.arrayContaining(['remember', content]), expect.anything())
+    expect(process).toHaveBeenCalledWith(FAKE_CLI, expect.arrayContaining(['remember', content]), expect.anything())
     expect(process.mock.calls.some(([, args]) => args.includes('import'))).toBe(false)
     await expect(service.remember({ content: `${content}x` })).rejects.toThrow('max 8192 characters')
   })
@@ -919,7 +969,7 @@ describe('MemorySpacesService', () => {
   })
 
   it('refuses mutations in read-only plugin mode', async () => {
-    const config = resolveMemorySpacesConfig({ cliPath: '/fake/mnemon', writeEnabled: false })
+    const config = resolveMemorySpacesConfig({ cliPath: FAKE_CLI, writeEnabled: false })
     const process = vi.fn<ProcessRunner>()
     const service = createService(createRunner(config, process), config)
     await expect(service.remember({ content: 'secret' })).rejects.toThrow('read-only')
@@ -941,7 +991,7 @@ describe('MemorySpacesService', () => {
     const result = await service.search({ query: 'database choice' })
     expect(result.results).toHaveLength(2)
     expect(result.results.map(item => item.memoryBodyId)).toEqual(['work', research.id])
-    expect(process).toHaveBeenCalledWith('/fake/mnemon', expect.arrayContaining(['--store', research.id, 'recall']), expect.anything())
+    expect(process).toHaveBeenCalledWith(FAKE_CLI, expect.arrayContaining(['--store', research.id, 'recall']), expect.anything())
 
     service.updateSpace(research.id, { active: false })
     await service.remember({ memoryBodyId: research.id, content: 'Durable cross-body write.' })
@@ -949,7 +999,7 @@ describe('MemorySpacesService', () => {
 
     await expect(service.deleteSpace(research.id)).resolves.toMatchObject({ id: research.id })
     expect(service.memorySpaces.list().some(body => body.id === research.id)).toBe(false)
-    expect(process).toHaveBeenCalledWith('/fake/mnemon', expect.arrayContaining(['--store', research.id, 'store', 'remove', research.id]), expect.anything())
+    expect(process).toHaveBeenCalledWith(FAKE_CLI, expect.arrayContaining(['--store', research.id, 'store', 'remove', research.id]), expect.anything())
   })
 
   it('fuses heterogeneous provider ranks without comparing raw scores and isolates provider failures', async () => {
