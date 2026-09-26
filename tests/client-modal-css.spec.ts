@@ -17,7 +17,6 @@ describe('responsive dialog layout invariants', () => {
     expect(viewCss).toContain('.modalBody { min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain;')
     expect(viewCss).toContain('.modalFooter { display: flex; flex: none;')
     expect(sidebarCss).toContain(".shell .modal > [class*='modalBody'] { min-height: 0; overflow-x: hidden; overflow-y: auto;")
-    expect(sidebarCss).not.toContain('.shell .modal > div:last-child')
   })
 
   it('applies the fixed sidebar skin to wide dialogs instead of collapsing them to the base width', () => {

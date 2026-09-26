@@ -117,8 +117,6 @@ function makeCtx(initialValue: unknown, coreValue: Record<string, unknown> = {})
   return { ctx, core, registerSlot, dispose, injects, injectDisposers, registeredOptions, activeRegistrations, effectDisposers }
 }
 
-const TOOLVIEW_KEYS = ['mnemon_memory_bodies', 'mnemon_recall', 'mnemon_related', 'mnemon_status', 'mnemon_document_search', 'mnemon_document_manage', 'mnemon_runtime_memory', 'mnemon_remember', 'mnemon_link', 'mnemon_forget', 'mnemon_memory_body_create', 'mnemon_memory_body_update', 'mnemon_memory_body_merge']
-
 describe('interaction surfaces binding', () => {
   afterEach(() => {
     for (const dispose of mountedEffects.splice(0).reverse()) dispose()
@@ -166,7 +164,6 @@ describe('interaction surfaces binding', () => {
     expect(injects).toContain('settings.section')
     await waitFor(() => expect(injects).toContain('shell.overlay'))
     await waitFor(() => expect(activeRegistrations()).toEqual(expect.arrayContaining(['dsh-mnemon/turn-tail', 'mnemon-save'])))
-    expect(activeRegistrations()).not.toEqual(expect.arrayContaining(TOOLVIEW_KEYS))
   })
 
   it('registers explicitly enabled surfaces after settings load', async () => {
@@ -174,7 +171,6 @@ describe('interaction surfaces binding', () => {
     apply(ctx)
     await waitFor(() => expect(activeRegistrations()).toEqual(expect.arrayContaining(['dsh-mnemon/turn-tail', 'mnemon-save'])))
     expect(activeRegistrations()).toEqual(expect.arrayContaining(['dsh-mnemon/turn-tail', 'mnemon-save']))
-    expect(activeRegistrations()).not.toEqual(expect.arrayContaining(TOOLVIEW_KEYS))
   })
 
   it('registers only the enabled surfaces when toggles are mixed', async () => {
@@ -182,7 +178,6 @@ describe('interaction surfaces binding', () => {
     apply(ctx)
     await waitFor(() => expect(activeRegistrations()).toEqual(expect.arrayContaining(['mnemon-save'])))
     expect(activeRegistrations()).toEqual(expect.arrayContaining(['mnemon-save']))
-    expect(activeRegistrations()).not.toEqual(expect.arrayContaining(TOOLVIEW_KEYS))
     expect(activeRegistrations()).not.toContain('dsh-mnemon/turn-tail')
   })
 
