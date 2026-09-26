@@ -81,6 +81,7 @@ function lineageShadow(official: LineageComponent): LineageComponent {
   }
 }
 
+/** SlotRegistry face used to re-register the official entry's type-erased locale and inject. */
 interface ErasedSlots {
   entries(key: string): readonly StoredEntry[]
   subscribe(key: string, listener: () => void): () => void
@@ -100,13 +101,11 @@ function officialLineage(entries: readonly StoredEntry[]): StoredEntry | undefin
  * Mnemon keeps the official UI, styles, locale, and navigation behavior.
  */
 export function mountSubagentTokenUsageOverride(ctx: MnemonClientContext): () => void {
-  const slots = ctx.slots as unknown as Partial<ErasedSlots>
-  if (typeof slots.entries !== 'function' || typeof slots.subscribe !== 'function'
-    || typeof slots.register !== 'function') return () => {}
+  const slots = ctx.slots as unknown as ErasedSlots
   let official: StoredEntry | undefined
   let disposeShadow: (() => void) | undefined
   const reconcile = (): void => {
-    const entries = slots.entries!(SUBAGENT_LINEAGE_SLOT)
+    const entries = slots.entries(SUBAGENT_LINEAGE_SLOT)
     if (official !== undefined && entries.includes(official)) return
     const disposePreviousShadow = disposeShadow
     disposeShadow = undefined
@@ -114,7 +113,7 @@ export function mountSubagentTokenUsageOverride(ctx: MnemonClientContext): () =>
     disposePreviousShadow?.()
     official = officialLineage(entries)
     if (official === undefined) return
-    disposeShadow = slots.register!({
+    disposeShadow = slots.register({
       name: SUBAGENT_LINEAGE_SLOT,
       priority: MNEMON_SHADOW_PRIORITY,
       locale: official.locale,

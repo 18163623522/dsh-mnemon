@@ -58,6 +58,8 @@ function makeCtx(initialValue: unknown, coreValue: Record<string, unknown> = {})
         injectDisposers.set(slot, disposer)
         return disposer
       },
+      entries: (slot: string) => core.entries(slot),
+      subscribe: (slot: string, listener: () => void) => core.subscribe(slot, listener),
       register: (options: SlotOptions, component: unknown) => {
         const dispose = registerSlot(options, component)
         registeredOptions.push(options)

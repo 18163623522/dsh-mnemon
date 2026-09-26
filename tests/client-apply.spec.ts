@@ -48,6 +48,8 @@ function workspaceContext(initialValue: Record<string, unknown>, load: () => Pro
     },
     slots: {
       inject: vi.fn((_name: string, factory: () => unknown) => factory()),
+      entries: vi.fn(() => []),
+      subscribe: vi.fn(() => () => {}),
       register: vi.fn((options: Record<string, unknown>) => {
         slots.push(options)
         const stop = vi.fn()

@@ -68,6 +68,8 @@ function fixture() {
     effect(callback: () => unknown) { const dispose = callback(); if (typeof dispose === 'function') disposers.push(dispose as () => void) },
     slots: {
       inject(_name: string, factory: () => (() => void)) { const dispose = factory(); disposers.push(dispose); return dispose },
+      entries: () => [],
+      subscribe: () => () => {},
       register(options: unknown, component: unknown) { entries.push({ options, component } as typeof entries[number]); return () => {} },
     },
   }
