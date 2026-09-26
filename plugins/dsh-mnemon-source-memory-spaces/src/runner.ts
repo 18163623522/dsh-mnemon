@@ -6,9 +6,6 @@ import { runProcess, type ProcessOptions, type ProcessRunner } from './providers
 import { withMemoryStorageLock } from 'dsh-mnemon/extension-sdk'
 import { findMnemonCommand, isMnemonExecutable, mnemonNpmLauncher, nodeLauncherEnvironment } from './native-cli.ts'
 
-export { findMnemonCommand } from './native-cli.ts'
-export type { CommandDiscoveryOptions } from './native-cli.ts'
-
 export class MnemonCliError extends Error {
   constructor(message: string) {
     super(message)

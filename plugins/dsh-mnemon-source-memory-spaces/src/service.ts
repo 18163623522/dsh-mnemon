@@ -6,14 +6,9 @@ import type { JsonValue } from './contracts.ts'
 import type { MemoryMutationCompletion } from 'dsh-mnemon/contracts'
 import { memoryInputInteger as integer } from 'dsh-mnemon/extension-sdk'
 import type { ResolvedMemorySpacesConfig as ResolvedConfig } from './config.ts'
-import {
-  MemorySpaceRegistry,
-  type CreateMemorySpaceRequest,
-  type MemorySpace,
-  type UpdateMemorySpaceRequest,
-} from './memory-spaces.ts'
+import { MemorySpaceRegistry } from './memory-spaces.ts'
 import type { MnemonRunner } from './runner.ts'
-import { finalizeLlmPlacement, prepareMemoryPlacement, rulesOnlyPlacement, type LlmMemoryPlacementSelection, type PreparedMemoryPlacement } from './provider-placement.ts'
+import { finalizeLlmPlacement, prepareMemoryPlacement, rulesOnlyPlacement } from './provider-placement.ts'
 import { EMPTY_MEMORY_PROVIDER_CATALOG, MemoryProviderCatalog } from './providers/catalog.ts'
 import { type MemoryProviderAdapter, type ProviderSpaceStatus, type ProviderSearchResult } from './providers/adapter.ts'
 import { MemoryProviderAdapterRegistry } from './providers/registry.ts'
@@ -34,12 +29,16 @@ import {
   INTENTS,
   SOURCES,
   type Category,
+  type CreateMemorySpaceRequest,
   type EdgeType,
   type EntityView,
   type Insight,
   type Intent,
+  type LlmMemoryPlacementSelection,
+  type MemorySpace,
   type MemorySpaceCatalog,
   type MemorySpaceStats,
+  type MemorySpaceMetadataSample,
   type MemorySpaceMetadataUpdate,
   type MemorySpaceView,
   type MemoryGraphEdge,
@@ -53,39 +52,14 @@ import {
   type MemoryReadMode,
   type MemoryReadSource,
   type MemoryReadStatus,
+  type PreparedMemoryPlacement,
   type RememberRequest,
   type RecallQualityStats,
   type SearchRequest,
   type Source,
+  type UpdateMemorySpaceRequest,
   type MemorySpacesStatus as StatusView,
 } from './contracts.ts'
-
-export { CATEGORIES, EDGE_TYPES, INTENTS, SOURCES } from './contracts.ts'
-export type {
-  Category,
-  EdgeType,
-  EntityView,
-  Insight,
-  Intent,
-  MemorySpaceCatalog,
-  MemorySpaceStats,
-  MemorySpaceView,
-  MemoryGraphEdge,
-  MemoryGraphNode,
-  MemoryGraphSnapshot,
-  MemoryListRequest,
-  MemoryListView,
-  MnemonEmbeddingStatus,
-  MemoryReadSource,
-  RecallQualityStats,
-  RememberRequest,
-  SearchRequest,
-  Source,
-  MemorySpacesStatus as StatusView,
-} from './contracts.ts'
-
-import type { MemorySpaceMetadataSample } from './contracts.ts'
-export type { MemorySpaceMetadataSample } from './contracts.ts'
 
 interface PreparedRemember {
   body: MemorySpace

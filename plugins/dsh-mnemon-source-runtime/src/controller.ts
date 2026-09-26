@@ -22,6 +22,7 @@ import type {
   RuntimeMemoryCompactedEntry,
   RuntimeMemoryEntry,
   RuntimeMemoryImportance,
+  RuntimeMemoryMaintenancePlan,
   RuntimeMemoryMutation,
   RuntimeMemoryMutationResult,
   RuntimeMemorySnapshot,
@@ -29,22 +30,7 @@ import type {
   RuntimeMemoryTargetView,
   RuntimeMemoryUsage,
 } from './contracts.ts'
-
-export type {
-  RuntimeMemoryAction,
-  RuntimeMemoryCompactedEntry,
-  RuntimeMemoryEntry,
-  RuntimeMemoryImportance,
-  RuntimeMemoryMutation,
-  RuntimeMemoryMutationResult,
-  RuntimeMemorySnapshot,
-  RuntimeMemoryTarget,
-  RuntimeMemoryTargetView,
-  RuntimeMemoryUsage,
-} from './contracts.ts'
-
 import { RUNTIME_MEMORY_VERSION, RUNTIME_ENTRY_DELIMITER, RUNTIME_MEMORY_LIMITS, type RuntimeMemoryLimits } from './contracts.ts'
-export { RUNTIME_MEMORY_VERSION, RUNTIME_ENTRY_DELIMITER, RUNTIME_MEMORY_LIMITS, type RuntimeMemoryLimits } from './contracts.ts'
 
 export interface RuntimeMemoryContextProjection {
   revision: string
@@ -75,10 +61,6 @@ interface PreparedRuntimeMemoryMutation {
   excludedEntry?: RuntimeMemoryEntry
   fields: RuntimeMemoryResultFields
 }
-
-/** Host-only plan for capacity maintenance; this is not exposed as a Tool or RPC action. */
-import type { RuntimeMemoryMaintenancePlan } from './contracts.ts'
-export type { RuntimeMemoryMaintenancePlan } from './contracts.ts'
 
 export class RuntimeMemoryCapacityError extends Error {
   readonly code = 'runtime-capacity' as const
