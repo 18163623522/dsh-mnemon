@@ -142,6 +142,8 @@ Runtime 写入范围回归使用 `MNEMON_CLI_PATH=/absolute/path/to/mnemon pnpm 
 
 `pnpm e2e:serve --idle-review --strategy-extensions` 通过确定性回环模型选择验证部分失败。连续发送两个至少 150 字符的合成用户回合，再等待五秒；真实 reviewer 创建一份档案和一条 Runtime 记忆后，夹具故意返回模型错误。刷新记忆系统状态核对两份已提交回执，再发送更多回合，确认每会话一次的上限阻止新增子 Agent。与生产默认值的差别只有防抖和最小尝试间隔（均为 5 秒）以及 1 次会话上限。该夹具不模拟真实 Agent Teams policy；该组合由上文的可选 Agent Teams 矩阵覆盖。不使用个人凭据或记忆。详见[双语复现与证据](../../pr-assets/idle-review-agent-team/README.zh-CN.md)。
 
+`pnpm e2e:serve --general-strategy` 启动时已选中通用主策略，并停用默认三层策略。先发送 `general-strategy-check remember`，下一回合再发送 `general-strategy-check recall`。脚本模型检查系统提示中包含通用记忆协议，且 Runtime、项目档案和记忆空间三个 Source 均已接入；随后通过具名 Runtime 工具保存一条事实，并且只有当这条事实以常驻记忆投影出现时，第二回合才答出它。夹具以 `General strategy:` 行输出每项检查。只有模型决策是脚本化的；策略、其 View、Runtime 写入和浏览器均为真实运行。
+
 ## 发布
 
 官方包采用独立版本，Starter 固定经过验证的组合。Changeset、冻结制品、Registry 验证与失败恢复见[发布流程](./releasing.md)。
