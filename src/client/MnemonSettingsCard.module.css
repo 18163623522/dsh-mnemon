@@ -605,3 +605,9 @@
 .storageChoiceGrid > :last-child { grid-column: 1 / -1; }
 .workspaceStorageLocation { margin-top: 16px; }
 .workspaceStorageLocation > p { margin: 10px 0 0; color: var(--dsw-alias-label-caption); font-size: 12px; line-height: 1.5; }
+
+/* The dsh-mnemon bundle page under Plugins: the same composition controls. */
+.pluginsComposition { display: flex; min-width: 0; flex-direction: column; gap: 20px; color: var(--dsw-alias-label-primary); font-family: inherit; }
+.pluginsComposition *, .pluginsComposition *::before, .pluginsComposition *::after { box-sizing: border-box; }
+.pluginsComposition button, .pluginsComposition input, .pluginsComposition select { color: inherit; font: inherit; }
+.pluginsCompositionHint { margin: 0; color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }

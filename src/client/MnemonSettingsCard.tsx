@@ -21,6 +21,8 @@ import {
 } from "../host/protocol.ts"
 import type { MemoryPluginEntryView, MemoryViewDashboard } from '../host/view-protocol.ts'
 import { MnemonClient } from './api.ts'
+import { MemoryCompositionSections } from './MemoryComposition.tsx'
+import { ChoiceCard, ToggleRow } from './settings-controls.tsx'
 import css from './MnemonSettingsCard.module.css'
 import { GlobalLocationSetting } from './GlobalLocationSetting.tsx'
 import { isRecord } from './is-record.ts'
@@ -40,6 +42,8 @@ export interface MnemonSettingsCardProps {
   workspaceId?: string
   workspaceLabel?: string
   t?: MnemonTranslate
+  /** Active DSH locale id for installed Strategies that bring their own text. */
+  language?: string
 }
 
 type CoreField = 'displayMode' | 'storageScope' | 'runtimeUserScope' | 'dataDir'
@@ -69,11 +73,6 @@ const CORE_FIELDS: CoreField[] = ['displayMode', 'storageScope', 'runtimeUserSco
 const EMBEDDING_FIELDS: EmbeddingField[] = ['embeddingEnabled', 'embeddingEndpoint', 'embeddingModel', 'embeddingApiKey', 'embeddingProtocol']
 const INTERACTION_FIELDS: InteractionField[] = ['turnBar', 'saveAction']
 const TASK_AGENT_FIELDS: TaskAgentField[] = ['taskAgentModelMode', 'taskAgentProvider', 'taskAgentModel']
-const MEMORY_ENHANCEMENTS: ReadonlyArray<{ packageName: string; label: MnemonKey; hint: MnemonKey }> = [
-  { packageName: 'dsh-mnemon-strategy-auto-capture', label: 'config.enhancementCapture', hint: 'config.enhancementCaptureHint' },
-  { packageName: 'dsh-mnemon-strategy-light-context', label: 'config.enhancementLightContext', hint: 'config.enhancementLightContextHint' },
-  { packageName: 'dsh-mnemon-strategy-scoped', label: 'config.enhancementScoped', hint: 'config.enhancementScopedHint' },
-]
 function legacyPackDirectory(value: Config): string {
   const packs = value.customPacks ?? []
   return packs.find(pack => pack.id === value.customPackId)?.dataDir?.trim()
@@ -188,7 +187,7 @@ function operations(fields: readonly DraftField[], dirty: ReadonlySet<Field>, dr
 }
 
 /** Dedicated Mnemon page contributed directly to DSH's settings navigation. */
-export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractionScope, connection, sessionId, workspaceId, workspaceLabel, t = translateZh }: MnemonSettingsCardProps): JSX.Element | null {
+export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractionScope, connection, sessionId, workspaceId, workspaceLabel, t = translateZh, language = 'zh' }: MnemonSettingsCardProps): JSX.Element | null {
   const interactionScope = suppliedInteractionScope ?? scope as unknown as ClientSettingsScope<InteractionConfig>
   const coreSnapshot = useScope(scope)
   const interactionSnapshot = useScope(interactionScope)
@@ -501,11 +500,12 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
           </div>
         </section>
 
-        <MemoryEnhancementsSection
+        <MemoryCompositionSections
           {...(connection === undefined ? {} : { connection })}
           {...(sessionId === undefined ? {} : { sessionId })}
           {...(workspaceId === undefined ? {} : { workspaceId })}
           refreshKey={targetRevision}
+          language={language}
           t={t}
         />
 
@@ -619,118 +619,6 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
       </>}
     </section>
   )
-}
-
-/**
- * Exposes the shipped behavior toggles, not the underlying plugin graph. The
- * section stays hidden whenever the View dashboard cannot be read.
- */
-function MemoryEnhancementsSection(props: {
-  connection?: ClientConnectionHandle
-  sessionId?: string
-  workspaceId?: string
-  refreshKey: number
-  t: MnemonTranslate
-}): JSX.Element | null {
-  const client = useMemo(() => props.connection === undefined
-    ? undefined
-    : new MnemonClient(props.connection, props.sessionId, props.workspaceId), [props.connection, props.sessionId, props.workspaceId])
-  const [dashboard, setDashboard] = useState<MemoryViewDashboard | null>(null)
-  const [state, setState] = useState<'loading' | 'ready' | 'unavailable'>(client === undefined ? 'unavailable' : 'loading')
-  const [working, setWorking] = useState<string | null>(null)
-  const [failure, setFailure] = useState<'apply' | 'refresh' | null>(null)
-  const request = useRef(0)
-
-  const load = useCallback(async (): Promise<void> => {
-    if (client === undefined) {
-      request.current += 1
-      setDashboard(null)
-      setState('unavailable')
-      return
-    }
-    const ticket = request.current + 1
-    request.current = ticket
-    setState('loading')
-    try {
-      const next = await client.viewDashboard()
-      if (request.current !== ticket) return
-      setDashboard(next)
-      setState('ready')
-      setFailure(null)
-    } catch {
-      if (request.current !== ticket) return
-      setDashboard(null)
-      setState('unavailable')
-    }
-  }, [client, props.refreshKey])
-
-  useEffect(() => {
-    void load()
-    return () => { request.current += 1 }
-  }, [load])
-
-  const entries = MEMORY_ENHANCEMENTS.flatMap(definition => {
-    const entry = dashboard?.entries.find(candidate => candidate.packageName === definition.packageName
-      && candidate.roles.includes('strategy-extension'))
-    return entry === undefined ? [] : [{ definition, entry }]
-  })
-
-  if (state !== 'ready' || dashboard === null || entries.length === 0) return null
-
-  const toggle = async (entry: MemoryPluginEntryView): Promise<void> => {
-    if (client === undefined || working !== null || !dashboard.writable || !entry.writable) return
-    const previous = dashboard
-    const enabled = !entry.enabled
-    const ticket = request.current + 1
-    request.current = ticket
-    setWorking(entry.packageName)
-    setFailure(null)
-    setDashboard({ ...dashboard, entries: dashboard.entries.map(candidate => candidate.entryId === entry.entryId
-      ? { ...candidate, enabled }
-      : candidate) })
-    try {
-      await client.applyView({
-        expectedRevision: previous.revision,
-        strategyTypeId: previous.strategyTypeId,
-        entries: { [entry.entryId]: { enabled, config: structuredClone(entry.config) } },
-      })
-      try {
-        const next = await client.viewDashboard()
-        if (request.current !== ticket) return
-        setDashboard(next)
-      } catch {
-        if (request.current !== ticket) return
-        // The apply already committed. Preserve its visible value and prevent
-        // another write with a stale revision until this section is reopened.
-        setDashboard(current => current === null ? current : { ...current, writable: false })
-        setFailure('refresh')
-      }
-    } catch {
-      if (request.current !== ticket) return
-      setDashboard(previous)
-      setFailure('apply')
-    } finally {
-      if (request.current === ticket) setWorking(null)
-    }
-  }
-
-  return <section className={`${css.section} ${css.enhancementsSection}`} aria-labelledby="mnemon-enhancements-heading" aria-busy={working !== null}>
-    <div className={css.sectionHeading}>
-      <div><h2 id="mnemon-enhancements-heading">{props.t('config.enhancementsTitle')}</h2><p>{props.t('config.enhancementsDescription')}</p></div>
-    </div>
-    <div className={css.rowGroup}>
-      {entries.map(({ definition, entry }) => <ToggleRow
-        key={entry.entryId}
-        id={`mnemon-enhancement-${entry.entryId.replace(/[^a-zA-Z0-9_-]/gu, '-')}`}
-        label={props.t(definition.label)}
-        hint={props.t(definition.hint)}
-        checked={entry.enabled}
-        disabled={working !== null || !dashboard.writable || !entry.writable}
-        onChange={() => void toggle(entry)}
-      />)}
-    </div>
-    {failure !== null && <p className={css.error} role="alert">{props.t(failure === 'refresh' ? 'config.enhancementsRefreshFailed' : 'config.enhancementsFailed')}</p>}
-  </section>
 }
 
 /** Reachability and coverage line; the protocol appears only when the Host reports one. */
@@ -978,10 +866,4 @@ function TaskAgentModelSection(props: {
   </section>
 }
 
-function ChoiceCard(props: { id: string; name: string; label: string; detail: string; checked: boolean; disabled: boolean; onChange: () => void }): JSX.Element {
-  return <label className={css.choiceCard} htmlFor={props.id}><input id={props.id} name={props.name} type="radio" aria-label={props.label} checked={props.checked} disabled={props.disabled} onChange={props.onChange} /><span className={css.choiceFace}><strong>{props.label}</strong><small>{props.detail}</small><span className={css.check} aria-hidden="true">✓</span></span></label>
-}
 
-function ToggleRow(props: { id: string; label: string; hint: string; checked: boolean; disabled: boolean; onChange: (value: boolean) => void }): JSX.Element {
-  return <label className={css.toggleRow} htmlFor={props.id}><span className={css.settingCopy}><strong>{props.label}</strong><small>{props.hint}</small></span><input id={props.id} type="checkbox" aria-label={props.label} checked={props.checked} disabled={props.disabled} onChange={event => props.onChange(event.target.checked)} /><span className={css.switch} aria-hidden="true"><i /></span></label>
-}
