@@ -558,7 +558,7 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
         const connections = jsonRecord(strategy.providerConnections ?? {}) ?? {}
         const merged = { ...settingsSnapshot.value?.persistenceStrategy?.providerConnections }
         for (const [id, fields] of Object.entries(connections)) merged[id] = { ...merged[id], ...jsonRecord(fields) } as NonNullable<typeof merged[string]>
-        await settingsScope.setPath(['persistenceStrategy'], { ...strategy, providerConnections: merged })
+        await settingsScope.mutate([{ op: 'set', path: ['persistenceStrategy'], value: { ...strategy, providerConnections: merged } }])
       },
     }
     return renderSlot('mnemon.source.page', {

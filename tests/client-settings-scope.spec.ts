@@ -42,7 +42,7 @@ describe('MnemonSettingsScope', () => {
     const connection = { isLoopback: false, rpc: { call } } as ClientConnectionHandle
     const scope = new MnemonSettingsScope<InteractionConfig>(connection, 'mnemon-ui')
     await vi.waitFor(() => expect(scope.getSnapshot().revision).toBe(1))
-    await scope.set('turnBar', true)
+    await scope.mutate([{ op: 'set', path: ['turnBar'], value: true }])
 
     expect(call).toHaveBeenNthCalledWith(1, '/api', 'dshMnemon/settings', {
       args: { endpoint: 'get', payload: { namespace: 'mnemon-ui' } },

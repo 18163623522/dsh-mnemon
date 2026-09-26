@@ -109,11 +109,7 @@ export interface ClientSettingsSnapshot<T> {
 export interface ClientSettingsScope<T> {
   getSnapshot(): ClientSettingsSnapshot<T>
   subscribe(listener: () => void): () => void
-  set(field: string, value: unknown): Promise<void>
-  unset(field: string): Promise<void>
-  setPath(path: string[], value: unknown): Promise<void>
-  unsetPath(path: string[]): Promise<void>
-  mutate?(ops: SettingsOperation[]): Promise<void>
+  mutate(ops: SettingsOperation[]): Promise<void>
 }
 
 export type SettingsOperation = { op: 'set'; path: string[]; value: unknown } | { op: 'unset'; path: string[] }

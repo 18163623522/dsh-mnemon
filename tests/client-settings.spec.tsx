@@ -3,10 +3,11 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MnemonSettingsCard } from '../src/client/MnemonSettingsCard.tsx'
 import { translateEn } from '../src/client/locales.ts'
-import type { ClientConnectionHandle, ClientSettingsScope } from "../src/host/dsh.ts"
-import type { Config, InteractionConfig } from "../src/host/config.ts"
+import type { ClientConnectionHandle } from "../src/host/dsh.ts"
+import type { Config } from "../src/host/config.ts"
 import type { MemoryCompositionStatus } from "../src/host/protocol.ts"
 import { TEST_PROVIDERS as MEMORY_PROVIDER_CATALOG } from './fixtures/providers.ts'
+import { settingsScope } from './helpers/settings-scope.ts'
 
 afterEach(cleanup)
 
@@ -19,7 +20,7 @@ function deferred<T>() {
 describe('MnemonSettingsCard', () => {
   it.each([false, true])('submits the OpenViking user-key scope to its owning instance and reports rejection=%s', async rejected => {
     const snapshot = { status: 'ready' as const, value: {}, base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const }
-    const scope = { getSnapshot: () => snapshot, subscribe: () => () => {}, set: vi.fn(), unset: vi.fn(), setPath: vi.fn(), unsetPath: vi.fn() }
+    const scope = settingsScope(snapshot)
     const descriptor = MEMORY_PROVIDER_CATALOG.find(candidate => candidate.id === 'openviking')!
     const providers = ['work-cloud', 'personal-cloud'].map(id => ({ ...descriptor, id, typeId: 'openviking', label: id }))
     const call = vi.fn(async (channel: string, endpoint: string, payload: unknown) => {
@@ -52,7 +53,7 @@ describe('MnemonSettingsCard', () => {
   it('saves independent review settings and rejects an invalid attempt budget', async () => {
     const mutate = vi.fn(async () => {})
     const snapshot = { status: 'ready' as const, value: {}, base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const }
-    const scope = { getSnapshot: () => snapshot, subscribe: () => () => {}, set: vi.fn(), unset: vi.fn(), setPath: vi.fn(), unsetPath: vi.fn(), mutate }
+    const scope = settingsScope(snapshot, mutate)
     render(<MnemonSettingsCard scope={scope} />)
     fireEvent.click(screen.getByRole('checkbox', { name: '启用空闲审查' }))
     fireEvent.change(screen.getByRole('spinbutton', { name: '每会话最多尝试次数' }), { target: { value: '-1' } })
@@ -68,7 +69,7 @@ describe('MnemonSettingsCard', () => {
 
   it('keeps Team review compatibility selection read-only without the Host settings grant', () => {
     const snapshot = { status: 'ready' as const, value: { idleReview: { agentTeams: 'scoped' as const } }, revision: 0, writable: false, mode: 'host' as const }
-    const scope = { getSnapshot: () => snapshot, subscribe: () => () => {}, set: vi.fn(), unset: vi.fn(), setPath: vi.fn(), unsetPath: vi.fn(), mutate: vi.fn() }
+    const scope = settingsScope(snapshot)
     render(<MnemonSettingsCard scope={scope} t={translateEn} />)
     const choice = screen.getByRole('combobox', { name: /Agent Teams compatibility/u }) as HTMLSelectElement
     expect(choice.value).toBe('scoped')
@@ -82,12 +83,7 @@ describe('MnemonSettingsCard', () => {
       value: { storageScope: 'global' as const },
       base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}), mutate,
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot, mutate)
 
     render(<MnemonSettingsCard scope={scope} />)
 
@@ -137,12 +133,7 @@ describe('MnemonSettingsCard', () => {
       },
       base: {}, user: {}, revision: 1, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}), mutate,
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot, mutate)
 
     render(<MnemonSettingsCard scope={scope} />)
     fireEvent.change(screen.getByRole('textbox', { name: '嵌入 Endpoint' }), { target: { value: 'ftp://invalid.example' } })
@@ -165,12 +156,7 @@ describe('MnemonSettingsCard', () => {
       },
       base: {}, user: {}, revision: 1, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}), mutate: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
     const call = vi.fn(async (channel: string, endpoint: string) => {
       if (channel === '/dsh-mnemon-read' && endpoint === 'embedding-status') return {
         ok: true as const,
@@ -196,12 +182,7 @@ describe('MnemonSettingsCard', () => {
       value: { storageScope: 'global' as const },
       base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}), mutate,
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot, mutate)
     const participation = { recall: 'automatic', write: 'automatic', projection: 'automatic', maintenance: 'automatic' } as const
     const descriptor: MemoryCompositionStatus = {
       evaluation: { state: 'ready', contributionRevision: 4, sourceInstanceKeys: [], diagnostics: [] },
@@ -245,11 +226,7 @@ describe('MnemonSettingsCard', () => {
       value: { storageScope: 'workspace' as const },
       base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      getSnapshot: () => snapshot,
-      subscribe: () => () => {},
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config>
+    const scope = settingsScope(snapshot)
     const provider = MEMORY_PROVIDER_CATALOG.find(candidate => candidate.id === 'openviking')!
     const catalog = (endpoint: string) => ({
       ok: true as const,
@@ -286,12 +263,7 @@ describe('MnemonSettingsCard', () => {
       value: { storageScope: 'global' as const },
       base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}), mutate: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
     const call = vi.fn(async (channel: string, remoteEndpoint: string, rawArgs: unknown) => {
       const endpoint = (rawArgs as { args: { endpoint: string } }).args.endpoint
       if (channel === '/api' && remoteEndpoint === 'dshMnemon/read' && endpoint === 'task-agent-models') return {
@@ -322,12 +294,7 @@ describe('MnemonSettingsCard', () => {
 
   it('shows an actionable error instead of a blank settings page when both scopes are unavailable', () => {
     const snapshot = { status: 'unavailable' as const, writable: false, mode: 'host' as const }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}), mutate: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope<Config>(snapshot)
 
     render(<MnemonSettingsCard scope={scope} />)
 
@@ -341,12 +308,7 @@ describe('MnemonSettingsCard', () => {
       value: { storageScope: 'global' as const },
       base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}), mutate,
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot, mutate)
     const call = vi.fn(async (channel: string, endpoint: string, _payload: unknown) => {
       if (channel === '/dsh-mnemon-read' && endpoint === 'task-agent-models') return {
         ok: true as const,
@@ -397,12 +359,7 @@ describe('MnemonSettingsCard', () => {
       value: { storageScope: 'global' as const },
       base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}), mutate: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
     const catalog = {
       effective: { provider: 'deepseek', model: 'deepseek-chat', source: 'dsh-default' as const },
       defaultSelection: { provider: 'deepseek', model: 'deepseek-chat' },
@@ -447,12 +404,7 @@ describe('MnemonSettingsCard', () => {
       },
       base: {}, user: {}, revision: 1, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}), mutate: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
     const call = vi.fn(async (channel: string, endpoint: string, payload: unknown) => {
       if (channel === '/dsh-mnemon-read' && endpoint === 'task-agent-models') return {
         ok: true as const,
@@ -485,13 +437,7 @@ describe('MnemonSettingsCard', () => {
       value: { storageScope: 'global' as const, ...(displayMode === undefined ? {} : { displayMode }) },
       base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-      mutate,
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot, mutate)
 
     render(<MnemonSettingsCard scope={scope} />)
 
@@ -513,8 +459,7 @@ describe('MnemonSettingsCard', () => {
   })
 
   it('stages settings and writes them through the DSH settings scope', async () => {
-    const set = vi.fn(async () => {})
-    const unset = vi.fn(async () => {})
+    const mutate = vi.fn(async () => {})
     const snapshot = {
       status: 'ready' as const,
       value: { timeoutMs: 10000, defaultRecallLimit: 10, routingGuidance: true, lifecycleEnabled: true, recallMode: 'guided' as const, writebackMode: 'guided' as const, tabEnabled: true, writeEnabled: true },
@@ -524,26 +469,18 @@ describe('MnemonSettingsCard', () => {
       writable: true,
       mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set,
-      unset,
-      setPath: set,
-      unsetPath: unset,
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot, mutate)
 
     render(<MnemonSettingsCard scope={scope} />)
     fireEvent.click(screen.getByRole('radio', { name: '工作区' }))
     fireEvent.click(screen.getByRole('button', { name: '保存' }))
 
-    await waitFor(() => expect(set).toHaveBeenCalledWith('storageScope', 'workspace'))
+    await waitFor(() => expect(mutate).toHaveBeenCalledWith([{ op: 'set', path: ['storageScope'], value: 'workspace' }]))
     expect(screen.getByText('已保存并实时生效')).toBeTruthy()
     expect(screen.queryByRole('button', { name: '恢复默认' })).toBeNull()
     expect(screen.getByText('配置由 DSH 保存，点击保存后实时生效。切换范围不会自动迁移旧内容。')).toBeTruthy()
     expect(screen.queryByText(/\.dsh\/settings.yaml/)).toBeNull()
-    expect(unset).not.toHaveBeenCalled()
+    expect(mutate).toHaveBeenCalledOnce()
   })
 
   it('configures a global USER.md independently from workspace project memory', async () => {
@@ -557,13 +494,7 @@ describe('MnemonSettingsCard', () => {
       writable: true,
       mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-      mutate,
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot, mutate)
 
     render(<MnemonSettingsCard scope={scope} />)
 
@@ -587,13 +518,7 @@ describe('MnemonSettingsCard', () => {
       writable: true,
       mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-      unset: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
 
     render(<MnemonSettingsCard scope={scope} t={translateEn} />)
 
@@ -613,14 +538,7 @@ describe('MnemonSettingsCard', () => {
       writable: true,
       mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-      unset: vi.fn(async () => {}),
-      mutate,
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot, mutate)
     const view = render(<MnemonSettingsCard scope={scope} />)
 
     fireEvent.click(view.getByRole('radio', { name: '自定义' }))
@@ -656,12 +574,7 @@ describe('MnemonSettingsCard', () => {
       },
       revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}), mutate,
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot, mutate)
 
     render(<MnemonSettingsCard scope={scope} />)
     const directory = screen.getByRole('textbox', { name: 'Mnemon 自定义数据目录' }) as HTMLInputElement
@@ -686,13 +599,7 @@ describe('MnemonSettingsCard', () => {
       writable: true,
       mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-      unset: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
 
     render(<MnemonSettingsCard scope={scope} />)
     fireEvent.click(screen.getByRole('radio', { name: '自定义' }))
@@ -708,12 +615,7 @@ describe('MnemonSettingsCard', () => {
       value: { storageScope: 'global' as const },
       base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
 
     render(<MnemonSettingsCard scope={scope} />)
     fireEvent.click(screen.getByRole('radio', { name: '自定义' }))
@@ -736,13 +638,7 @@ describe('MnemonSettingsCard', () => {
       writable: false,
       mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-      unset: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
 
     render(<MnemonSettingsCard scope={scope} />)
 
@@ -761,13 +657,7 @@ describe('MnemonSettingsCard', () => {
       writable: false,
       mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-      unset: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope<Config>(snapshot)
 
     render(<MnemonSettingsCard scope={scope} />)
 
@@ -787,15 +677,7 @@ describe('MnemonSettingsCard', () => {
       writable: true,
       mode: 'host' as const,
     }
-    const scope = {
-      snapshot: coreSnapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}),
-      unset: vi.fn(async () => {}),
-      setPath: vi.fn(async () => {}),
-      unsetPath: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof coreSnapshot }
+    const scope = settingsScope(coreSnapshot)
     const interactionSnapshot = {
       status: 'ready' as const,
       value: { turnBar: true, saveAction: true },
@@ -805,16 +687,7 @@ describe('MnemonSettingsCard', () => {
       writable: true,
       mode: 'host' as const,
     }
-    const interactionScope = {
-      snapshot: interactionSnapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}),
-      unset: vi.fn(async () => {}),
-      setPath: vi.fn(async () => {}),
-      unsetPath: vi.fn(async () => {}),
-      mutate: interactionMutate,
-    } satisfies ClientSettingsScope<InteractionConfig> & { snapshot: typeof interactionSnapshot }
+    const interactionScope = settingsScope(interactionSnapshot, interactionMutate)
 
     const view = render(<MnemonSettingsCard scope={scope} interactionScope={interactionScope} />)
 
@@ -840,15 +713,7 @@ describe('MnemonSettingsCard', () => {
       writable: true,
       mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}),
-      unset: vi.fn(async () => {}),
-      setPath: vi.fn(async () => {}),
-      unsetPath: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
 
     const view = render(<MnemonSettingsCard scope={scope} />)
 
@@ -863,12 +728,7 @@ describe('MnemonSettingsCard', () => {
       value: { storageScope: 'workspace' as const },
       base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
     const providerSettings = new Promise<never>(() => {})
     const call = vi.fn((channel: string, endpoint: string) => {
       if (channel === '/dsh-mnemon-read' && endpoint === 'provider-services') return providerSettings
@@ -889,12 +749,7 @@ describe('MnemonSettingsCard', () => {
       value: { storageScope: 'global' as const },
       base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
     const provider = {
       id: 'holographic' as const,
       label: 'Holographic', kind: 'local' as const, origin: 'third-party' as const, summary: 'Local facts',
@@ -954,12 +809,7 @@ describe('MnemonSettingsCard', () => {
       value: { storageScope: 'global' as const },
       base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
     const provider = {
       id: 'work-account', typeId: 'vector-store', label: 'Vector Store', icon: { kind: 'glyph' as const, value: 'VS' },
       kind: 'remote' as const, origin: 'third-party' as const, workspaceBinding: 'provider-global' as const,
@@ -1010,12 +860,7 @@ describe('MnemonSettingsCard', () => {
       value: { storageScope: 'workspace' as const },
       base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
     const provider = {
       id: 'openviking' as const,
       label: 'OpenViking', kind: 'remote' as const, origin: 'third-party' as const, summary: 'Shared memory',
@@ -1084,12 +929,7 @@ describe('MnemonSettingsCard', () => {
       value: { storageScope: 'global' as const },
       base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
     const provider = {
       id: 'supermemory' as const,
       label: 'Supermemory', kind: 'remote' as const, origin: 'third-party' as const, summary: 'Semantic memory',
@@ -1166,12 +1006,7 @@ describe('MnemonSettingsCard', () => {
       value: { storageScope: 'global' as const },
       base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
     }
-    const scope = {
-      snapshot,
-      getSnapshot() { return this.snapshot },
-      subscribe() { return () => {} },
-      set: vi.fn(async () => {}), unset: vi.fn(async () => {}), setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-    } satisfies ClientSettingsScope<Config> & { snapshot: typeof snapshot }
+    const scope = settingsScope(snapshot)
     const call = vi.fn(async (_channel: string, endpoint: string, payload: unknown) => {
       if (endpoint === 'target') return { ok: true as const, value: { root: '/active/.mnemon', scope: 'global' } }
       if (endpoint === 'inspect') return {
@@ -1221,11 +1056,7 @@ describe('centralized workspace storage settings', () => {
   function settings(value: Config, writable = true) {
     const snapshot = { status: 'ready' as const, value, base: {}, user: {}, revision: 0, writable, mode: 'host' as const }
     const mutate = vi.fn(async () => {})
-    const scope: ClientSettingsScope<Config> = {
-      getSnapshot: () => snapshot, subscribe: () => () => {},
-      set: vi.fn(), unset: vi.fn(), setPath: vi.fn(), unsetPath: vi.fn(), mutate,
-    }
-    return { scope, mutate }
+    return { scope: settingsScope(snapshot, mutate), mutate }
   }
   it('saves the scope, central root and global profile together from the storage section', async () => {
     const { scope, mutate } = settings({ storageScope: 'global' })

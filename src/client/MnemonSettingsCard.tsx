@@ -189,17 +189,6 @@ function operations(fields: readonly DraftField[], dirty: ReadonlySet<Field>, dr
   })
 }
 
-async function commit<T>(scope: ClientSettingsScope<T>, edits: SettingsOperation[]): Promise<void> {
-  if (scope.mutate !== undefined) return scope.mutate(edits)
-  for (const edit of edits) {
-    if (edit.path.length === 1) {
-      if (edit.op === 'set') await scope.set(edit.path[0]!, edit.value)
-      else await scope.unset(edit.path[0]!)
-    } else if (edit.op === 'set') await scope.setPath(edit.path, edit.value)
-    else await scope.unsetPath(edit.path)
-  }
-}
-
 /** Dedicated Mnemon page contributed directly to DSH's settings navigation. */
 export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractionScope, connection, sessionId, workspaceId, workspaceLabel, t = translateZh }: MnemonSettingsCardProps): JSX.Element | null {
   const interactionScope = suppliedInteractionScope ?? scope as unknown as ClientSettingsScope<InteractionConfig>
@@ -417,8 +406,8 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
       }
       const interactionOps = operations(INTERACTION_FIELDS, dirty, draft)
       await Promise.all([
-        ...(coreOps.length === 0 ? [] : [commit(scope, coreOps)]),
-        ...(interactionOps.length === 0 ? [] : [commit(interactionScope, interactionOps)]),
+        ...(coreOps.length === 0 ? [] : [scope.mutate(coreOps)]),
+        ...(interactionOps.length === 0 ? [] : [interactionScope.mutate(interactionOps)]),
       ])
       setDirty(new Set())
       setApplied(true)

@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import type { Config } from "../src/host/config.ts"
-import type { ClientSettingsScope, StatusView } from "../src/host/protocol.ts"
+import type { StatusView } from "../src/host/protocol.ts"
 import type { MnemonSourcePageOwnerProps } from "../src/client/dsh-context.ts"
 import { MnemonWorkbench } from '../src/client/MnemonWorkbench.tsx'
 import { translateEn } from '../src/client/locales.ts'
@@ -14,6 +14,7 @@ import {
   MNEMON_SOURCE_PAGE_SLOT,
   type MemorySourcePageProps,
 } from '../src/client/source-pages.tsx'
+import { settingsScope } from './helpers/settings-scope.ts'
 
 class TestSlots {
   readonly core = new SlotCore()
@@ -66,11 +67,7 @@ function declareSourcePageSlot(slots: TestSlots): () => void {
 function Page(_props: MemorySourcePageProps): ReactNode { return null }
 
 const settingsSnapshot = { status: 'ready' as const, value: {}, revision: 1, writable: true, mode: 'host' as const }
-const settings: ClientSettingsScope<Config> = {
-  getSnapshot: () => settingsSnapshot,
-  subscribe: () => () => {},
-  set: async () => {}, unset: async () => {}, setPath: async () => {}, unsetPath: async () => {},
-}
+const settings = settingsScope<Config>(settingsSnapshot)
 
 const status: StatusView = {
   healthy: true,

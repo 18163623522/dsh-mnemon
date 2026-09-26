@@ -17,6 +17,8 @@ vi.mock('../src/client/better-sidebar.tsx', () => ({ mountBetterSidebarTab: () =
 import { apply } from '../src/client/index.ts'
 import { consumeMnemonAnchor, dispatchMnemonAnchor } from '../src/client/anchor.ts'
 import { MnemonBuiltinWorkspaceHost, MnemonWorkspaceHost } from '../src/client/workspace-mount.tsx'
+import type { Config } from '../src/host/protocol.ts'
+import { settingsScope } from './helpers/settings-scope.ts'
 
 const disposers: Array<() => void> = []
 afterEach(() => {
@@ -73,7 +75,7 @@ function fixture() {
       register(options: unknown, component: unknown) { entries.push({ options, component } as typeof entries[number]); return () => {} },
     },
   }
-  const settings = { getSnapshot: () => ({ status: 'ready' as const, value: {}, writable: true, mode: 'host' as const }), subscribe: () => () => {}, set: async () => {}, unset: async () => {}, setPath: async () => {}, unsetPath: async () => {} }
+  const settings = settingsScope<Config>({ status: 'ready', value: {}, writable: true, mode: 'host' })
   const workspaceProps = {
     connection: ctx.connection as never,
     settingsScope: settings,

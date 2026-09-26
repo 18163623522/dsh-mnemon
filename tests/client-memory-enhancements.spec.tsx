@@ -3,7 +3,8 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MnemonSettingsCard } from '../src/client/MnemonSettingsCard.tsx'
 import { translateEn } from '../src/client/locales.ts'
-import type { ClientConnectionHandle, ClientSettingsScope, Config, MemoryPluginEntryView, MemoryViewConfigurationRequest, MemoryViewDashboard } from '../src/host/protocol.ts'
+import { settingsScope } from './helpers/settings-scope.ts'
+import type { ClientConnectionHandle, Config, MemoryPluginEntryView, MemoryViewConfigurationRequest, MemoryViewDashboard } from '../src/host/protocol.ts'
 
 afterEach(cleanup)
 
@@ -13,19 +14,12 @@ const FEATURES = [
   ['scoped', 'dsh-mnemon-strategy-scoped', 'Scoped composition'],
 ] as const
 
-function settingsScope(): ClientSettingsScope<Config> {
-  const snapshot = {
-    status: 'ready' as const,
-    value: { storageScope: 'global' as const },
-    base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const,
-  }
-  return {
-    getSnapshot: () => snapshot,
-    subscribe: () => () => {},
-    set: vi.fn(async () => {}), unset: vi.fn(async () => {}),
-    setPath: vi.fn(async () => {}), unsetPath: vi.fn(async () => {}),
-    mutate: vi.fn(async () => {}),
-  }
+function readyScope() {
+  return settingsScope<Config>({
+    status: 'ready',
+    value: { storageScope: 'global' },
+    base: {}, user: {}, revision: 0, writable: true, mode: 'host',
+  })
 }
 
 function featureEntry([entryId, packageName, label]: typeof FEATURES[number]): MemoryPluginEntryView {
@@ -76,7 +70,7 @@ function fixture(options: { writable?: boolean; failApply?: boolean; failRefresh
 describe('Memory enhancement settings', () => {
   it('shows only user-facing built-in behavior switches', async () => {
     const { connection } = fixture()
-    render(<MnemonSettingsCard scope={settingsScope()} connection={connection} />)
+    render(<MnemonSettingsCard scope={readyScope()} connection={connection} />)
 
     expect(await screen.findByRole('heading', { name: '记忆增强' })).toBeTruthy()
     for (const label of ['主动记录', '轻量上下文', '范围组合']) {
@@ -89,7 +83,7 @@ describe('Memory enhancement settings', () => {
 
   it('applies one enhancement directly without exposing the underlying graph', async () => {
     const { connection, call } = fixture()
-    render(<MnemonSettingsCard scope={settingsScope()} connection={connection} sessionId="session-1" workspaceId="workspace-1" />)
+    render(<MnemonSettingsCard scope={readyScope()} connection={connection} sessionId="session-1" workspaceId="workspace-1" />)
 
     const capture = await screen.findByRole('checkbox', { name: '主动记录' }) as HTMLInputElement
     fireEvent.click(capture)
@@ -108,7 +102,7 @@ describe('Memory enhancement settings', () => {
 
   it('restores the switch and reports neutral copy when an enhancement cannot be applied', async () => {
     const { connection } = fixture({ failApply: true })
-    render(<MnemonSettingsCard scope={settingsScope()} connection={connection} />)
+    render(<MnemonSettingsCard scope={readyScope()} connection={connection} />)
 
     const light = await screen.findByRole('checkbox', { name: '轻量上下文' }) as HTMLInputElement
     fireEvent.click(light)
@@ -119,7 +113,7 @@ describe('Memory enhancement settings', () => {
 
   it('keeps a committed value and prevents stale writes when only refresh fails', async () => {
     const { connection } = fixture({ failRefreshAfterApply: true })
-    render(<MnemonSettingsCard scope={settingsScope()} connection={connection} />)
+    render(<MnemonSettingsCard scope={readyScope()} connection={connection} />)
 
     const capture = await screen.findByRole('checkbox', { name: '主动记录' }) as HTMLInputElement
     fireEvent.click(capture)
@@ -130,7 +124,7 @@ describe('Memory enhancement settings', () => {
 
   it('uses English feature copy and honors a read-only Host', async () => {
     const { connection } = fixture({ writable: false })
-    render(<MnemonSettingsCard scope={settingsScope()} connection={connection} t={translateEn} />)
+    render(<MnemonSettingsCard scope={readyScope()} connection={connection} t={translateEn} />)
 
     expect(await screen.findByRole('heading', { name: 'Memory enhancements' })).toBeTruthy()
     for (const label of FEATURES.map(([, , label]) => label)) {
@@ -141,7 +135,7 @@ describe('Memory enhancement settings', () => {
 
   it('preserves the v0.4 settings surface when the Host has no View channel', async () => {
     const { connection, call } = fixture({ unavailable: true })
-    render(<MnemonSettingsCard scope={settingsScope()} connection={connection} />)
+    render(<MnemonSettingsCard scope={readyScope()} connection={connection} />)
 
     await waitFor(() => expect(call).toHaveBeenCalledWith('/dsh-mnemon-view', 'dashboard', {}))
     expect(screen.queryByRole('heading', { name: '记忆增强' })).toBeNull()

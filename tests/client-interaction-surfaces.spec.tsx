@@ -1,12 +1,13 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ClientConnectionHandle, ClientSettingsScope } from "../src/host/dsh.ts"
+import type { ClientConnectionHandle } from "../src/host/dsh.ts"
 import type { TurnMemoryActivitySnapshot } from '../src/host/protocol.ts'
 import type { Config } from "../src/host/config.ts"
 import { MnemonSaveAction } from '../src/client/MnemonSaveAction.tsx'
 import { MnemonTurnTail, memoryPageForTool } from '../src/client/MnemonTurnTail.tsx'
 import { consumeMnemonAnchor, dispatchMnemonAnchor, subscribeMnemonAnchor } from '../src/client/anchor.ts'
+import { settingsScope } from './helpers/settings-scope.ts'
 
 // DSH's Modal and Tooltip measure their surfaces before showing them; jsdom
 // has no layout engine, so report an empty box as soon as one is observed.
@@ -38,17 +39,8 @@ function createLocaleRuntime() {
   }
 }
 const localeRuntime = createLocaleRuntime()
-const writableSettingsSnapshot = { status: 'ready' as const, value: {}, writable: true, mode: 'host' as const }
-const readOnlySettingsSnapshot = { status: 'unavailable' as const, writable: false, mode: 'host' as const }
-const writableSettingsScope = {
-  getSnapshot: () => writableSettingsSnapshot,
-  subscribe: () => () => {},
-  set: async () => {}, unset: async () => {}, setPath: async () => {}, unsetPath: async () => {},
-} satisfies ClientSettingsScope<Config>
-const readOnlySettingsScope = {
-  ...writableSettingsScope,
-  getSnapshot: () => readOnlySettingsSnapshot,
-} satisfies ClientSettingsScope<Config>
+const writableSettingsScope = settingsScope<Config>({ status: 'ready', value: {}, writable: true, mode: 'host' })
+const readOnlySettingsScope = settingsScope<Config>({ status: 'unavailable', writable: false, mode: 'host' })
 
 function deferred<T>() {
   let resolve!: (value: T) => void

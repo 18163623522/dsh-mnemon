@@ -9,6 +9,7 @@ import { translateEn } from '../src/client/locales.ts'
 import { TEST_PROVIDERS as MEMORY_PROVIDER_CATALOG } from './fixtures/providers.ts'
 import { memoryPageStyles } from '../src/client/page-kit.tsx'
 import { installClientFrameStyles } from './helpers/client-frame-styles.ts'
+import { settingsScope as staticSettingsScope } from './helpers/settings-scope.ts'
 
 describe('MnemonWorkbench', () => {
   afterEach(cleanup)
@@ -27,19 +28,8 @@ describe('MnemonWorkbench', () => {
     fireEvent.click(await screen.findByRole('button', { name: '沉淀记忆' }))
   }
   const settingsSnapshot = { status: 'ready' as const, value: { storageScope: 'custom' as const }, base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const }
-  const settingsScope = {
-    getSnapshot: () => settingsSnapshot,
-    subscribe: () => () => {},
-    set: async () => {},
-    unset: async () => {},
-    setPath: async () => {},
-    unsetPath: async () => {},
-  } satisfies ClientSettingsScope<Config>
-  const readOnlySettingsSnapshot = { status: 'unavailable' as const, writable: false, mode: 'host' as const }
-  const readOnlySettingsScope = {
-    ...settingsScope,
-    getSnapshot: () => readOnlySettingsSnapshot,
-  } satisfies ClientSettingsScope<Config>
+  const settingsScope = staticSettingsScope<Config>(settingsSnapshot)
+  const readOnlySettingsScope = staticSettingsScope<Config>({ status: 'unavailable', writable: false, mode: 'host' })
 
   function createConnection(options: { reviewPartial?: boolean; reviewTeam?: boolean; reviewError?: string; isLoopback?: boolean; withInactiveBody?: boolean; withSecondActiveBody?: boolean; metadataFailureBodyId?: string; withPlacement?: boolean; withProviderSources?: boolean; listCount?: number; searchCount?: number; entityCount?: number; entityInsightCount?: number; documentCount?: number; runtimeCount?: number; runtimeBranch?: boolean; longContent?: boolean; workspaceMismatch?: boolean; nativeUnhealthy?: boolean; graphPending?: boolean; statusPending?: boolean; directoryPending?: boolean; reconnectPending?: boolean; relatedDeferred?: boolean; versionsDeferred?: boolean; layerSwitches?: Record<'runtime' | 'documents' | 'memory-spaces', boolean> } = {}) {
     const body = {
@@ -1169,8 +1159,8 @@ describe('MnemonWorkbench', () => {
 
   it('keeps manual creation explicit and saves automatic Provider selection as a distillation strategy', async () => {
     const { connection, call } = createConnection({ withInactiveBody: true })
-    const setPath = vi.fn(async () => {})
-    const strategySettingsScope = { ...settingsScope, setPath }
+    const mutate = vi.fn(async () => {})
+    const strategySettingsScope = { ...settingsScope, mutate }
     render(<MnemonWorkbench connection={connection} settingsScope={strategySettingsScope} sessionId="session-1" />)
 
     fireEvent.click(await screen.findByRole('tab', { name: '记忆空间' }))
@@ -1204,7 +1194,7 @@ describe('MnemonWorkbench', () => {
     fireEvent.click(saveStrategy)
 
     await waitFor(() => expect(screen.queryByRole('dialog', { name: '沉淀策略' })).toBeNull())
-    expect(setPath).toHaveBeenCalledWith(['persistenceStrategy'], {
+    expect(mutate).toHaveBeenCalledWith([{ op: 'set', path: ['persistenceStrategy'], value: {
       mode: 'automatic',
       providerId: 'mnemon-native',
       prompt: '这是团队知识；满足精确写入后优先共享。',
@@ -1217,7 +1207,7 @@ describe('MnemonWorkbench', () => {
       providerConnections: {
         openviking: expect.objectContaining({ targetUri: 'viking://user/team/memories' }),
       },
-    })
+    } }])
     expect(call.mock.calls.some(([, endpoint]) => endpoint === 'body-create')).toBe(false)
   })
 
@@ -1379,7 +1369,7 @@ describe('MnemonWorkbench', () => {
     const liveSettingsScope = {
       getSnapshot: () => snapshot,
       subscribe: (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener) },
-      set: async () => {}, unset: async () => {}, setPath: async () => {}, unsetPath: async () => {},
+      mutate: async () => {},
     } satisfies ClientSettingsScope<Config>
     render(<MnemonWorkbench connection={connection} settingsScope={liveSettingsScope} sessionId="session-1" surface={surface} />)
 

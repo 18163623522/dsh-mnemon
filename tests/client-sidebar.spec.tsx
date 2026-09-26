@@ -41,6 +41,8 @@ import {
 
 import { MnemonWorkspaceController } from '../src/client/workspace-controller.ts'
 import { MnemonBetterSidebarSeat } from '../src/client/better-sidebar-seat.ts'
+import type { Config } from '../src/host/protocol.ts'
+import { settingsScope } from './helpers/settings-scope.ts'
 
 let currentDispose: (() => void) | undefined
 const siblingDisposers: Array<() => void> = []
@@ -134,10 +136,7 @@ function receiverSensitiveStore<T>(snapshot: T) {
   return store
 }
 
-const settings = {
-  getSnapshot: () => ({ status: 'ready' as const, value: {}, writable: true, mode: 'host' as const }),
-  subscribe: () => () => {}, set: async () => {}, unset: async () => {}, setPath: async () => {}, unsetPath: async () => {},
-}
+const settings = settingsScope<Config>({ status: 'ready', value: {}, writable: true, mode: 'host' })
 const sourcePageDirectory = { getSnapshot: () => [] as const, subscribe: () => () => {} }
 const t = (key: string) => key === 'tab.label' ? 'Memory' : key
 const slotOwnerContext = createContext('outside-owner')
