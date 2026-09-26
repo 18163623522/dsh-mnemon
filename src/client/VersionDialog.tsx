@@ -31,7 +31,7 @@ function versionHint(t: MnemonTranslate, component: VersionComponentStatus): str
   return t('versions.hintManual')
 }
 
-export function versionState(component: VersionComponentStatus): 'missing' | 'unknown' | 'restart' | 'available' | 'current' | 'local' {
+function versionState(component: VersionComponentStatus): 'missing' | 'unknown' | 'restart' | 'available' | 'current' | 'local' {
   if (component.installMode === 'missing') return 'missing'
   if (component.restartRequired) return 'restart'
   if (component.current === undefined || component.latest === undefined || component.checkError !== undefined) return 'unknown'

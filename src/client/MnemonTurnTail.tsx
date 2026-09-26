@@ -6,7 +6,7 @@ import type { MnemonKey } from './locales.ts'
 import type { MnemonClientContext } from './dsh-context.ts'
 import css from './MnemonTurnTail.module.css'
 
-export interface MnemonTurnTailProps {
+interface MnemonTurnTailProps {
   /** Engine-owned closing Turn boundary (TurnLocation on the wire). */
   turn: unknown
   seq: number

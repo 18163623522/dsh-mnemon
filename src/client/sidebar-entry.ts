@@ -3,8 +3,6 @@ import css from './MnemonWorkspace.module.css'
 import type { MnemonWorkspaceController } from './workspace-controller.ts'
 import { createMemoryIcon } from './memory-icon.tsx'
 
-export const MNEMON_ENTRY_SELECTOR = '[data-dsh-mnemon-entry]'
-
 const FAMILY_SELECTOR = '[data-dsh-taskboard-entry], [data-dsh-ssh-entry], [data-dsh-mnemon-entry]'
 
 function sidebarRoot(): HTMLElement | undefined {

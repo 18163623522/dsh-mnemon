@@ -13,9 +13,6 @@ import { MnemonWorkspaceController } from './workspace-controller.ts'
 import { useMnemonSessionId, type MnemonSessionBinding } from './session-binding.ts'
 import css from './MnemonWorkspace.module.css'
 
-/** The single visible Mnemon workspace, mounted by DSH's shell overlay. */
-export const MNEMON_VIEW_SELECTOR = '[data-dsh-mnemon-view]'
-
 const ACTIVE_ATTR = 'data-dsh-mnemon-active'
 const TASKBOARD_ACTIVE_ATTR = 'data-dsh-taskboard-active'
 const SSH_ACTIVE_ATTR = 'data-dsh-ssh-active'
@@ -34,12 +31,12 @@ function normalizePath(value: string): string {
   return value.replace(/[\\/]+$/u, '')
 }
 
-export interface MnemonWorkspaceNavigation {
+interface MnemonWorkspaceNavigation {
   open(): void
   close(): void
 }
 
-export interface MnemonWorkspaceHostProps {
+interface MnemonWorkspaceHostProps {
   connection: MnemonClientContext['connection']
   settingsScope: ClientSettingsScope<Config>
   sessions: MnemonClientContext['sessions']
@@ -55,7 +52,7 @@ export interface MnemonWorkspaceHostProps {
   renderSlot?: PropsRenderSlots<typeof MNEMON_SOURCE_PAGE_SLOT>['renderSlot']
 }
 
-export interface MnemonBuiltinWorkspaceHostProps extends Pick<MnemonWorkspaceHostProps,
+interface MnemonBuiltinWorkspaceHostProps extends Pick<MnemonWorkspaceHostProps,
   'connection' | 'settingsScope' | 'localeRuntime' | 'sourcePageDirectory' | 'renderSlot' | 't'> {
   sessionId: string
 }

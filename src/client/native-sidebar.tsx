@@ -14,7 +14,7 @@ export const MNEMON_MAIN_PANEL_ID = 'mnemon' as MainPanelId
 const ICON_SELECTOR = '[data-dsh-plugin="dsh-mnemon"][data-dsh-part="sidebar-icon"]'
 
 /** The native Sidebar owns the surrounding button, label, tooltip and state. */
-export function MnemonSidebarIcon({ size }: Pick<PropsRuntime<'sidebar.panellist'>, 'size'>): JSX.Element {
+function MnemonSidebarIcon({ size }: Pick<PropsRuntime<'sidebar.panellist'>, 'size'>): JSX.Element {
   return <MemoryIcon size={size} data-dsh-plugin="dsh-mnemon" data-dsh-part="sidebar-icon" />
 }
 

@@ -19,9 +19,9 @@ import { appearanceClass } from './view-styles.ts'
 import { isRecord } from './is-record.ts'
 import sidebarCss from './MnemonSidebarView.module.css'
 import css from "./MnemonView.module.css"
-import { I18nContext, LocaleContext, useT, useLocale, humanBytes, message, short, PageHeader, SidebarModal, EmptyState } from "./page-kit.tsx"
+import { I18nContext, LocaleContext, useT, useLocale, humanBytes, message, short, PageHeader, EmptyState } from "./page-kit.tsx"
 
-export interface MnemonWorkbenchProps {
+interface MnemonWorkbenchProps {
   connection: ClientConnectionHandle
   settingsScope: ClientSettingsScope<Config>
   sessionId?: string
@@ -243,7 +243,7 @@ function SourceManagementPage(props: {
       })}</div>
       {error !== null && <div className={css.alert} role="alert">{error}</div>}
       {saved && <div className={css.runtimeNotice} role="status">{t('sourcePage.configSaved')}</div>}
-      <div className={css.formActions}><button type="submit" className={css.primaryButton} disabled={saving || loading || props.management === undefined || props.instance.availability === 'unavailable'}>{saving ? t('sourcePage.configSaving') : t('sourcePage.configSave')}</button>{props.management === undefined && <span>{t('sourcePage.unavailable')}</span>}</div>
+      <div><button type="submit" className={css.primaryButton} disabled={saving || loading || props.management === undefined || props.instance.availability === 'unavailable'}>{saving ? t('sourcePage.configSaving') : t('sourcePage.configSave')}</button>{props.management === undefined && <span>{t('sourcePage.unavailable')}</span>}</div>
     </form>}
     {fields.length === 0 && props.instance.availability === 'unavailable' && <div className={css.emptyState}><span className={css.emptyGlyph}>!</span><div><h3>{t('sourcePage.unavailable')}</h3><p>{t('sourcePage.unavailableDescription')}</p></div></div>}
   </div>
@@ -520,9 +520,6 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
   const refreshAll = () => { setRevision(value => value + 1); void loadStatus() }
   const activationEnabled = status?.writeEnabled === true
   const writeEnabled = activationEnabled && settingsSnapshot.status === 'ready' && settingsSnapshot.writable
-  const catalogKnown = status?.memoryBodies !== undefined
-  const memorySpaces = useMemo(() => (status?.memoryBodies ?? []), [status])
-  const activeSpaces = memorySpaces.filter(body => body.active).length
   const workspaceContext = status?.workspaceContext
   const storageMode = workspaceContext?.mode ?? status?.storage?.activeKind ?? configuredStorageScope(settingsSnapshot.value)
   const storageModeText = storageScopeLabel(t, storageMode)

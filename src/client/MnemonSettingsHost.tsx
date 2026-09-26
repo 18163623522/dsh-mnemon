@@ -3,7 +3,7 @@ import { MnemonSettingsCard, type MnemonSettingsCardProps } from './MnemonSettin
 import type { MnemonClientContext } from './dsh-context.ts'
 import { useMnemonSessionId, type MnemonSessionBinding } from './session-binding.ts'
 
-export interface MnemonSettingsHostProps extends Omit<MnemonSettingsCardProps, 'sessionId' | 'workspaceId' | 'workspaceLabel'> {
+interface MnemonSettingsHostProps extends Omit<MnemonSettingsCardProps, 'sessionId' | 'workspaceId' | 'workspaceLabel'> {
   currentSession: MnemonSessionBinding
   sessions: MnemonClientContext['sessions']
   workspaces: MnemonClientContext['workspaces']

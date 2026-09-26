@@ -8,7 +8,7 @@ import type { MnemonClientContext } from './dsh-context.ts'
 import { message } from './page-kit.tsx'
 import css from './MnemonSaveAction.module.css'
 
-export interface MnemonSaveActionProps {
+interface MnemonSaveActionProps {
   /** Stable identity of the finalized assistant message this action addresses. */
   messageId: string
   /** Injected by the slot host: the session this message belongs to. */

@@ -47,13 +47,13 @@ export interface MnemonSessionListState {
   [key: string]: unknown
 }
 
-export interface MnemonWorkspaceSummary {
+interface MnemonWorkspaceSummary {
   workspaceId: unknown
   title: string
   path: string
 }
 
-export interface MnemonWorkspaceListState {
+interface MnemonWorkspaceListState {
   items: MnemonWorkspaceSummary[]
   [key: string]: unknown
 }

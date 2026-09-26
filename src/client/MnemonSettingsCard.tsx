@@ -467,7 +467,7 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
                   onChange={event => edit('dataDir', event.target.value)} />
               </div>
             </div>
-            <p className={css.description}>{t('config.workspacesIdentityHint')}</p>
+            <p>{t('config.workspacesIdentityHint')}</p>
           </div>}
         </section>
 
