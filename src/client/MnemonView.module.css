@@ -342,8 +342,8 @@
 .versionList article > footer { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--mn-line); }
 .versionList article > footer p { max-width: 470px; margin: 0; color: var(--mn-muted); font-size: 10.5px; line-height: 1.5; }
 .versionList article > footer button { flex: none; }
-.versionList article > header em[data-state="unknown"], .versionList article > header em[data-state="local"] { color: var(--mn-muted); }
-.versionList article > header em[data-state="missing"], .versionList article > header em[data-state="restart"] { color: var(--mn-accent); }
+.versionList article > header em[data-state="unknown"], .versionList article > header em[data-state="local"], .versionList article > header em[data-state="missing"] { color: var(--mn-muted); }
+.versionList article > header em[data-state="restart"] { color: var(--mn-accent); }
 .versionNotice { margin: 10px 0 0; color: var(--mn-muted); font-size: 11px; line-height: 1.6; }
 .versionGuidance { display: grid; gap: 6px; min-width: 0; margin-top: 10px; padding: 10px; border-radius: 8px; background: color-mix(in srgb, var(--mn-accent) 5%, var(--mn-layer-1)); }
 .versionGuidance > strong { font-size: 12px; }

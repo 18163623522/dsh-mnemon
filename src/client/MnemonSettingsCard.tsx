@@ -207,6 +207,8 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
   const [topologyState, setTopologyState] = useState<'unavailable' | 'loading' | 'ready' | 'error'>(connection === undefined ? 'unavailable' : 'loading')
   const topologyRequest = useRef(0)
   const [embeddingStatus, setEmbeddingStatus] = useState<MnemonEmbeddingStatus | null>(null)
+  // Mnemon Native is one Provider among peers; unknown until the Host reports whether its CLI is installed.
+  const [nativeCliFound, setNativeCliFound] = useState<boolean | undefined>(undefined)
   const [embeddingStatusState, setEmbeddingStatusState] = useState<'unavailable' | 'idle' | 'loading' | 'ready' | 'error'>(connection === undefined ? 'unavailable' : 'idle')
   const [embeddingStatusError, setEmbeddingStatusError] = useState<string | null>(null)
   const embeddingStatusRequest = useRef(0)
@@ -294,6 +296,16 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
     setEmbeddingStatusError(null)
     setEmbeddingStatusState(connection === undefined ? 'unavailable' : 'idle')
     return () => { embeddingStatusRequest.current += 1 }
+  }, [connection, sessionId, workspaceId, targetRevision])
+
+  useEffect(() => {
+    if (connection === undefined) { setNativeCliFound(undefined); return }
+    let current = true
+    void new MnemonClient(connection, sessionId, workspaceId).statusSummary().then(
+      summary => { if (current) setNativeCliFound(summary.commandFound) },
+      () => { if (current) setNativeCliFound(undefined) },
+    )
+    return () => { current = false }
   }, [connection, sessionId, workspaceId, targetRevision])
 
   const testEmbedding = (): void => {
@@ -516,7 +528,7 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
           <details className={css.providerPanel} open>
             <summary>
               <span className={css.providerIdentity}><ProviderIcon providerId="mnemon-native" icon={{ kind: 'brand', value: 'mnemon' }} className={css.nativeMark} /><span><strong>mnemon</strong><small>{t('config.nativeSummary')}</small></span></span>
-              <span className={css.providerHeaderMeta}><span className={css.providerScopeTag} data-scope={activeScope}>{t(`config.${activeScope}`)}</span><span className={css.providerState}>{t('config.officialNative')}</span></span>
+              <span className={css.providerHeaderMeta}><span className={css.providerScopeTag} data-scope={activeScope}>{t(`config.${activeScope}`)}</span><span className={css.providerState}>{t(nativeCliFound === false ? 'config.nativeCliMissing' : 'config.officialNative')}</span></span>
             </summary>
             <div className={css.providerPanelBody}>
               {draft.storageScope !== 'workspaces' && <GlobalLocationSetting
@@ -557,6 +569,7 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
                 draft={draft}
                 disabled={coreDisabled}
                 connectionAvailable={connection !== undefined}
+                cliMissing={nativeCliFound === false}
                 changing={embeddingChanging}
                 status={embeddingStatus}
                 state={embeddingStatusState}
@@ -633,6 +646,8 @@ function EmbeddingSettingsSection(props: {
   draft: Draft
   disabled: boolean
   connectionAvailable: boolean
+  /** The test runs the Mnemon CLI, which only Mnemon Native needs. */
+  cliMissing: boolean
   changing: boolean
   status: MnemonEmbeddingStatus | null
   state: 'unavailable' | 'idle' | 'loading' | 'ready' | 'error'
@@ -641,7 +656,9 @@ function EmbeddingSettingsSection(props: {
   onTest: () => void
   t: MnemonTranslate
 }): JSX.Element {
-  const feedback = props.changing
+  const feedback = props.cliMissing
+    ? props.t('config.embeddingCliMissing')
+    : props.changing
     ? props.t('config.embeddingSaveBeforeTest')
     : props.state === 'loading'
       ? props.t('config.embeddingTesting')
@@ -734,7 +751,7 @@ function EmbeddingSettingsSection(props: {
       <button
         type="button"
         className={css.textButton}
-        disabled={props.disabled || !props.connectionAvailable || props.changing || props.state === 'loading'}
+        disabled={props.disabled || !props.connectionAvailable || props.cliMissing || props.changing || props.state === 'loading'}
         onClick={props.onTest}
       >{props.t('config.embeddingTest')}</button>
     </div>

@@ -36,7 +36,7 @@ describe('version maintenance', () => {
     delete value.current
     delete value.latest
     const f = fixture([value])
-    expect(await screen.findByText('待安装')).toBeTruthy()
+    expect(await screen.findByText('未安装（可选）')).toBeTruthy()
     expect(screen.queryByText('已是最新')).toBeNull()
     expect(screen.getByText('通过 npm 安装（推荐）')).toBeTruthy()
     expect(screen.getByText('npm install --global @mnemon-dev/mnemon@latest')).toBeTruthy()
