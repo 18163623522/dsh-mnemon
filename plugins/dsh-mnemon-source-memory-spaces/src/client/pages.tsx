@@ -4,7 +4,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEven
 import { CATEGORIES, type Category, type EntityView, type Insight, type MemorySpaceCatalog, type MemorySpaceMetadataUpdate, type MemorySpaceProvider, type MemorySpaceView, type MemoryGraphNode, type MemoryGraphSnapshot, type MemoryPlacementCapability, type MemoryPlacementPreference, type MemoryListView, type MemoryProviderConfigField, type MemoryProviderConnection, type MemoryProviderDescriptor, type MemoryProviderId, type MemoryReadSource } from '../contracts.ts'
 import type { MemorySpacesPageClient } from './api.ts'
 import { ProviderIcon } from './ProviderIcon.tsx'
-import { providerFieldLabel, providerDisplayLabel, providerOptionLabel, providerSummary } from './provider-presentation.ts'
+import { providerFieldLabel, providerOptionLabel, providerSummary } from './provider-presentation.ts'
 import { type MnemonKey, type MnemonTranslate, useRequestVersion, appearanceClass, useLocale, humanBytes, message, short, PageHeader, SectionSpinner, ProgressiveFooter, SidebarModal, EmptyState } from 'dsh-mnemon/client'
 
 import type { MemoryPersistenceStrategy } from '../contracts.ts'
@@ -83,8 +83,7 @@ function insightKey(insight: Insight): string {
 }
 
 function MemoryProviderBadge(props: { providerId: MemoryProviderId; label: string }): JSX.Element {
-  const label = providerDisplayLabel(props.providerId, props.label)
-  return <span className={css.providerBadge} data-provider={props.providerId} title={label}>{label}</span>
+  return <span className={css.providerBadge} data-provider={props.providerId} title={props.label}>{props.label}</span>
 }
 
 function ReadSourcePanel(props: {

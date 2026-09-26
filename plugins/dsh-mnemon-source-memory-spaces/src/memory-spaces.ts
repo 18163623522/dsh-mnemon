@@ -270,18 +270,6 @@ export class MemorySpaceRegistry {
     return body
   }
 
-  openVikingConnection(id: string): OpenVikingSpaceConnection {
-    const connection = this.providerConnection(id, 'openviking')
-    return {
-      endpoint: String(connection.endpoint ?? ''),
-      targetUri: String(connection.targetUri ?? ''),
-      apiKey: String(connection.apiKey ?? ''),
-      account: String(connection.account ?? ''),
-      user: String(connection.user ?? ''),
-      actorPeerId: String(connection.actorPeerId ?? ''),
-    }
-  }
-
   providerConnection(id: string, expectedProviderId?: MemoryProviderId): MemoryProviderConnection {
     this.refreshIfChanged()
     const normalized = validateMemorySpaceId(id)
