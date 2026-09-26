@@ -60,7 +60,7 @@
   margin-top: 8px;
   border-radius: 6px;
   padding: 6px 8px;
-  background: var(--dsw-alias-state-warn-bg, transparent);
+  background: transparent;
   color: var(--dsw-alias-state-warn-primary);
   font-size: 11px;
 }
@@ -107,7 +107,7 @@
   margin-top: 8px;
   border-radius: 6px;
   padding: 6px 8px;
-  background: var(--dsw-alias-state-success-bg, transparent);
+  background: transparent;
   color: var(--dsw-alias-state-success-primary);
   font-size: 11px;
 }
@@ -116,7 +116,7 @@
   margin-top: 8px;
   border-radius: 6px;
   padding: 6px 8px;
-  background: var(--dsw-alias-state-error-bg, transparent);
+  background: transparent;
   color: var(--dsw-alias-state-error-primary);
   font-size: 11px;
   overflow-wrap: anywhere;
