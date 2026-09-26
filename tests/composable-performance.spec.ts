@@ -48,5 +48,6 @@ describe('Composable View performance fences', () => {
     expect(cpuMilliseconds).toBeLessThan(2_000)
     expect(elapsedWall).toBeLessThan(15_000)
     graph.dispose()
-  })
+    // The test timeout must exceed the wall fence plus fixture setup, or the fence never applies.
+  }, 30_000)
 })
