@@ -3,6 +3,7 @@ import { createElement, type ComponentType, type ReactElement } from 'react'
 import type { SnapshotSelectorHook } from '@deepseek-ai/dsh-client-store'
 import type { StoredEntry } from '@deepseek-ai/dsh-client-ui-slots'
 import type { MnemonClientContext, MnemonSessionListState, MnemonSessionSummary } from "./dsh-context.ts"
+import { isRecord } from './is-record.ts'
 
 export const MNEMON_SUBAGENT_TOKEN_USAGE_KEY = 'mnemonSubagentTokenUsage'
 const SUBAGENT_LINEAGE_SLOT = 'conversation.session.header.lineage'
@@ -25,7 +26,7 @@ type LineageComponent = ComponentType<LineageProps>
 const scopedSnapshots = new WeakMap<MnemonSessionListState, MnemonSessionListState>()
 
 function isTokenUsage(value: unknown): value is MnemonTokenUsageProjection {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
+  if (!isRecord(value)) return false
   const usage = value as Record<keyof MnemonTokenUsageProjection, unknown>
   return ['uncachedInputTokens', 'outputTokens', 'cacheReadTokens', 'cacheWriteTokens']
     .every((key) => {

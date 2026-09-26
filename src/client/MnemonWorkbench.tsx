@@ -12,10 +12,11 @@ import { translateZh, type MnemonKey, type MnemonTranslate } from "./locales.ts"
 
 import { ProviderIcon } from "./ProviderIcon.tsx"
 
-import { MNEMON_SOURCE_CONFIGURATION_MUTATE, MNEMON_SOURCE_CONFIGURATION_READ, type MemorySourcePageDirectory, type MemorySourcePageEntry } from "./source-pages.tsx"
+import { MNEMON_SOURCE_CONFIGURATION_MUTATE, MNEMON_SOURCE_CONFIGURATION_READ, MNEMON_SOURCE_PAGE_SLOT, type MemorySourcePageDirectory, type MemorySourcePageEntry } from "./source-pages.tsx"
 import type { MnemonSourceManagementClient } from "./dsh-context.ts"
 import type { MnemonDisplayMode } from '../host/protocol.ts'
 import { appearanceClass } from './view-styles.ts'
+import { isRecord } from './is-record.ts'
 import sidebarCss from './MnemonSidebarView.module.css'
 import css from "./MnemonView.module.css"
 import { I18nContext, LocaleContext, useT, useLocale, humanBytes, message, short, PageHeader, SidebarModal, EmptyState } from "./page-kit.tsx"
@@ -34,7 +35,7 @@ export interface MnemonWorkbenchProps {
   locale?: string
   onClose?: () => void
   sourcePageDirectory?: MemorySourcePageDirectory
-  renderSlot?: PropsRenderSlots<'mnemon.source.page'>['renderSlot']
+  renderSlot?: PropsRenderSlots<typeof MNEMON_SOURCE_PAGE_SLOT>['renderSlot']
 }
 
 export interface MnemonWorkspaceSelection {
@@ -101,7 +102,7 @@ function bindSourceManagementClient(client: MnemonClient, instance: MemorySource
 }
 
 function jsonRecord(value: JsonValue): Record<string, JsonValue> | undefined {
-  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value : undefined
+  return isRecord(value) ? value : undefined
 }
 
 function SourceDisabledPage(props: { title: string }): JSX.Element {
@@ -561,7 +562,7 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
         await settingsScope.mutate([{ op: 'set', path: ['persistenceStrategy'], value: { ...strategy, providerConnections: merged } }])
       },
     }
-    return renderSlot('mnemon.source.page', {
+    return renderSlot(MNEMON_SOURCE_PAGE_SLOT, {
       sourceTypeId, sourceInstanceKey: selected.sourceInstanceKey, sourceInstances: instances, writable: writeEnabled, locale,
       ...(management === undefined ? {} : { management }),
       ...(sessionId === undefined ? {} : { sessionId }), ...(workspaceId === undefined ? {} : { workspaceId }),

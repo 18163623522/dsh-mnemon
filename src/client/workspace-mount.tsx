@@ -5,7 +5,7 @@ import type { ClientSettingsScope, Config } from "../host/protocol.ts"
 import type { MnemonClientContext } from "./dsh-context.ts"
 import type { MnemonTranslate } from './locales.ts'
 import { MnemonWorkbench, type MnemonWorkspaceSelection } from './MnemonWorkbench.tsx'
-import type { MemorySourcePageDirectory } from './source-pages.tsx'
+import type { MNEMON_SOURCE_PAGE_SLOT, MemorySourcePageDirectory } from './source-pages.tsx'
 import type { MnemonBetterSidebarSeat } from './better-sidebar-seat.ts'
 import type { MnemonNativeSidebarSeat } from './native-sidebar-seat.ts'
 import { mountMnemonSidebarEntry } from './sidebar-entry.ts'
@@ -52,7 +52,7 @@ export interface MnemonWorkspaceHostProps {
   sessionId?: string | undefined
   cwd?: string
   active?: boolean
-  renderSlot?: PropsRenderSlots<'mnemon.source.page'>['renderSlot']
+  renderSlot?: PropsRenderSlots<typeof MNEMON_SOURCE_PAGE_SLOT>['renderSlot']
 }
 
 export interface MnemonBuiltinWorkspaceHostProps extends Pick<MnemonWorkspaceHostProps,

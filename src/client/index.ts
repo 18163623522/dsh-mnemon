@@ -15,6 +15,7 @@ import { MnemonSettingsScope } from './settings.ts'
 import type { MnemonClientContext } from "./dsh-context.ts"
 import {
   createMemorySourcePageDirectory,
+  MNEMON_SOURCE_PAGE_SLOT,
 } from './source-pages.tsx'
 import { MnemonBetterSidebarSeat } from './better-sidebar-seat.ts'
 import {
@@ -27,6 +28,7 @@ import { mountBetterSidebarTab } from './better-sidebar.tsx'
 import { MnemonWorkspaceController } from './workspace-controller.ts'
 import { MNEMON_ANCHOR_EVENT, type MnemonAnchor } from './anchor.ts'
 import { mountSubagentTokenUsageOverride } from './subagent-token-usage.tsx'
+import { isRecord } from './is-record.ts'
 
 export * from './extension-sdk.ts'
 
@@ -86,8 +88,7 @@ type InteractionUnitKey = keyof typeof INTERACTION_UNITS
 
 /** Ready snapshots default each interaction on; loading has no value and mounts nothing. */
 function enabledOf(value: unknown, key: 'turnBar' | 'saveAction'): boolean {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
-  return (value as Partial<Record<typeof key, boolean>>)[key] !== false
+  return isRecord(value) && value[key] !== false
 }
 
 function mountSidebarMemoryView(ctx: MnemonClientContext, settings: MnemonSettingsScope<Config>, namespace: MnemonNamespace, translate: (key: MnemonKey, params?: Record<string, unknown>) => string): () => void {
@@ -108,7 +109,7 @@ function mountSidebarMemoryView(ctx: MnemonClientContext, settings: MnemonSettin
     label: () => translate('tab.label'),
     locale: namespace,
     children: {
-      'mnemon.source.page': { kind: 'list', scope: 'root' },
+      [MNEMON_SOURCE_PAGE_SLOT]: { kind: 'list', scope: 'root' },
     },
     inject: () => ({
       connection: ctx.connection,
@@ -167,7 +168,7 @@ function mountBuiltinMemoryView(ctx: MnemonClientContext, settings: MnemonSettin
     label: () => translate('tab.label'),
     locale: namespace,
     children: {
-      'mnemon.source.page': { kind: 'list', scope: 'root' },
+      [MNEMON_SOURCE_PAGE_SLOT]: { kind: 'list', scope: 'root' },
     },
     inject: sessionId => ({
       connection: ctx.connection,

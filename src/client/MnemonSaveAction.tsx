@@ -5,6 +5,7 @@ import type { ClientConnectionHandle, ClientSettingsScope, Config } from "../hos
 import { MnemonClient } from './api.ts'
 import type { MnemonKey } from './locales.ts'
 import type { MnemonClientContext } from './dsh-context.ts'
+import { message } from './page-kit.tsx'
 import css from './MnemonSaveAction.module.css'
 
 export interface MnemonSaveActionProps {
@@ -100,7 +101,7 @@ export const MnemonSaveAction = memo(function MnemonSaveAction({ messageId, sess
         setCandidate(content)
       })
       .catch(reason => {
-        if (openRef.current && requestVersionRef.current === requestVersion) setFailure(reason instanceof Error ? reason.message : String(reason))
+        if (openRef.current && requestVersionRef.current === requestVersion) setFailure(message(reason))
       })
       .finally(() => {
         submitActiveRef.current = false

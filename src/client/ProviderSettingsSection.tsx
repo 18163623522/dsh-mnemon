@@ -12,6 +12,7 @@ import { GlobalLocationSetting } from './GlobalLocationSetting.tsx'
 import css from './MnemonSettingsCard.module.css'
 import { useRequestVersion } from './use-request-version.ts'
 import type { MnemonKey, MnemonTranslate } from './locales.ts'
+import { message } from './page-kit.tsx'
 import { ProviderIcon } from './ProviderIcon.tsx'
 import {
   providerFieldLabel,
@@ -61,10 +62,6 @@ function cacheCatalog(connection: ClientConnectionHandle | undefined, key: strin
     providerCatalogCache.set(connection, routes)
   }
   routes.set(key, catalog)
-}
-
-function message(reason: unknown): string {
-  return reason instanceof Error ? reason.message : String(reason)
 }
 
 function stabilizeProviderCard(element: HTMLElement): void {
