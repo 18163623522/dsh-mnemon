@@ -8,6 +8,8 @@ Implementation: `de6cb7fd3032ba4dd800b0eb4e590b33bf4b8c1a`, based on `main` at `
 
 The official Plugins icon uses a 1-unit stroke on a 16-unit SVG canvas. Memory System used 1.5 units, making it visibly heavier at the same size. Native, fallback and Better Sidebar icons now use 1 unit. The production change is one stroke-width value in each of the three renderers.
 
+After merging the naming and compatibility-documentation changes into this branch, revision `37d781b1bf89781bb420528c0b1b934de88bbda3` retains `可组合记忆 (dsh-mnemon)` and both composable-memory descriptions. The [combined preview](./after-combined.png) shows the current name and the corrected icon together. Its Root tarball SHA-256 is `d69c10cb453beb1e5d4c8c38ef7728e5e370f05ada74a61977f5c1c10083ec9f`. The earlier screenshots below remain a record of the original icon-only preview; their old plugin title does not represent the merge result.
+
 The real WebUI uses published DSH `0.1.7-rc.2`, this branch's packed Root, sixteen unchanged published companion artifacts, and Mnemon CLI `0.2.9`. The Root tarball SHA-256 is `0404e788c5101b5d1c5d6d7c56904d6e78519f570eafd955f069dbbcfe5f7668`. The fixture isolates its profile, workspace and memory; no live model API is used.
 
 [DOM measurements](./measurements.json) confirm matching stroke weights in the expanded 16px and collapsed 18px native icons. Clicking the collapsed entry opens a healthy Memory System. Runtime opens normally and remains selected after a round trip through Plugins.
