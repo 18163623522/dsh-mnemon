@@ -31,7 +31,7 @@ import type {
   MemoryViewSourceSpec,
   MemoryViewSpec,
 } from "./contracts/index.ts"
-import { DEFAULT_MEMORY_VIEW_BUDGET } from './contracts/index.ts'
+import { ANY_MEMORY_SOURCE_ROLE, ANY_MEMORY_STRATEGY, DEFAULT_MEMORY_VIEW_BUDGET } from './contracts/index.ts'
 import type { InstalledMemoryPlugin, InstalledMemorySource, InstalledMemoryStrategy, InstalledMemoryStrategyExtension, MemoryContributionSnapshot } from './contributions.ts'
 import { canonicalMemoryJson, deepFreeze, defineMemoryPlugin, defineMemorySource, defineMemoryStrategy, defineMemoryStrategyExtension, id, jsonClone, positiveInteger, requiredText, uniqueIds, validateCapabilities, validateProvenance } from './definitions.ts'
 import { readSource, SourceReadFailure } from './source-calls.ts'
@@ -245,7 +245,8 @@ function normalizeViewSpec(value: MemoryViewSpec, strategy: InstalledMemoryStrat
     seen.add(key)
     const sourceFacts = facts.get(key)
     if (sourceFacts === undefined) throw new Error(`memory Strategy selected unavailable Source: ${key}`)
-    if (!strategy.definition.manifest.supportedSourceRoles.includes(sourceFacts.role)) throw new Error(`memory Strategy selected an unsupported Source role: ${sourceFacts.role}`)
+    const roles = strategy.definition.manifest.supportedSourceRoles
+    if (!roles.includes(ANY_MEMORY_SOURCE_ROLE) && !roles.includes(sourceFacts.role)) throw new Error(`memory Strategy selected an unsupported Source role: ${sourceFacts.role}`)
     if (source.required !== undefined && typeof source.required !== 'boolean') throw new Error(`memory Source requirement must be boolean: ${key}`)
     if (sourceFacts.availability === 'unavailable') {
       if (source.required === false) return []
@@ -468,11 +469,19 @@ export class MemoryCompositionGeneration {
       ...(snapshot.strategies.length === 0 ? [] : ['strategy']),
     ])
     this.strategy = selectStrategy(snapshot.strategies, options)
-    this.extensions = (snapshot.strategyExtensions ?? []).filter(extension => extension.definition.manifest.strategyTypeId === this.strategy.definition.manifest.typeId)
+    const strategyManifest = this.strategy.definition.manifest
+    // Standard-slot extensions follow whichever selected Strategy declares their slot.
+    this.extensions = (snapshot.strategyExtensions ?? []).filter(extension => extension.definition.manifest.strategyTypeId === strategyManifest.typeId
+      || extension.definition.manifest.strategyTypeId === ANY_MEMORY_STRATEGY && strategyManifest.extensionSlots?.includes(extension.definition.manifest.slot) === true)
+    const owners = new Map<string, string>()
     for (const extension of this.extensions) {
-      if (!this.strategy.definition.manifest.extensionSlots?.includes(extension.definition.manifest.slot)) {
-        throw new Error(`memory Strategy does not support extension slot: ${extension.definition.manifest.slot} (${extension.instanceKey})`)
+      const slot = extension.definition.manifest.slot
+      if (!strategyManifest.extensionSlots?.includes(slot)) {
+        throw new Error(`memory Strategy does not support extension slot: ${slot} (${extension.instanceKey})`)
       }
+      const owner = owners.get(slot)
+      if (owner !== undefined) throw new Error(`memory Strategy extension slot conflict: ${strategyManifest.typeId}/${slot} (${owner}, ${extension.instanceKey})`)
+      owners.set(slot, extension.instanceKey)
     }
     this.now = options.now ?? (() => new Date())
     this.sourceTimeoutMs = positiveInteger(options.sourceTimeoutMs ?? 10_000, 'memory Source timeoutMs', 300_000)
@@ -529,7 +538,9 @@ export class MemoryCompositionGeneration {
       sourceInstanceKeys: [...this.sources.keys()],
       diagnostics: (snapshot.strategyExtensions ?? []).filter(extension => !this.extensions.includes(extension)).map(extension => ({
         code: 'strategy-extension-inactive', contributionInstanceKey: extension.instanceKey,
-        message: `Strategy extension targets ${extension.definition.manifest.strategyTypeId}; selected Strategy is ${this.strategy.definition.manifest.typeId}.`,
+        message: extension.definition.manifest.strategyTypeId === ANY_MEMORY_STRATEGY
+          ? `Selected Strategy ${strategyManifest.typeId} does not accept the ${extension.definition.manifest.slot} slot.`
+          : `Strategy extension targets ${extension.definition.manifest.strategyTypeId}; selected Strategy is ${strategyManifest.typeId}.`,
       })),
     })
   }
