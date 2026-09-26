@@ -35,7 +35,7 @@ function workspaceContext(initialValue: Record<string, unknown>, load: () => Pro
         else { value = { ...value, ...Object.fromEntries((payload.ops ?? []).map(op => [op.path[0], op.value])) }; revision += 1 }
       }
       return { ok: true, value: { status: 'ready', value: payload.namespace === 'mnemon-ui' ? {} : value, base: {}, user: value, revision, writable: true, mode: 'host' } }
-    }) } },
+    }) }, isLoopback: true },
     effect: vi.fn((callback: () => unknown) => {
       const dispose = callback()
       if (typeof dispose === 'function') disposers.push(dispose as () => void)

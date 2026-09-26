@@ -223,7 +223,7 @@ describe('Source Client presentation conformance', () => {
       if (endpoint === 'source-management-read') return { ok: true, value: { revision: 'read-r1', value: { branch: 'main' } } }
       if (endpoint === 'source-management-mutate') return { ok: true, value: { revision: 'write-r2', value: { updated: true } } }
       return { ok: false, error: { code: 'bad-request', message: `unexpected ${endpoint}`, details: { issues: [] } } }
-    }) } }
+    }) }, isLoopback: true }
     const directorySnapshot = [{ id: 'git/repository', sourceTypeId: 'git', pageId: 'repository', label: 'Repository', order: 1 }] as const
     const directory = {
       getSnapshot: () => directorySnapshot,
@@ -279,7 +279,7 @@ describe('Source Client presentation conformance', () => {
 
   it('reveals only a connected Source element inside the owning canvas', async () => {
     const source = { sourceInstanceKey: 'source:git', sourceTypeId: 'git', packageName: 'dsh-mnemon-source-git', role: 'repository', availability: 'ready', revision: 'r1', capabilities: ['read'], management: { label: 'Repository' } }
-    const connection = { rpc: { call: vi.fn(async (_channel: string, endpoint: string) => ({ ok: true, value: endpoint === 'source-management-catalog' ? { generationId: 'g1', sources: [source] } : status })) } }
+    const connection = { rpc: { call: vi.fn(async (_channel: string, endpoint: string) => ({ ok: true, value: endpoint === 'source-management-catalog' ? { generationId: 'g1', sources: [source] } : status })) }, isLoopback: true }
     const pages = [{ id: 'git/repository', sourceTypeId: 'git', pageId: 'repository', label: 'Repository', order: 1 }]
     let owner: MemorySourcePageProps | undefined
     const renderSlot = ((_name: string, props: MemorySourcePageProps) => { owner = props; return <div data-testid="source-target">Source content</div> }) as never
@@ -311,7 +311,7 @@ describe('Source Client presentation conformance', () => {
     }))
     const connection = { rpc: { call: vi.fn(async (_channel: string, endpoint: string) => ({
       ok: true, value: endpoint === 'source-management-catalog' ? { generationId: 'g1', sources } : status,
-    })) } }
+    })) }, isLoopback: true }
     const runtimePages = [{ id: 'runtime/entries', sourceTypeId: 'runtime', pageId: 'entries', label: translateEn('nav.runtime'), order: 100 }]
     const renderSlot = ((_name: string, owner: MnemonSourcePageOwnerProps, options: { only?: string }) => options.only !== 'runtime/entries' ? null : <div>
       <span data-testid="runtime-selected-instance">{owner.management?.sourceInstanceKey}</span>
@@ -348,7 +348,7 @@ describe('Source Client presentation conformance', () => {
       if (endpoint === 'source-management-read') return { ok: true, value: { revision: 'health-r4', value: { values: { endpoint: 'https://health.example.test', token: 'server-secret-must-not-render' } } } }
       if (endpoint === 'source-management-mutate') return { ok: true, value: { revision: 'health-r5', value: { configured: true } } }
       return { ok: false, error: { code: 'bad-request', message: `unexpected ${endpoint}`, details: { issues: [] } } }
-    }) } }
+    }) }, isLoopback: true }
     const emptyPages = [] as const
 
     render(<MnemonWorkbench

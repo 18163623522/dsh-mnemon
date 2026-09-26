@@ -70,7 +70,7 @@ function fixture(options: { writable?: boolean; failApply?: boolean; failRefresh
     if (channel === '/dsh-mnemon-pack' && endpoint === 'target') return { ok: true as const, value: { root: '/root/.mnemon', scope: 'global' as const } }
     return { ok: false as const, error: { code: 'internal' as const, message: `unsupported ${channel} ${endpoint}`, details: {} } }
   })
-  return { call, connection: { rpc: { call } } as ClientConnectionHandle }
+  return { call, connection: { rpc: { call }, isLoopback: true } as ClientConnectionHandle }
 }
 
 describe('Memory enhancement settings', () => {

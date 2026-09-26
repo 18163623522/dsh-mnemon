@@ -34,7 +34,7 @@ describe('MnemonSettingsCard', () => {
       if (channel === '/dsh-mnemon-pack' && endpoint === 'target') return { ok: true as const, value: { root: '/fixture/.mnemon', scope: 'global' } }
       throw new Error(`unexpected ${channel} ${endpoint}`)
     })
-    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call } } as ClientConnectionHandle} />)
+    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} />)
     const card = await screen.findByRole('group', { name: 'work-cloud 服务配置' })
     await waitFor(() => expect((within(card).getByRole('button') as HTMLButtonElement).disabled).toBe(false))
     fireEvent.click(within(card).getByRole('button'))
@@ -182,7 +182,7 @@ describe('MnemonSettingsCard', () => {
       throw new Error(`unexpected ${channel} ${endpoint}`)
     })
 
-    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call } } as ClientConnectionHandle} />)
+    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} />)
     fireEvent.click(screen.getByRole('button', { name: '测试状态' }))
 
     expect(await screen.findByText('嵌入服务可用 · qwen3-embedding:0.6b · 已嵌入 6/8（75%）')).toBeTruthy()
@@ -219,13 +219,13 @@ describe('MnemonSettingsCard', () => {
       throw new Error(`unexpected ${channel} ${endpoint}`)
     })
 
-    const view = render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call } } as ClientConnectionHandle} />)
+    const view = render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} />)
 
     await screen.findByRole('checkbox', { name: '启用 项目档案' })
     expect(screen.getByText('可版本化的叙事文档，先检索，再按需阅读全文。')).toBeTruthy()
     expect(screen.queryByText('Narrative records')).toBeNull()
 
-    view.rerender(<MnemonSettingsCard scope={scope} connection={{ rpc: { call } } as ClientConnectionHandle} t={translateEn} />)
+    view.rerender(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} t={translateEn} />)
     const enabled = await screen.findByRole('checkbox', { name: 'Enable Project Documents' })
     expect(screen.getByText('Versioned narrative documents searched first and read in full on demand.')).toBeTruthy()
     expect(screen.queryByText('Narrative records')).toBeNull()
@@ -267,7 +267,7 @@ describe('MnemonSettingsCard', () => {
       if (channel === '/dsh-mnemon-pack' && endpoint === 'target') return { ok: true as const, value: { root: '/workspace/.mnemon', scope: 'workspace' as const } }
       throw new Error(`unexpected ${channel} ${endpoint}`)
     })
-    const connection = { rpc: { call } } as ClientConnectionHandle
+    const connection = { rpc: { call }, isLoopback: true } as ClientConnectionHandle
     const view = render(<MnemonSettingsCard scope={scope} connection={connection} workspaceId="workspace-1" workspaceLabel="One" />)
 
     view.rerender(<MnemonSettingsCard scope={scope} connection={connection} workspaceId="workspace-2" workspaceLabel="Two" />)
@@ -372,7 +372,7 @@ describe('MnemonSettingsCard', () => {
       throw new Error(`unexpected ${channel} ${endpoint}`)
     })
 
-    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call } } as ClientConnectionHandle} />)
+    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} />)
 
     expect((screen.getByRole('radio', { name: '跟随主链路' }) as HTMLInputElement).checked).toBe(true)
     expect(await screen.findByText('deepseek / deepseek-chat')).toBeTruthy()
@@ -420,7 +420,7 @@ describe('MnemonSettingsCard', () => {
       throw new Error(`unexpected ${channel} ${endpoint}`)
     })
 
-    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call } } as ClientConnectionHandle} />)
+    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} />)
     fireEvent.click(screen.getByText('指定模型 Provider', { exact: true }))
     fireEvent.click(screen.getByText('跟随主链路', { exact: true }))
 
@@ -469,7 +469,7 @@ describe('MnemonSettingsCard', () => {
       throw new Error(`unexpected ${channel} ${endpoint}`)
     })
 
-    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call } } as ClientConnectionHandle} />)
+    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} />)
 
     expect((screen.getByRole('radio', { name: '指定模型 Provider' }) as HTMLInputElement).checked).toBe(true)
     await waitFor(() => expect((screen.getByRole('combobox', { name: '模型 Provider' }) as HTMLSelectElement).disabled).toBe(false))
@@ -876,7 +876,7 @@ describe('MnemonSettingsCard', () => {
       return Promise.reject(new Error(`unexpected ${channel} ${endpoint}`))
     })
 
-    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call } } as ClientConnectionHandle} />)
+    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} />)
 
     expect(screen.queryAllByRole('group', { name: /服务配置/ })).toHaveLength(0)
     expect(screen.queryAllByRole('checkbox', { name: /^启用 / })).toHaveLength(0)
@@ -912,7 +912,7 @@ describe('MnemonSettingsCard', () => {
       throw new Error(`unexpected ${channel} ${endpoint}`)
     })
 
-    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call } } as ClientConnectionHandle} />)
+    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} />)
 
     const card = await screen.findByRole('group', { name: 'Holographic 服务配置' })
     fireEvent.click(within(card).getByText('Holographic'))
@@ -988,7 +988,7 @@ describe('MnemonSettingsCard', () => {
       throw new Error(`unexpected ${channel} ${endpoint}`)
     })
 
-    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call } } as ClientConnectionHandle} />)
+    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} />)
 
     const card = await screen.findByRole('group', { name: 'Vector Store 服务配置' })
     expect(card.querySelector('[data-provider-icon="work-account"]')?.textContent).toBe('VS')
@@ -1033,7 +1033,7 @@ describe('MnemonSettingsCard', () => {
       if (channel === '/dsh-mnemon-pack' && endpoint === 'target') return { ok: true as const, value: { root: '/workspace/.mnemon', scope: 'workspace' } }
       throw new Error(`unexpected ${channel} ${endpoint}`)
     })
-    const connection = { rpc: { call } } as ClientConnectionHandle
+    const connection = { rpc: { call }, isLoopback: true } as ClientConnectionHandle
 
     render(<MnemonSettingsCard scope={scope} connection={connection} sessionId="session-1" workspaceId="workspace-1" workspaceLabel="dsh-mnemon" />)
 
@@ -1116,7 +1116,7 @@ describe('MnemonSettingsCard', () => {
       throw new Error(`unexpected ${channel} ${endpoint}`)
     })
 
-    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call } } as ClientConnectionHandle} />)
+    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} />)
 
     const providerToggle = await screen.findByRole('checkbox', { name: '启用 Supermemory' }) as HTMLInputElement
     const providerCard = screen.getByRole('group', { name: 'Supermemory 服务配置' }) as HTMLDivElement
@@ -1198,7 +1198,7 @@ describe('MnemonSettingsCard', () => {
       }
       throw new Error(`unexpected endpoint ${endpoint}: ${JSON.stringify(payload)}`)
     })
-    const connection = { rpc: { call } } as ClientConnectionHandle
+    const connection = { rpc: { call }, isLoopback: true } as ClientConnectionHandle
 
     render(<MnemonSettingsCard scope={scope} connection={connection} />)
     await waitFor(() => expect(screen.getByText('/active/.mnemon')).toBeTruthy())

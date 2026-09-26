@@ -352,7 +352,7 @@ describe('MnemonWorkbench', () => {
       return { ok: false, error: { code: 'unexpected', message: endpoint } }
     })
     return {
-      connection: { rpc: { call }, ...(options.isLoopback === undefined ? {} : { isLoopback: options.isLoopback }) } as unknown as ClientConnectionHandle,
+      connection: { rpc: { call }, isLoopback: options.isLoopback ?? true } as unknown as ClientConnectionHandle,
       call,
       resolveRelated: (index: number, content: string) => relatedResolvers[index]?.({ ok: true, value: [{ ...memory, id: `related-${index}`, graphId: `${body.id}:related-${index}`, content }] }),
       resolveVersions: (index: number) => versionResolvers[index]?.(versionResponse()),
@@ -1316,7 +1316,7 @@ describe('MnemonWorkbench', () => {
       if ((payload?.workspaceId === 'workspace-2' || payload?.sessionId === 'session-2') && (endpoint === 'status-summary' || endpoint === 'runtime-memory')) return await new Promise<never>(() => {})
       return call(channel, endpoint, payload)
     })
-    const delayedConnection = { rpc: { call: delayedCall } } as unknown as ClientConnectionHandle
+    const delayedConnection = { rpc: { call: delayedCall }, isLoopback: true } as unknown as ClientConnectionHandle
     const view = (workspaceId: string) => <MnemonWorkbench connection={delayedConnection} settingsScope={settingsScope} surface={surface} {...(surface === 'sidebar' ? { sessionId: 'session-1', workspaceId } : { sessionId: workspaceId === 'workspace-1' ? 'session-1' : 'session-2' })} />
     const { rerender } = render(view('workspace-1'))
 
@@ -1373,7 +1373,7 @@ describe('MnemonWorkbench', () => {
         },
       }
     })
-    const connection = { rpc: { call } } as unknown as ClientConnectionHandle
+    const connection = { rpc: { call }, isLoopback: true } as unknown as ClientConnectionHandle
     let snapshot: ClientSettingsSnapshot<Config> = { status: 'ready', value: { storageScope: 'custom' }, base: {}, user: {}, revision: 0, writable: true, mode: 'host' }
     const listeners = new Set<() => void>()
     const liveSettingsScope = {
@@ -1795,7 +1795,7 @@ describe('MnemonWorkbench', () => {
       if (endpoint === 'graph') return { ok: true, value: { nodes: [], edges: [], generatedAt: '2026-08-13T03:00:00.000Z' } }
       return { ok: false, error: { code: 'unexpected', message: endpoint } }
     })
-    render(<MnemonWorkbench connection={{ rpc: { call } } as unknown as ClientConnectionHandle} settingsScope={settingsScope} sessionId="session-1" />)
+    render(<MnemonWorkbench connection={{ rpc: { call }, isLoopback: true } as unknown as ClientConnectionHandle} settingsScope={settingsScope} sessionId="session-1" />)
 
     await selectWorkspaceTab('记忆空间')
     await waitFor(() => expect(screen.getAllByRole('heading', { name: '还没有记忆空间' })).toHaveLength(1))
@@ -1825,7 +1825,7 @@ describe('MnemonWorkbench', () => {
       if (endpoint === 'graph') return { ok: true, value: { nodes: [], edges: [], generatedAt: '2026-08-13T03:00:00.000Z' } }
       return { ok: false, error: { code: 'unexpected', message: endpoint } }
     })
-    render(<MnemonWorkbench connection={{ rpc: { call } } as unknown as ClientConnectionHandle} settingsScope={settingsScope} sessionId="session-1" />)
+    render(<MnemonWorkbench connection={{ rpc: { call }, isLoopback: true } as unknown as ClientConnectionHandle} settingsScope={settingsScope} sessionId="session-1" />)
 
     await waitFor(() => expect(screen.getByText('已连接')).toBeTruthy())
     await selectWorkspaceTab('记忆空间')

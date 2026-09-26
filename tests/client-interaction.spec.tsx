@@ -85,6 +85,7 @@ function makeCtx(initialValue: unknown, coreValue: Record<string, unknown> = {})
           return { ok: false, error: { code: 'internal', message: 'unexpected', details: {} } }
         }),
       },
+      isLoopback: true,
     },
     locale: {
       register: vi.fn(() => () => {}),

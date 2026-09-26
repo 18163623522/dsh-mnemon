@@ -94,7 +94,7 @@ export type RpcResult<T = JsonValue> =
   | { ok: false; error: RpcError }
 
 /** Public DSH browser RPC face plus the transport boundary needed to gate local-only writes. */
-export type ClientConnectionHandle = Pick<DshClientConnectionHandle, 'rpc'> & Partial<Pick<DshClientConnectionHandle, 'isLoopback'>>
+export type ClientConnectionHandle = Pick<DshClientConnectionHandle, 'rpc' | 'isLoopback'>
 
 export interface ClientSettingsSnapshot<T> {
   status: 'loading' | 'ready' | 'unavailable'

@@ -64,7 +64,7 @@ function fixture() {
     sessions: { list: catalog },
     workspaces: { list: workspaces },
     locale: { ...locale, register: () => () => {}, bind: () => (key: string) => key },
-    connection: { rpc: { call: vi.fn(async () => ({ ok: true, value: { status: 'ready', value: { displayMode: 'builtin' }, writable: true, mode: 'host' } })) } },
+    connection: { rpc: { call: vi.fn(async () => ({ ok: true, value: { status: 'ready', value: { displayMode: 'builtin' }, writable: true, mode: 'host' } })) }, isLoopback: true },
     effect(callback: () => unknown) { const dispose = callback(); if (typeof dispose === 'function') disposers.push(dispose as () => void) },
     slots: {
       inject(_name: string, factory: () => (() => void)) { const dispose = factory(); disposers.push(dispose); return dispose },
