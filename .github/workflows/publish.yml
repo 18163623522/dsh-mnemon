@@ -92,7 +92,7 @@ jobs:
       - name: Run complete workspace verification
         run: pnpm run verify
 
-      - name: Verify independent plugins and packed v0.5.16 upgrade E2E
+      - name: Verify independent plugins and packed v0.5.15 upgrade E2E
         env:
           MNEMON_PLUGIN_VERIFY_CONCURRENCY: '4'
         run: pnpm run verify:plugins --skip-build
