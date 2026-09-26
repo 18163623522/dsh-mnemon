@@ -93,7 +93,7 @@ Third-party packages continue to use DSH's native Profile/Loader workflow. Insta
 
 ### Standard View extensions
 
-`defineMemoryViewExtension` from `dsh-mnemon/extension-sdk` targets `ANY_MEMORY_STRATEGY` (`'*'`): the extension follows whichever selected Strategy declares its slot, and stays inactive with a diagnostic otherwise. Each selected slot has one owner across `'*'` and Strategy-specific extensions. `validateMemoryViewExtension` and `memoryViewExtensionValues` give a Strategy the same validated values. `dsh-mnemon-strategy-default-three-tier/extension-sdk` keeps `defineThreeTierExtension` for an extension that should apply only to that Strategy. The shipped enhancements use the standard slots:
+`defineMemoryViewExtension` from `dsh-mnemon/extension-sdk` targets `ANY_MEMORY_STRATEGY` (`'*'`): the extension follows whichever selected Strategy declares its slot, and stays inactive with a diagnostic otherwise. A slot has one owner: registering a second extension for it is rejected when both target the same Strategy or either targets `'*'`, because the pair would meet after a main Strategy switch. `validateMemoryViewExtension` and `memoryViewExtensionValues` give a Strategy the same validated values. `dsh-mnemon-strategy-default-three-tier/extension-sdk` keeps `defineThreeTierExtension` for an extension that should apply only to that Strategy. The shipped enhancements use the standard slots:
 
 | Optional plugin | Slot | Contribution |
 |---|---|---|

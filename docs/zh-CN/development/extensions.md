@@ -93,7 +93,7 @@ helper 校验并冻结元信息副本，不执行 factory；返回的 `create(co
 
 ### 标准 View 扩展
 
-`dsh-mnemon/extension-sdk` 的 `defineMemoryViewExtension` 以 `ANY_MEMORY_STRATEGY`（`'*'`）为目标：扩展跟随声明了该槽的所选 Strategy，否则保持停用并给出诊断。每个被选中的槽在 `'*'` 扩展与指定 Strategy 的扩展之间只有一个所有者。`validateMemoryViewExtension` 与 `memoryViewExtensionValues` 让 Strategy 读取同样经过校验的值。`dsh-mnemon-strategy-default-three-tier/extension-sdk` 保留 `defineThreeTierExtension`，供只作用于该 Strategy 的扩展使用。随附增强使用以下标准槽：
+`dsh-mnemon/extension-sdk` 的 `defineMemoryViewExtension` 以 `ANY_MEMORY_STRATEGY`（`'*'`）为目标：扩展跟随声明了该槽的所选 Strategy，否则保持停用并给出诊断。每个槽只有一个所有者：两个扩展指向同一 Strategy，或其中任一以 `'*'` 为目标时，后注册者会被拒绝，因为切换主策略后二者会在同一个槽相遇。`validateMemoryViewExtension` 与 `memoryViewExtensionValues` 让 Strategy 读取同样经过校验的值。`dsh-mnemon-strategy-default-three-tier/extension-sdk` 保留 `defineThreeTierExtension`，供只作用于该 Strategy 的扩展使用。随附增强使用以下标准槽：
 
 | 可选插件 | 槽 | 贡献与边界 |
 |---|---|---|

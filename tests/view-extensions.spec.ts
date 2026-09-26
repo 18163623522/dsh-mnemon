@@ -64,19 +64,21 @@ describe('standard View extensions for any main Strategy', () => {
     }
   })
 
-  it('gives each selected slot one owner across any-Strategy and targeted extensions', async () => {
+  it('rejects a second owner of a slot at mount, whichever main Strategy it targets', async () => {
     const runner = await fixture('first')
     try {
       await runner.mount(plugin({ strategyExtensions: [light(4)] }), { instanceId: 'light' })
       const serving = runner.inspect().servingGenerationId
-      const targeted = defineMemoryStrategyExtension({
-        manifest: { apiVersion: COMPOSABLE_MEMORY_API_VERSION, kind: 'strategy-extension', typeId: 'narrow', packageName: 'dsh-mnemon-strategy-narrow',
-          strategyTypeId: 'first', slot: 'projection', deterministic: true },
-        contribute: () => ({ maxProjectionCharacters: 2 }),
-      })
-      await runner.mount(plugin({ strategyExtensions: [targeted] }), { instanceId: 'narrow' })
-      expect(runner.inspect()).toMatchObject({ servingGenerationId: serving, evaluation: { state: 'rejected',
-        diagnostics: [{ message: expect.stringContaining('slot conflict: first/projection') }] } })
+      // The any-Strategy extension would meet either one after a main Strategy switch.
+      for (const strategyTypeId of ['first', 'second']) {
+        const targeted = defineMemoryStrategyExtension({
+          manifest: { apiVersion: COMPOSABLE_MEMORY_API_VERSION, kind: 'strategy-extension', typeId: 'narrow', packageName: 'dsh-mnemon-strategy-narrow',
+            strategyTypeId, slot: 'projection', deterministic: true },
+          contribute: () => ({ maxProjectionCharacters: 2 }),
+        })
+        await expect(runner.mount(plugin({ strategyExtensions: [targeted] }), { instanceId: 'narrow' })).rejects.toThrow(`slot conflict: ${strategyTypeId}/projection`)
+      }
+      expect(runner.inspect()).toMatchObject({ servingGenerationId: serving, evaluation: { state: 'ready' } })
     } finally { await runner.dispose() }
   })
 

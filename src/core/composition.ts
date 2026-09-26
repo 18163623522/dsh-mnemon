@@ -126,13 +126,15 @@ export function captureMemoryContributionSnapshot(snapshot: MemoryContributionSn
     .sort((a, b) => a.instanceKey.localeCompare(b.instanceKey))
   const plugins = (snapshot.plugins ?? []).map(capturePlugin)
     .sort((a, b) => a.instanceKey.localeCompare(b.instanceKey))
-  const slots = new Map<string, string>()
+  const owners: { strategyTypeId: string; slot: string; instanceKey: string }[] = []
   for (const extension of extensions) {
-    const manifest = extension.definition.manifest
-    const slot = `${manifest.strategyTypeId}/${manifest.slot}`
-    const occupied = slots.get(slot)
-    if (occupied !== undefined) throw new Error(`memory Strategy extension slot conflict: ${slot} (${occupied}, ${extension.instanceKey})`)
-    slots.set(slot, extension.instanceKey)
+    const { strategyTypeId, slot } = extension.definition.manifest
+    // An any-Strategy extension meets every Strategy's extensions for its slot, so
+    // one owner per slot holds for whichever main Strategy is selected later.
+    const owner = owners.find(item => item.slot === slot
+      && (item.strategyTypeId === strategyTypeId || item.strategyTypeId === ANY_MEMORY_STRATEGY || strategyTypeId === ANY_MEMORY_STRATEGY))
+    if (owner !== undefined) throw new Error(`memory Strategy extension slot conflict: ${strategyTypeId}/${slot} (${owner.instanceKey}, ${extension.instanceKey})`)
+    owners.push({ strategyTypeId, slot, instanceKey: extension.instanceKey })
   }
   const keys = new Set<string>()
   for (const contribution of [...sources, ...strategies, ...extensions]) {
@@ -476,15 +478,11 @@ export class MemoryCompositionGeneration {
     // Standard-slot extensions follow whichever selected Strategy declares their slot.
     this.extensions = (snapshot.strategyExtensions ?? []).filter(extension => extension.definition.manifest.strategyTypeId === strategyManifest.typeId
       || extension.definition.manifest.strategyTypeId === ANY_MEMORY_STRATEGY && strategyManifest.extensionSlots?.includes(extension.definition.manifest.slot) === true)
-    const owners = new Map<string, string>()
     for (const extension of this.extensions) {
       const slot = extension.definition.manifest.slot
       if (!strategyManifest.extensionSlots?.includes(slot)) {
         throw new Error(`memory Strategy does not support extension slot: ${slot} (${extension.instanceKey})`)
       }
-      const owner = owners.get(slot)
-      if (owner !== undefined) throw new Error(`memory Strategy extension slot conflict: ${strategyManifest.typeId}/${slot} (${owner}, ${extension.instanceKey})`)
-      owners.set(slot, extension.instanceKey)
     }
     this.now = options.now ?? (() => new Date())
     this.sourceTimeoutMs = positiveInteger(options.sourceTimeoutMs ?? 10_000, 'memory Source timeoutMs', 300_000)
