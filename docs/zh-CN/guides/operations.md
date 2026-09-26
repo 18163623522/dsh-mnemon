@@ -4,7 +4,7 @@
 
 ## 健康检查
 
-先检查二进制，再查看工作台“状态”：
+查看工作台“状态”。使用 Mnemon Native 时再检查它的二进制，其他 Provider 不需要：
 
 ```sh
 command -v mnemon
@@ -34,8 +34,8 @@ Test-Path "$env:LOCALAPPDATA\Programs\mnemon\mnemon.exe"
 
 [![检查与更新 Mnemon CLI 和 dsh-mnemon](../../assets/webui-v0.5.4/zh-CN/versions.jpg)](../../assets/webui-v0.5.4/zh-CN/versions.jpg)
 
-- **Mnemon CLI**：本地版本来自 `mnemon --version`，最新版本来自官方 `@mnemon-dev/mnemon` npm 包。
 - **dsh-mnemon**：运行版本来自当前插件包，更新查询 npm `latest`；已安装的 beta/alpha/rc 同时查询自身通道，也可升级到更高的正式版。稳定版用户不会自动进入预发布通道。
+- **Mnemon CLI**：本地版本来自 `mnemon --version`，最新版本来自官方 `@mnemon-dev/mnemon` npm 包。只有 Mnemon Native 需要它，未安装时显示为可选并给出安装命令。
 
 检查只读，不会自动安装。只有发现更高版本并安全识别安装来源时才显示“更新”：Mnemon 支持官方 npm 启动器、Homebrew Cask / Formula 与 `go install`；dsh-mnemon 支持当前 DSH Profile 中由 pnpm 管理的 npm 安装。`link:` / `file:` 开发版本与无法识别的手工安装只显示说明，避免覆盖源码。
 

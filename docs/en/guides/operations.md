@@ -4,7 +4,7 @@
 
 ## Health checks
 
-Check the binary, then open **Status** in the workbench:
+Open **Status** in the workbench. If you use Mnemon Native, also check its binary; the other Providers do not need it:
 
 ```sh
 command -v mnemon
@@ -34,8 +34,8 @@ If OpenViking reports `/api/v1/admin/*` access restrictions, configure **User ke
 
 [![Check and update Mnemon CLI and dsh-mnemon](../../assets/webui-v0.5.4/en/versions.jpg)](../../assets/webui-v0.5.4/en/versions.jpg)
 
-- **Mnemon CLI**: installed from `mnemon --version`; latest from the official `@mnemon-dev/mnemon` npm package.
 - **dsh-mnemon**: installed from the running package; updates from npm `latest`. An installed beta/alpha/rc also checks its own channel and can graduate to a newer stable version. Stable users never opt into prereleases automatically.
+- **Mnemon CLI**: installed from `mnemon --version`; latest from the official `@mnemon-dev/mnemon` npm package. Only Mnemon Native needs it, so a missing CLI shows as optional with its install command.
 
 Checking is read-only and never installs automatically. Update appears only when a newer version exists and the source is safely recognized. Mnemon supports the official npm launcher, Homebrew Cask / Formula, and `go install`; dsh-mnemon supports npm installations managed by pnpm in the owning DSH Profile. `link:` / `file:` development builds and unrecognized manual installs show guidance only.
 

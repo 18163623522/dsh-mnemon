@@ -12,7 +12,7 @@ You need:
 
 - Node.js `^22.19.0 || >=24.0.0` for the DSH 0.1.7-rc.2 baseline;
 - a DSH Web or Headless profile that starts successfully;
-- a locally executable `mnemon` CLI;
+- for Mnemon Native only, a locally executable `mnemon` CLI (the other Providers use their own services);
 - a DSH model route capable of creating independent task Agents.
 
 Regular semantic work prefers a provider named `spawn` with `toolFilter`, `persona`, and `depthLimit`. Mnemon keeps one stable `mnemon_subagent_result` tool registered and issues a revocable `requestId` for each child. The child returns `{ requestId, result }`; the Host validates `result` against that operation's schema and rejects stale or foreign submissions, without depending on the Provider's `outputSchema` path. Optional background review defaults to a guarded `spawn` child with a bounded checkpoint. Full-context `fork` is opt-in. Review has an independent switch, cooldown and attempt budget; see [review compatibility and limits](../reference/configuration.md#provider-requirements).
@@ -29,7 +29,7 @@ npm view @deepseek-ai/dsh dist-tags
 
 ## 2. Install Mnemon
 
-npm is recommended on macOS, Linux, and Windows (Node.js 22+). Run these commands on the machine running DSH:
+Only Mnemon Native uses the Mnemon CLI. Skip this step if your Memory Spaces use another Provider; you can install it later. npm is recommended on macOS, Linux, and Windows (Node.js 22+). Run these commands on the machine running DSH:
 
 ```sh
 npm install --global @mnemon-dev/mnemon@latest
@@ -199,7 +199,7 @@ If Mnemon is unavailable, run `command -v mnemon` and `mnemon --version` on macO
 
 1. Open **Memory Spaces → Overview**.
 2. Select **Create Memory Space**.
-3. Choose an enabled Provider explicitly. Keep **Mnemon Native** for the official local-first default; enable third-party services in Settings first.
+3. Choose a ready Provider. The dialog starts with the first one: **Mnemon Native**, the official local-first default, once its CLI is installed. Enable third-party services in Settings first.
 4. Use a narrow name such as “Project Decisions.”
 5. Describe what belongs there and which tasks should recall it, then enable read activation.
 

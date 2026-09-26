@@ -46,13 +46,14 @@ Use the same data from Sidebar, conversation tools or Headless. Global, workspac
 
 ## Start with the default installation
 
-You need a compatible DSH Host. **Mnemon Native also needs a separately installed `mnemon` CLI**; installing the npm Starter does not install that binary or third-party backend services. Follow the [platform installation guide](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/getting-started.md) and [verified compatibility baselines](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/reference/compatibility.md).
+You need a compatible DSH Host. Runtime memory and Documents work right away. Memory Spaces use whichever Provider you set up: **Mnemon Native uses a separately installed `mnemon` CLI**, and the other Providers connect to their own services. The npm Starter installs neither. Follow the [platform installation guide](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/getting-started.md) and [verified compatibility baselines](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/reference/compatibility.md).
 
 ```sh
-mnemon --version
 dsh plugin --profile web add dsh-mnemon
 dsh web
 ```
+
+To use Mnemon Native, install its CLI with `npm install --global @mnemon-dev/mnemon` and check it with `mnemon --version`.
 
 dsh-mnemon supports DSH `0.1.7-rc.2`, its pinned development baseline; keep `v0.5.16` on older hosts. See the [compatibility matrix](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/reference/compatibility.md). Existing Sessions with `source summary requires notice form` need the explicit `dsh-mnemon-repair-session --input FILE --output NEW_FILE` copy repair; see [legacy Session recovery](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/operations.md#dsh-015-compatibility-and-legacy-session-recovery) before replacing any artifact.
 
@@ -60,7 +61,7 @@ For Headless, add the same package to that profile with `dsh plugin --profile he
 
 Open **Memory System → Status**, then add a Runtime memory. Select a DSH workspace before creating Documents, even with global storage. To retain long-term facts, create a Memory Space with an explicitly selected Provider. Sidebar is the default; optional Builtin placement uses the same pages.
 
-Upgrading from v0.4 retains the familiar configuration, data and workflow. Three optional enhancements are exposed in **Settings → Memory System**; no View tab or generic memory-plugin manager is added. [Upgrade checklist](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/reference/compatibility.md).
+Upgrading from v0.4 retains the familiar configuration, data and workflow. The main Strategy and three optional enhancements are chosen under **Settings → Memory System** or on the `dsh-mnemon` page under **Plugins**; no View tab or generic memory-plugin manager is added. [Upgrade checklist](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/reference/compatibility.md).
 
 ## Source + Strategy → View
 

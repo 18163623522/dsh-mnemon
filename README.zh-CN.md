@@ -46,19 +46,20 @@ Sidebar、对话工具与 Headless 使用同一套数据。全局、工作区、
 
 ## 从默认组合开始
 
-先准备兼容的 DSH 宿主（Host）。**Mnemon Native 还需要单独安装 `mnemon` CLI**；npm 默认安装包不包含这个二进制，也不会安装三方后端服务。参见[各平台安装步骤](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/getting-started.md)和[已验证的兼容基线](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/reference/compatibility.md)。
+先准备兼容的 DSH 宿主（Host）。运行时记忆与项目档案开箱即用。记忆空间使用你设置好的任一 Provider：**Mnemon Native 使用单独安装的 `mnemon` CLI**，其他 Provider 连接各自的服务。npm 默认安装包两者都不包含。参见[各平台安装步骤](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/getting-started.md)和[已验证的兼容基线](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/reference/compatibility.md)。
 
 ```sh
-mnemon --version
 dsh plugin --profile web add dsh-mnemon
 dsh web
 ```
+
+如需使用 Mnemon Native，用 `npm install --global @mnemon-dev/mnemon` 安装它的 CLI，并用 `mnemon --version` 确认。
 
 Headless 使用同一个包：`dsh plugin --profile headless add dsh-mnemon`。
 
 打开**记忆系统 → 状态**，然后添加一条运行时记忆。创建档案前先选择 DSH 工作区，全局存储也需要工作区身份。需要长期沉淀时，人工选择 Provider 并创建记忆空间。默认以 Sidebar 展示，可选 Builtin 使用同一组页面。
 
-从 v0.4 升级保留熟悉的配置、数据与工作流。三个可选增强仅在**设置 → 记忆系统**中透出，不增加 View 页或通用记忆插件管理器。[升级清单](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/reference/compatibility.md)。
+从 v0.4 升级保留熟悉的配置、数据与工作流。主策略与三个可选增强在**设置 → 记忆系统**或“插件”中的 `dsh-mnemon` 页面选择，不增加 View 页或通用记忆插件管理器。[升级清单](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/reference/compatibility.md)。
 
 dsh-mnemon 支持 DSH `0.1.7-rc.2`，即锁定的开发基线；更早的宿主请继续使用 `v0.5.16`。参见[兼容性矩阵](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/reference/compatibility.md)。现有会话若报 `source summary requires notice form`，需要显式执行 `dsh-mnemon-repair-session --input FILE --output NEW_FILE` 生成修复副本；替换任何文件前请阅读[旧会话恢复流程](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/operations.md#dsh-015-兼容与旧会话恢复)。
 
