@@ -81,6 +81,8 @@ describe('general main Strategy', () => {
       expect(view.routes.map(route => route.sourceRouteId).sort()).toEqual(['inspect', 'list', 'search'])
       expect(view.actionOffers.map(offer => offer.sourceActionId).sort()).toEqual(['append', 'close', 'create', 'mutate'])
       expect(view.guidance?.system).toContain('MNEMON GENERAL MEMORY PROTOCOL')
+      // Named Source tools are listed apart from the generic Route envelope; the protocol names both.
+      expect(view.guidance?.system).toMatch(/MNEMON VIEW TOOLS[\s\S]*MNEMON VIEW ROUTES/u)
       expect(view.guidance?.routing).toContain('- source:tasks (tasks, role task-log): on demand, 1 route(s), 2 action(s)')
       expect(view.guidance?.routing).toContain('- source:runtime (runtime, role working-context): resident, 0 route(s), 1 action(s)')
       turn.release()
