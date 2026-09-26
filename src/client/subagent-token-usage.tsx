@@ -5,12 +5,12 @@ import type { StoredEntry } from '@deepseek-ai/dsh-client-ui-slots'
 import type { MnemonClientContext, MnemonSessionListState, MnemonSessionSummary } from "./dsh-context.ts"
 import { isRecord } from './is-record.ts'
 
-export const MNEMON_SUBAGENT_TOKEN_USAGE_KEY = 'mnemonSubagentTokenUsage'
+const MNEMON_SUBAGENT_TOKEN_USAGE_KEY = 'mnemonSubagentTokenUsage'
 const SUBAGENT_LINEAGE_SLOT = 'conversation.session.header.lineage'
 const SUBAGENT_LOCALE = 'subagent'
 const MNEMON_SHADOW_PRIORITY = -100
 
-export interface MnemonTokenUsageProjection {
+interface MnemonTokenUsageProjection {
   uncachedInputTokens: number
   outputTokens: number
   cacheReadTokens: number
