@@ -30,7 +30,7 @@ import { ProviderSettingsSection } from './ProviderSettingsSection.tsx'
 
 export interface MnemonSettingsCardProps {
   scope: ClientSettingsScope<Config>
-  /** Separate live namespace; falls back to the core scope for older hosts. */
+  /** Separate live namespace; without it the interaction toggles use `scope`. */
   interactionScope?: ClientSettingsScope<InteractionConfig>
   /** Loopback RPC used for whole-directory ZIP backup and restore. */
   connection?: ClientConnectionHandle
@@ -624,8 +624,8 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
 }
 
 /**
- * v0.5 exposes the shipped behavior toggles, not the underlying plugin graph.
- * Older Hosts simply omit this section when the View settings channel is absent.
+ * Exposes the shipped behavior toggles, not the underlying plugin graph. The
+ * section stays hidden whenever the View dashboard cannot be read.
  */
 function MemoryEnhancementsSection(props: {
   connection?: ClientConnectionHandle

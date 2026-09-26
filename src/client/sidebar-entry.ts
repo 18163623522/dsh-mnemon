@@ -79,7 +79,7 @@ function placeEntry(root: HTMLElement, entry: HTMLButtonElement): boolean {
 export function mountMnemonSidebarEntry(
   controller: MnemonWorkspaceController,
   t: MnemonTranslate,
-  subscribeLocale?: (listener: () => void) => () => void,
+  subscribeLocale: (listener: () => void) => () => void,
 ): () => void {
   const { entry, label } = createEntry(controller)
   let root: HTMLElement | undefined
@@ -128,7 +128,7 @@ export function mountMnemonSidebarEntry(
     else delete entry.dataset.active
   }
   const unsubscribe = controller.subscribe(syncActive)
-  const unsubscribeLocale = subscribeLocale?.(syncLabel) ?? (() => {})
+  const unsubscribeLocale = subscribeLocale(syncLabel)
   const dispose = (): void => {
     waitObserver.disconnect()
     rootObserver.disconnect()

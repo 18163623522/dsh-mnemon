@@ -66,6 +66,8 @@ function declareSourcePageSlot(slots: TestSlots): () => void {
 
 function Page(_props: MemorySourcePageProps): ReactNode { return null }
 
+const staticLocale = { getSnapshot: () => 'zh', subscribe: () => () => {} }
+
 const settingsSnapshot = { status: 'ready' as const, value: {}, revision: 1, writable: true, mode: 'host' as const }
 const settings = settingsScope<Config>(settingsSnapshot)
 
@@ -94,7 +96,7 @@ describe('Source Client presentation conformance', () => {
     const slots = new TestSlots()
     const owner = declareSourcePageSlot(slots)
     const first = installMemorySourceUI({ slots } as never, { sourceTypeId: 'runtime', pages: [{ id: 'entries', label: 'First', component: Page }] })
-    const directory = createMemorySourcePageDirectory({ slots } as never)
+    const directory = createMemorySourcePageDirectory({ slots, locale: staticLocale } as never)
     expect(() => installMemorySourceUI({ slots } as never, { sourceTypeId: 'runtime', pages: [{ id: 'entries', label: 'Duplicate', component: Page }] })).toThrow()
     expect(directory.getSnapshot().map(entry => entry.label)).toEqual(['First'])
     first()
@@ -152,7 +154,7 @@ describe('Source Client presentation conformance', () => {
     const disposeOwner = declareSourcePageSlot(slots)
     const disposeGit = slots.register({ name: MNEMON_SOURCE_PAGE_SLOT, id: 'git/repository', label: () => { throw new Error('bad label') } }, Page)
     const disposeNotion = slots.register({ name: MNEMON_SOURCE_PAGE_SLOT, id: 'notion/notes', label: 'Notes' }, Page)
-    const directory = createMemorySourcePageDirectory({ slots } as never)
+    const directory = createMemorySourcePageDirectory({ slots, locale: staticLocale } as never)
     const first = directory.getSnapshot()
     expect(first).toEqual([
       expect.objectContaining({ id: 'git/repository', label: 'repository' }),

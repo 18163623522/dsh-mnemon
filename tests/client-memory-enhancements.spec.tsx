@@ -42,7 +42,7 @@ function fixture(options: { writable?: boolean; failApply?: boolean; failRefresh
   }
   const call = vi.fn(async (channel: string, endpoint: string, payload: unknown) => {
     if (channel === '/dsh-mnemon-view' && endpoint === 'dashboard') {
-      if (options.unavailable) return { ok: false as const, error: { code: 'internal' as const, message: 'legacy host', details: {} } }
+      if (options.unavailable) return { ok: false as const, error: { code: 'internal' as const, message: 'dashboard failed', details: {} } }
       if (options.failRefreshAfterApply && applied) return { ok: false as const, error: { code: 'internal' as const, message: 'refresh failed', details: {} } }
       return { ok: true as const, value: structuredClone(dashboard) }
     }
@@ -133,13 +133,13 @@ describe('Memory enhancement settings', () => {
     expect(screen.queryByText(/dsh-mnemon-strategy-/u)).toBeNull()
   })
 
-  it('preserves the v0.4 settings surface when the Host has no View channel', async () => {
+  it('hides the enhancements and keeps the other settings when the View dashboard fails', async () => {
     const { connection, call } = fixture({ unavailable: true })
     render(<MnemonSettingsCard scope={readyScope()} connection={connection} />)
 
     await waitFor(() => expect(call).toHaveBeenCalledWith('/dsh-mnemon-view', 'dashboard', {}))
     expect(screen.queryByRole('heading', { name: '记忆增强' })).toBeNull()
-    expect(screen.queryByText(/legacy host/u)).toBeNull()
+    expect(screen.queryByText(/dashboard failed/u)).toBeNull()
     expect(screen.getByRole('heading', { name: '记忆层' })).toBeTruthy()
     expect(screen.getByRole('heading', { name: '记忆空间 Provider' })).toBeTruthy()
   })
