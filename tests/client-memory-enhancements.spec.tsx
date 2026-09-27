@@ -72,9 +72,9 @@ describe('Memory enhancement settings', () => {
     const { connection } = fixture()
     render(<MnemonSettingsCard scope={readyScope()} connection={connection} />)
 
-    expect(await screen.findByRole('heading', { name: '记忆增强' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: '策略' })).toBeTruthy()
     for (const label of ['主动记录', '轻量上下文', '范围组合']) {
-      expect((screen.getByRole('checkbox', { name: label }) as HTMLInputElement).checked).toBe(false)
+      expect(screen.getByRole('switch', { name: label }).getAttribute('aria-checked')).toBe('false')
     }
     expect(screen.queryByText(/dsh-mnemon-strategy-/u)).toBeNull()
     expect(screen.queryByText(/插件/u)).toBeNull()
@@ -85,9 +85,9 @@ describe('Memory enhancement settings', () => {
     const { connection, call } = fixture()
     render(<MnemonSettingsCard scope={readyScope()} connection={connection} sessionId="session-1" workspaceId="workspace-1" />)
 
-    const capture = await screen.findByRole('checkbox', { name: '主动记录' }) as HTMLInputElement
+    const capture = await screen.findByRole('switch', { name: '主动记录' })
     fireEvent.click(capture)
-    expect(capture.checked).toBe(true)
+    expect(capture.getAttribute('aria-checked')).toBe('true')
 
     await waitFor(() => expect(call).toHaveBeenCalledWith('/dsh-mnemon-view-settings', 'apply', {
       configuration: {
@@ -96,7 +96,7 @@ describe('Memory enhancement settings', () => {
       },
       confirmed: true, sessionId: 'session-1', workspaceId: 'workspace-1',
     }))
-    await waitFor(() => expect((screen.getByRole('checkbox', { name: '主动记录' }) as HTMLInputElement).checked).toBe(true))
+    await waitFor(() => expect(screen.getByRole('switch', { name: '主动记录' }).getAttribute('aria-checked')).toBe('true'))
     expect(call.mock.calls.some(([, endpoint]) => endpoint === 'inspect-plugin' || endpoint === 'install-plugin')).toBe(false)
   })
 
@@ -104,9 +104,9 @@ describe('Memory enhancement settings', () => {
     const { connection } = fixture({ failApply: true })
     render(<MnemonSettingsCard scope={readyScope()} connection={connection} />)
 
-    const light = await screen.findByRole('checkbox', { name: '轻量上下文' }) as HTMLInputElement
+    const light = await screen.findByRole('switch', { name: '轻量上下文' })
     fireEvent.click(light)
-    await waitFor(() => expect(light.checked).toBe(false))
+    await waitFor(() => expect(light.getAttribute('aria-checked')).toBe('false'))
     expect(screen.getByRole('alert').textContent).toBe('无法更新记忆增强设置，请重试。')
     expect(screen.queryByText(/plugin graph|插件图/iu)).toBeNull()
   })
@@ -115,9 +115,9 @@ describe('Memory enhancement settings', () => {
     const { connection } = fixture({ failRefreshAfterApply: true })
     render(<MnemonSettingsCard scope={readyScope()} connection={connection} />)
 
-    const capture = await screen.findByRole('checkbox', { name: '主动记录' }) as HTMLInputElement
+    const capture = await screen.findByRole('switch', { name: '主动记录' }) as HTMLButtonElement
     fireEvent.click(capture)
-    await waitFor(() => expect(capture.checked).toBe(true))
+    await waitFor(() => expect(capture.getAttribute('aria-checked')).toBe('true'))
     await waitFor(() => expect(capture.disabled).toBe(true))
     expect(screen.getByRole('alert').textContent).toBe('设置已更新，但状态刷新失败；请重新打开设置。')
   })
@@ -126,9 +126,9 @@ describe('Memory enhancement settings', () => {
     const { connection } = fixture({ writable: false })
     render(<MnemonSettingsCard scope={readyScope()} connection={connection} t={translateEn} />)
 
-    expect(await screen.findByRole('heading', { name: 'Memory enhancements' })).toBeTruthy()
+    expect(await screen.findByRole('heading', { name: 'Strategy' })).toBeTruthy()
     for (const label of FEATURES.map(([, , label]) => label)) {
-      expect((screen.getByRole('checkbox', { name: label }) as HTMLInputElement).disabled).toBe(true)
+      expect((screen.getByRole('switch', { name: label }) as HTMLButtonElement).disabled).toBe(true)
     }
     expect(screen.queryByText(/dsh-mnemon-strategy-/u)).toBeNull()
   })
@@ -138,9 +138,9 @@ describe('Memory enhancement settings', () => {
     render(<MnemonSettingsCard scope={readyScope()} connection={connection} />)
 
     await waitFor(() => expect(call).toHaveBeenCalledWith('/dsh-mnemon-view', 'dashboard', {}))
-    expect(screen.queryByRole('heading', { name: '记忆增强' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: '策略' })).toBeNull()
     expect(screen.queryByText(/dashboard failed/u)).toBeNull()
     expect(screen.getByRole('heading', { name: '记忆层' })).toBeTruthy()
-    expect(screen.getByRole('heading', { name: '记忆空间 Provider' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '记忆 Provider' })).toBeTruthy()
   })
 })

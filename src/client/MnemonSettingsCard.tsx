@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type JSX, type ReactNode } from 'react'
+import { IconChevronDownOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
 import {
   DEFAULT_EMBEDDING_ENDPOINT,
   DEFAULT_IDLE_REVIEW,
@@ -22,9 +23,8 @@ import {
 import type { MemoryPluginEntryView, MemoryViewDashboard } from '../host/view-protocol.ts'
 import { MnemonClient } from './api.ts'
 import { MemoryCompositionSections } from './MemoryComposition.tsx'
-import { ChoiceCard, ToggleRow } from './settings-controls.tsx'
+import { SelectRow, SettingRow, ToggleRow } from './settings-controls.tsx'
 import css from './MnemonSettingsCard.module.css'
-import { GlobalLocationSetting } from './GlobalLocationSetting.tsx'
 import { isRecord } from './is-record.ts'
 import { translateZh, type MnemonKey, type MnemonTranslate } from './locales.ts'
 import { message } from './page-kit.tsx'
@@ -441,6 +441,16 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
     setFailed(null)
     setApplied(false)
   }
+  // A global scope with a directory is the stored `custom` scope; the directory field alone tells them apart.
+  const scopeChoice: StorageChoice = draft.storageScope === 'custom' ? 'global' : draft.storageScope === 'workspace' || draft.storageScope === 'workspaces' ? draft.storageScope : 'global'
+  const chooseScope = (choice: StorageChoice): void => {
+    edit('storageScope', choice === 'global' ? (draft.dataDir.trim() === '' ? 'global' : 'custom') : choice)
+  }
+  const editDirectory = (value: string): void => {
+    const globalScope = value.trim() === '' ? 'global' : 'custom'
+    if (scopeChoice === 'global' && globalScope !== draft.storageScope) editMany({ dataDir: value, storageScope: globalScope })
+    else edit('dataDir', value)
+  }
   return (
     <section className={css.page} aria-label={t('config.aria')} aria-busy={saving || loading}>
       {loading ? <p className={css.loading} role="status">{t('common.loading')}</p> : <>
@@ -449,46 +459,38 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
           <p>{t('config.description')}</p>
         </header>
 
-        <section className={css.section} aria-labelledby="mnemon-display-heading">
-          <div className={css.sectionHeading}>
-            <div><h2 id="mnemon-display-heading">{t('config.displayTitle')}</h2><p>{t('config.displayDescription')}</p></div>
-          </div>
-          <div className={css.choiceGrid} role="radiogroup" aria-label={t('config.displayAria')}>
-            <ChoiceCard id="mnemon-display-sidebar" name="mnemon-display" label={t('config.displaySidebar')} detail={t('config.displaySidebarHint')} checked={draft.displayMode === 'sidebar'} disabled={coreDisabled} onChange={() => edit('displayMode', 'sidebar')} />
-            <ChoiceCard id="mnemon-display-builtin" name="mnemon-display" label={t('config.displayBuiltin')} detail={t('config.displayBuiltinHint')} checked={draft.displayMode === 'builtin'} disabled={coreDisabled} onChange={() => edit('displayMode', 'builtin')} />
+        <section className={css.section} aria-labelledby="mnemon-interface-heading">
+          <div className={css.sectionHeading}><h2 id="mnemon-interface-heading">{t('config.interfaceTitle')}</h2></div>
+          <div className={css.rows}>
+            <SelectRow id="mnemon-display" label={t('config.displayTitle')} value={draft.displayMode} disabled={coreDisabled} onChange={value => edit('displayMode', value)} options={[
+              { value: 'sidebar', label: t('config.displaySidebar'), detail: t('config.displaySidebarHint') },
+              { value: 'builtin', label: t('config.displayBuiltin'), detail: t('config.displayBuiltinHint') },
+            ]} />
+            <ToggleRow id="mnemon-interaction-turn-bar" label={t('config.interactionTurnBar')} hint={t('config.interactionTurnBarHint')} checked={draft.turnBar} disabled={interactionDisabled} onChange={value => edit('turnBar', value)} />
+            <ToggleRow id="mnemon-interaction-save-action" label={t('config.interactionSaveAction')} hint={t('config.interactionSaveActionHint')} checked={draft.saveAction} disabled={interactionDisabled} onChange={value => edit('saveAction', value)} />
           </div>
         </section>
 
         <section className={css.section} aria-labelledby="mnemon-storage-heading">
-          <div className={css.sectionHeading}>
-            <div><h2 id="mnemon-storage-heading">{t('config.storageTitle')}</h2><p>{t('config.storageDescription')}</p></div>
-          </div>
-          <div className={`${css.choiceGrid} ${css.storageChoiceGrid}`} role="radiogroup" aria-label={t('config.scopeAria')}>
-            <ChoiceCard id="mnemon-storage-global" name="mnemon-storage" label={t('config.global')} detail={t('config.globalScopeHint')} checked={!isWorkspaceStorageScope(draft.storageScope)} disabled={coreDisabled} onChange={() => edit('storageScope', draft.dataDir.trim() === '' ? 'global' : 'custom')} />
-            <ChoiceCard id="mnemon-storage-workspace" name="mnemon-storage" label={t('config.workspace')} detail="<workspace>/.mnemon" checked={draft.storageScope === 'workspace'} disabled={coreDisabled} onChange={() => edit('storageScope', 'workspace')} />
-            <ChoiceCard id="mnemon-storage-workspaces" name="mnemon-storage" label={t('config.workspaces')} detail={t('config.workspacesHint')} checked={draft.storageScope === 'workspaces'} disabled={coreDisabled} onChange={() => edit('storageScope', 'workspaces')} />
-          </div>
-          {draft.storageScope === 'workspaces' && <div className={css.workspaceStorageLocation}>
-            <div className={css.settingRow}>
-              <label className={css.settingCopy} htmlFor="mnemon-workspaces-directory"><strong>{t('config.workspacesRoot')}</strong><small>{t('config.workspacesRootHint')}</small></label>
-              <div className={css.directoryControl}>
-                <input id="mnemon-workspaces-directory" className={css.directoryInput} type="text" value={draft.dataDir}
-                  aria-label={t('config.workspacesRoot')} aria-invalid={error !== null} placeholder={t('config.workspacesDefault')}
-                  disabled={coreDisabled} autoComplete="off" spellCheck={false} autoCapitalize="none" autoCorrect="off"
-                  onChange={event => edit('dataDir', event.target.value)} />
-              </div>
-            </div>
-            <p>{t('config.workspacesIdentityHint')}</p>
-          </div>}
-        </section>
-
-        <section className={css.section} aria-labelledby="mnemon-runtime-user-scope-heading">
-          <div className={css.sectionHeading}>
-            <div><h2 id="mnemon-runtime-user-scope-heading">{t('config.runtimeUserScopeTitle')}</h2><p>{t('config.runtimeUserScopeDescription')}</p></div>
-          </div>
-          <div className={css.choiceGrid} role="radiogroup" aria-label={t('config.runtimeUserScopeAria')}>
-            <ChoiceCard id="mnemon-runtime-user-storage" name="mnemon-runtime-user-scope" label={t('config.runtimeUserScopeStorage')} detail={t('config.runtimeUserScopeStorageHint')} checked={draft.runtimeUserScope === 'storage'} disabled={coreDisabled} onChange={() => edit('runtimeUserScope', 'storage')} />
-            <ChoiceCard id="mnemon-runtime-user-global" name="mnemon-runtime-user-scope" label={t('config.runtimeUserScopeGlobal')} detail={t('config.runtimeUserScopeGlobalHint')} checked={draft.runtimeUserScope === 'global'} disabled={coreDisabled} onChange={() => edit('runtimeUserScope', 'global')} />
+          <div className={css.sectionHeading}><h2 id="mnemon-storage-heading">{t('config.storageTitle')}</h2><p>{t('config.storageDescription')}</p></div>
+          <div className={css.rows}>
+            <SelectRow id="mnemon-storage-scope" label={t('config.scopeTitle')} value={scopeChoice} disabled={coreDisabled} onChange={chooseScope} options={[
+              { value: 'global', label: t('config.global'), detail: t('config.globalScopeHint') },
+              { value: 'workspace', label: t('config.workspace'), detail: t('config.workspaceScopeHint') },
+              { value: 'workspaces', label: t('config.workspaces'), detail: t('config.workspacesHint') },
+            ]} />
+            {scopeChoice !== 'workspace' && <SettingRow title={t('config.dataDirectory')} htmlFor="mnemon-data-directory" hint={scopeChoice === 'workspaces' ? t('config.dataDirectoryWorkspacesHint') : t('config.dataDirectoryHint')} stacked>
+              <input id="mnemon-data-directory" className={css.directoryInput} type="text" value={draft.dataDir}
+                aria-invalid={error !== null && (draft.storageScope === 'custom' || draft.storageScope === 'workspaces')}
+                placeholder={scopeChoice === 'workspaces' ? t('config.workspacesDefault') : t('config.nativeDefaultLocation')}
+                disabled={coreDisabled} autoComplete="off" spellCheck={false} autoCapitalize="none" autoCorrect="off"
+                onChange={event => editDirectory(event.target.value)} />
+            </SettingRow>}
+            <SelectRow id="mnemon-runtime-user-scope" label={t('config.runtimeUserScopeTitle')} value={draft.runtimeUserScope} disabled={coreDisabled} onChange={value => edit('runtimeUserScope', value)} options={[
+              { value: 'storage', label: t('config.runtimeUserScopeStorage'), detail: t('config.runtimeUserScopeStorageHint') },
+              { value: 'global', label: t('config.runtimeUserScopeGlobal'), detail: t('config.runtimeUserScopeGlobalHint') },
+            ]} />
+            <MnemonPackSection {...(connection === undefined ? {} : { connection })} {...(sessionId === undefined ? {} : { sessionId })} {...(workspaceId === undefined ? {} : { workspaceId })} refreshKey={targetRevision} t={t} />
           </div>
         </section>
 
@@ -501,17 +503,6 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
           t={t}
         />
 
-        <section className={css.section} aria-labelledby="mnemon-review-heading">
-          <div className={css.sectionHeading}><div><h2 id="mnemon-review-heading">{t('config.reviewTitle')}</h2></div></div>
-          <ToggleRow id="mnemon-idle-review" label={t('config.reviewEnabled')} hint={t('config.reviewDescription')} checked={draft.idleReview.enabled} disabled={coreDisabled} onChange={enabled => editMany({ idleReview: { ...draft.idleReview, enabled } })} />
-          <div className={css.taskAgentFields}>
-            <label><span><strong>{t('config.reviewProvider')}</strong></span><select value={draft.idleReview.provider} disabled={coreDisabled} onChange={event => editMany({ idleReview: { ...draft.idleReview, provider: event.target.value as 'spawn' | 'fork' } })}><option value="spawn">{t('config.reviewSpawn')}</option><option value="fork">{t('config.reviewFork')}</option></select></label>
-            <label><span><strong>{t('config.reviewFallback')}</strong></span><select value={draft.idleReview.fallback} disabled={coreDisabled} onChange={event => editMany({ idleReview: { ...draft.idleReview, fallback: event.target.value as 'spawn' | 'skip' } })}><option value="spawn">{t('config.reviewSpawn')}</option><option value="skip">{t('config.reviewSkip')}</option></select></label>
-            <label><span><strong>{t('config.reviewAgentTeams')}</strong></span><select value={draft.idleReview.agentTeams} disabled={coreDisabled} onChange={event => editMany({ idleReview: { ...draft.idleReview, agentTeams: event.target.value as 'pause' | 'scoped' } })}><option value="pause">{t('config.reviewTeamPause')}</option><option value="scoped">{t('config.reviewTeamScoped')}</option></select><small>{t('config.reviewTeamHint')}</small></label>
-            {(['minIntervalMs', 'maxPerSession', 'maxContextChars', 'maxTokens'] as const).map(field => <label key={field}><span><strong>{t(`config.review.${field}`)}</strong></span><input type="number" step="1" value={draft.idleReview[field]} disabled={coreDisabled} onChange={event => editMany({ idleReview: { ...draft.idleReview, [field]: Number(event.target.value) } })} /></label>)}
-          </div>
-        </section>
-
         <MemoryCompositionSections
           {...(connection === undefined ? {} : { connection })}
           {...(sessionId === undefined ? {} : { sessionId })}
@@ -522,49 +513,18 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
         />
 
         <section className={css.section} aria-labelledby="mnemon-providers-heading">
-          <div className={css.sectionHeading}>
-            <div><h2 id="mnemon-providers-heading">{t('config.providersTitle')}</h2><p>{t('config.providersDescription')}</p></div>
-          </div>
-          <details className={css.providerPanel} open>
-            <summary>
-              <span className={css.providerIdentity}><ProviderIcon providerId="mnemon-native" icon={{ kind: 'brand', value: 'mnemon' }} className={css.nativeMark} /><span><strong>mnemon</strong><small>{t('config.nativeSummary')}</small></span></span>
-              <span className={css.providerHeaderMeta}><span className={css.providerScopeTag} data-scope={activeScope}>{t(`config.${activeScope}`)}</span><span className={css.providerState}>{t(nativeCliFound === false ? 'config.nativeCliMissing' : 'config.officialNative')}</span></span>
-            </summary>
-            <div className={css.providerPanelBody}>
-              {draft.storageScope !== 'workspaces' && <GlobalLocationSetting
-                name="mnemon-native-location"
-                ariaLabel={t('config.nativeGlobalLocation')}
-                label={t('config.nativeGlobalLocation')}
-                hint={draft.storageScope === 'workspace' ? t('config.nativeGlobalLocationWorkspaceHint') : t('config.nativeGlobalLocationHint')}
-                defaultLabel={t('config.nativeDefaultLocation')}
-                customLabel={t('config.custom')}
-                custom={draft.storageScope === 'custom'}
-                workspace={draft.storageScope === 'workspace'}
-                disabled={coreDisabled}
-                onChange={custom => custom ? edit('storageScope', 'custom') : editMany({ storageScope: 'global', dataDir: '' })}
-              >
-                <div className={css.settingRow}>
-                  <div className={css.settingCopy}><strong>{t('config.customDirectory')}</strong><small>{t('config.customDirectoryHint')}</small></div>
-                  <div className={css.directoryControl}>
-                    <input
-                      id="mnemon-custom-directory"
-                      name="mnemon-custom-directory"
-                      type="text"
-                      className={css.directoryInput}
-                      aria-label={t('config.customAria')}
-                      aria-invalid={error !== null}
-                      placeholder={t('config.customPlaceholder')}
-                      value={draft.dataDir}
-                      disabled={coreDisabled}
-                      autoComplete="off"
-                      spellCheck={false}
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                      onChange={event => edit('dataDir', event.target.value)}
-                    />
-                  </div>
-                </div>
-              </GlobalLocationSetting>}
+          <div className={css.sectionHeading}><h2 id="mnemon-providers-heading">{t('config.providersTitle')}</h2><p>{t('config.providersDescription')}</p></div>
+          <ProviderSettingsSection
+            {...(connection === undefined ? {} : { connection })}
+            {...(sessionId === undefined ? {} : { sessionId })}
+            {...(workspaceId === undefined ? {} : { workspaceId })}
+            {...(activeScope !== 'workspace' || workspaceLabel === undefined ? {} : { workspaceLabel })}
+            activeScope={activeScope}
+            refreshKey={targetRevision}
+            disabled={coreDisabled}
+            scopeChanging={scopeChanging}
+            t={t}
+            leading={<NativeProviderCard activeScope={activeScope} cliMissing={nativeCliFound === false} t={t}>
               <EmbeddingSettingsSection
                 draft={draft}
                 disabled={coreDisabled}
@@ -578,42 +538,30 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
                 onTest={testEmbedding}
                 t={t}
               />
-              <MnemonPackSection {...(connection === undefined ? {} : { connection })} {...(sessionId === undefined ? {} : { sessionId })} {...(workspaceId === undefined ? {} : { workspaceId })} refreshKey={targetRevision} t={t} embedded />
-            </div>
-          </details>
-          <ProviderSettingsSection
-            {...(connection === undefined ? {} : { connection })}
-            {...(sessionId === undefined ? {} : { sessionId })}
-            {...(workspaceId === undefined ? {} : { workspaceId })}
-            {...(activeScope !== 'workspace' || workspaceLabel === undefined ? {} : { workspaceLabel })}
-            activeScope={activeScope}
-            refreshKey={targetRevision}
-            disabled={coreDisabled}
-            scopeChanging={scopeChanging}
-            t={t}
+            </NativeProviderCard>}
           />
         </section>
 
-        <TaskAgentModelSection
-          draft={draft}
-          catalog={modelCatalog}
-          state={modelCatalogState}
-          error={modelCatalogError}
-          disabled={coreDisabled}
-          fullCatalogLoaded={fullModelCatalogLoaded}
-          onLoadCatalog={() => loadModelCatalog(true)}
-          onEdit={edit}
-          onEditMany={editMany}
-          t={t}
-        />
-
-        <section className={css.section} aria-labelledby="mnemon-interaction-heading">
+        <section className={css.section} aria-labelledby="mnemon-background-heading">
           <div className={css.sectionHeading}>
-            <div><h2 id="mnemon-interaction-heading">{t('config.interactionTitle')}</h2><p>{t('config.interactionHint')}</p></div>
+            <h2 id="mnemon-background-heading">{t('config.backgroundTitle')}</h2>
+            <p>{t('config.backgroundDescription')}</p>
+            {modelCatalogState === 'loading' && <span className={css.miniSpinner} aria-hidden="true" />}
           </div>
-          <div className={css.rowGroup}>
-            <ToggleRow id="mnemon-interaction-turn-bar" label={t('config.interactionTurnBar')} hint={t('config.interactionTurnBarHint')} checked={draft.turnBar} disabled={interactionDisabled} onChange={value => edit('turnBar', value)} />
-            <ToggleRow id="mnemon-interaction-save-action" label={t('config.interactionSaveAction')} hint={t('config.interactionSaveActionHint')} checked={draft.saveAction} disabled={interactionDisabled} onChange={value => edit('saveAction', value)} />
+          <div className={css.rows}>
+            <TaskAgentModelRows
+              draft={draft}
+              catalog={modelCatalog}
+              state={modelCatalogState}
+              error={modelCatalogError}
+              disabled={coreDisabled}
+              fullCatalogLoaded={fullModelCatalogLoaded}
+              onLoadCatalog={() => loadModelCatalog(true)}
+              onEdit={edit}
+              onEditMany={editMany}
+              t={t}
+            />
+            <IdleReviewRows draft={draft} disabled={coreDisabled} onEditMany={editMany} t={t} />
           </div>
         </section>
 
@@ -628,10 +576,26 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
           <span>{t('config.unsaved')}</span>
           <div><button type="button" className={css.discard} disabled={saving} onClick={discard}>{t('config.discard')}</button><button type="button" className={css.save} disabled={saving || error !== null || !writable} onClick={() => void save()}>{saving ? t('config.saving') : t('config.save')}</button></div>
         </footer>
-        <p className={css.settingsNote}>{t('config.notice')}</p>
       </>}
     </section>
   )
+}
+
+type StorageChoice = 'global' | 'workspace' | 'workspaces'
+
+/** Mnemon Native, listed first among the Providers; its body holds the settings only Native reads. */
+function NativeProviderCard(props: { activeScope: 'global' | 'workspace'; cliMissing: boolean; t: MnemonTranslate; children: ReactNode }): JSX.Element {
+  return <details className={css.providerRow} data-provider="mnemon-native" data-native="">
+    <summary className={css.providerRowHeader}>
+      <span className={css.providerIdentity}><ProviderIcon providerId="mnemon-native" icon={{ kind: 'brand', value: 'mnemon' }} className={css.providerMark} /><span><strong>{props.t('config.nativeName')}</strong><small>{props.t('config.nativeSummary')}</small></span></span>
+      <span className={css.providerEnableControl}>
+        <span className={css.providerScopeTag} data-scope={props.activeScope}>{props.t(`config.${props.activeScope}`)}</span>
+        <span className={css.providerState} data-enabled={props.cliMissing ? undefined : ''}>{props.t(props.cliMissing ? 'config.nativeCliMissing' : 'config.officialNative')}</span>
+        <IconChevronDownOutlineRegular className={css.providerChevron} size={14} />
+      </span>
+    </summary>
+    <div className={css.providerInlineBody}>{props.children}</div>
+  </details>
 }
 
 /** Reachability and coverage line; the protocol appears only when the Host reports one. */
@@ -669,8 +633,8 @@ function EmbeddingSettingsSection(props: {
           : props.state === 'unavailable'
             ? props.t('config.embeddingTestUnavailable')
             : props.t('config.embeddingNotTested')
-  return <section className={css.embeddingSection} aria-labelledby="mnemon-embedding-heading">
-    <div className={css.embeddingHeading}>
+  return <section className={css.editor} aria-labelledby="mnemon-embedding-heading">
+    <div className={css.editorHeading}>
       <h3 id="mnemon-embedding-heading">{props.t('config.embeddingTitle')}</h3>
       <p>{props.t('config.embeddingDescription')}</p>
     </div>
@@ -682,7 +646,7 @@ function EmbeddingSettingsSection(props: {
       disabled={props.disabled}
       onChange={value => props.onEdit('embeddingEnabled', value)}
     />
-    <div className={css.providerIdentityFields}>
+    <div className={css.fieldGrid}>
       <label>
         {props.t('config.embeddingEndpoint')}
         <input
@@ -745,12 +709,12 @@ function EmbeddingSettingsSection(props: {
         />
       </label>
     </div>
-    <p className={css.embeddingSecurity}>{props.t('config.embeddingSecurity')}</p>
+    <p className={css.editorNote}>{props.t('config.embeddingSecurity')}</p>
     <div className={css.embeddingTest} aria-live="polite">
       <span className={props.state === 'error' ? css.error : undefined} role={props.state === 'error' ? 'alert' : undefined}>{feedback}</span>
       <button
         type="button"
-        className={css.textButton}
+        className={css.pillButton}
         disabled={props.disabled || !props.connectionAvailable || props.cliMissing || props.changing || props.state === 'loading'}
         onClick={props.onTest}
       >{props.t('config.embeddingTest')}</button>
@@ -777,35 +741,26 @@ function MemoryTopologySection(props: {
 
   return <section className={css.section} aria-labelledby="mnemon-topology-heading">
     <div className={css.sectionHeading}>
-      <div><h2 id="mnemon-topology-heading">{props.t('config.topologyTitle')}</h2><p>{props.t('config.topologyDescription')}</p></div>
+      <h2 id="mnemon-topology-heading">{props.t('config.topologyTitle')}</h2>
+      <p>{props.t('config.topologyDescription')}</p>
       {props.state === 'loading' && <span className={css.miniSpinner} aria-hidden="true" />}
     </div>
     {props.topology === null
       ? <p className={css.topologyUnavailable}>{props.state === 'loading' ? props.t('config.topologyLoading') : props.t('config.topologyUnavailable')}</p>
-      : <>
-        <div className={css.topologyList}>
-          {props.topology.layers.map(layer => {
-            const descriptor = layerDescriptors.get(layer.id)
-            const copy = builtInCopy(layer.id)
-            const label = copy?.label ?? descriptor?.label ?? layer.id
-            const description = copy?.description ?? descriptor?.description ?? layer.id
-            return <article className={css.topologyLayer} data-enabled={layer.enabled} key={layer.id}>
-              <header>
-                <span><strong>{label}</strong><small>{description}</small></span>
-                <label className={css.topologyToggle} htmlFor={`mnemon-layer-${layer.id}`}>
-                  <span>{layer.enabled ? props.t('config.topologyEnabled') : props.t('config.topologyDisabled')}</span>
-                  <input id={`mnemon-layer-${layer.id}`} type="checkbox" aria-label={props.t('config.topologyLayerToggle', { layer: label })} checked={layer.enabled} disabled={props.disabled} onChange={event => props.onEnabled(layer.id, event.target.checked)} />
-                  <i aria-hidden="true" />
-                </label>
-              </header>
-            </article>
-          })}
-        </div>
-      </>}
+      : <div className={css.rows}>
+        {props.topology.layers.map(layer => {
+          const descriptor = layerDescriptors.get(layer.id)
+          const copy = builtInCopy(layer.id)
+          const label = copy?.label ?? descriptor?.label ?? layer.id
+          const description = copy?.description ?? descriptor?.description ?? layer.id
+          return <ToggleRow key={layer.id} id={`mnemon-layer-${layer.id}`} label={label} hint={description} ariaLabel={props.t('config.topologyLayerToggle', { layer: label })}
+            checked={layer.enabled} disabled={props.disabled} onChange={enabled => props.onEnabled(layer.id, enabled)} />
+        })}
+      </div>}
   </section>
 }
 
-function TaskAgentModelSection(props: {
+function TaskAgentModelRows(props: {
   draft: Draft
   catalog: TaskAgentModelCatalog | null
   state: 'unavailable' | 'loading' | 'ready' | 'error'
@@ -843,19 +798,25 @@ function TaskAgentModelSection(props: {
     props.onEditMany({ taskAgentProvider: provider, taskAgentModel: models[0]?.id ?? '' })
   }
 
-  return <section className={css.section} aria-labelledby="mnemon-task-agent-heading">
-    <div className={css.sectionHeading}>
-      <div><h2 id="mnemon-task-agent-heading">{props.t('config.taskAgentTitle')}</h2><p>{props.t('config.taskAgentDescription')}</p></div>
-      {props.state === 'loading' && <span className={css.miniSpinner} aria-hidden="true" />}
-    </div>
-    <div className={css.choiceGrid} role="radiogroup" aria-label={props.t('config.taskAgentModeAria')}>
-      <ChoiceCard id="mnemon-task-agent-inherit" name="mnemon-task-agent" label={props.t('config.taskAgentInherit')} detail={props.t('config.taskAgentInheritHint')} checked={props.draft.taskAgentModelMode === 'inherit'} disabled={props.disabled} onChange={() => props.onEditMany({ taskAgentModelMode: 'inherit' })} />
-      <ChoiceCard id="mnemon-task-agent-fixed" name="mnemon-task-agent" label={props.t('config.taskAgentFixed')} detail={props.t('config.taskAgentFixedHint')} checked={props.draft.taskAgentModelMode === 'fixed'} disabled={props.disabled || props.state === 'unavailable'} onChange={chooseFixed} />
-    </div>
-    <div className={css.taskAgentPanel} data-mode={props.draft.taskAgentModelMode}>
-      {props.draft.taskAgentModelMode === 'fixed' && <div className={css.taskAgentFields}>
+  const effectiveLine = <span className={css.effectiveRoute}>
+    <span>{props.t('config.taskAgentEffective')}</span>
+    {effective === undefined
+      ? <small>{props.state === 'loading' ? props.t('config.taskAgentLoading') : props.t('config.taskAgentUnavailable')}</small>
+      : <code>{effective.provider} / {effective.model}</code>}
+  </span>
+
+  return <>
+    <SelectRow id="mnemon-task-agent" label={props.t('config.taskAgentTitle')} value={props.draft.taskAgentModelMode} disabled={props.disabled}
+      hint={props.draft.taskAgentModelMode === 'fixed' ? props.t('config.taskAgentFixedHint') : props.t('config.taskAgentInheritHint')}
+      onChange={mode => { if (mode === 'fixed') chooseFixed(); else props.onEditMany({ taskAgentModelMode: 'inherit' }) }}
+      options={[
+        { value: 'inherit', label: props.t('config.taskAgentInherit'), detail: props.t('config.taskAgentInheritHint') },
+        { value: 'fixed', label: props.t('config.taskAgentFixed'), detail: props.t('config.taskAgentFixedHint'), ...(props.state === 'unavailable' ? { disabled: true } : {}) },
+      ]} />
+    <div className={css.rowDetail}>
+      {props.draft.taskAgentModelMode === 'fixed' && <div className={css.fieldGrid}>
         <label>
-          <span><strong>{props.t('config.taskAgentProvider')}</strong><small>{props.t('config.taskAgentProviderHint')}</small></span>
+          {props.t('config.taskAgentProvider')}
           <select aria-label={props.t('config.taskAgentProvider')} value={props.draft.taskAgentProvider} disabled={props.disabled || props.state !== 'ready'} onChange={event => chooseProvider(event.target.value)}>
             <option value="">{props.t('config.taskAgentChooseProvider')}</option>
             {props.draft.taskAgentProvider !== '' && !groups.some(candidate => candidate.id === props.draft.taskAgentProvider) && <option value={props.draft.taskAgentProvider}>{props.draft.taskAgentProvider}</option>}
@@ -863,7 +824,7 @@ function TaskAgentModelSection(props: {
           </select>
         </label>
         <label>
-          <span><strong>{props.t('config.taskAgentModel')}</strong><small>{props.t('config.taskAgentModelHint')}</small></span>
+          {props.t('config.taskAgentModel')}
           <select aria-label={props.t('config.taskAgentModel')} value={props.draft.taskAgentModel} disabled={props.disabled || props.state !== 'ready' || group === undefined} onChange={event => props.onEdit('taskAgentModel', event.target.value)}>
             <option value="">{props.t('config.taskAgentChooseModel')}</option>
             {props.draft.taskAgentModel !== '' && !group?.models.some(model => model.id === props.draft.taskAgentModel) && <option value={props.draft.taskAgentModel}>{props.draft.taskAgentModel}</option>}
@@ -871,16 +832,37 @@ function TaskAgentModelSection(props: {
           </select>
         </label>
       </div>}
-      <div className={css.taskAgentEffective}>
-        <span>{props.t('config.taskAgentEffective')}</span>
-        {effective === undefined
-          ? <small>{props.state === 'loading' ? props.t('config.taskAgentLoading') : props.t('config.taskAgentUnavailable')}</small>
-          : <code>{effective.provider} / {effective.model}</code>}
-      </div>
-      {props.state === 'error' && <p className={css.taskAgentWarning}>{props.t('config.taskAgentLoadFailed', { error: props.error ?? '' })}</p>}
-      {(props.catalog?.failures.length ?? 0) > 0 && groups.length > 0 && <p className={css.taskAgentWarning}>{props.t('config.taskAgentPartial', { count: props.catalog!.failures.length })}</p>}
+      {effectiveLine}
+      {props.state === 'error' && <p className={css.warning}>{props.t('config.taskAgentLoadFailed', { error: props.error ?? '' })}</p>}
+      {(props.catalog?.failures.length ?? 0) > 0 && groups.length > 0 && <p className={css.warning}>{props.t('config.taskAgentPartial', { count: props.catalog!.failures.length })}</p>}
     </div>
-  </section>
+  </>
 }
 
-
+function IdleReviewRows(props: { draft: Draft; disabled: boolean; onEditMany: (values: Partial<Draft>) => void; t: MnemonTranslate }): JSX.Element {
+  const review = props.draft.idleReview
+  const update = (values: Partial<ResolvedIdleReviewConfig>): void => props.onEditMany({ idleReview: { ...review, ...values } })
+  return <>
+    <ToggleRow id="mnemon-idle-review" label={props.t('config.reviewTitle')} ariaLabel={props.t('config.reviewEnabled')} hint={props.t('config.reviewDescription')} checked={review.enabled} disabled={props.disabled} onChange={enabled => update({ enabled })} />
+    {review.enabled && <>
+      <SelectRow id="mnemon-review-provider" label={props.t('config.reviewProvider')} value={review.provider} disabled={props.disabled} onChange={provider => update({ provider })} options={[
+        { value: 'spawn', label: props.t('config.reviewSpawn') },
+        { value: 'fork', label: props.t('config.reviewFork') },
+      ]} />
+      <SelectRow id="mnemon-review-fallback" label={props.t('config.reviewFallback')} value={review.fallback} disabled={props.disabled} onChange={fallback => update({ fallback })} options={[
+        { value: 'spawn', label: props.t('config.reviewSpawn') },
+        { value: 'skip', label: props.t('config.reviewSkip') },
+      ]} />
+      <SelectRow id="mnemon-review-teams" label={props.t('config.reviewAgentTeams')} hint={props.t('config.reviewTeamHint')} value={review.agentTeams} disabled={props.disabled} onChange={agentTeams => update({ agentTeams })} options={[
+        { value: 'pause', label: props.t('config.reviewTeamPause') },
+        { value: 'scoped', label: props.t('config.reviewTeamScoped') },
+      ]} />
+      <details className={css.advanced}>
+        <summary>{props.t('config.reviewLimits')}<IconChevronDownOutlineRegular size={12} /></summary>
+        <div className={css.fieldGrid}>
+          {(['minIntervalMs', 'maxPerSession', 'maxContextChars', 'maxTokens'] as const).map(field => <label key={field}>{props.t(`config.review.${field}`)}<input type="number" step="1" value={review[field]} disabled={props.disabled} onChange={event => props.onEditMany({ idleReview: { ...review, [field]: Number(event.target.value) } })} /></label>)}
+        </div>
+      </details>
+    </>}
+  </>
+}

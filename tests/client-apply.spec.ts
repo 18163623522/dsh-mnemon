@@ -87,13 +87,13 @@ describe('Mnemon Web client composition', () => {
       expect.objectContaining({ name: 'conversation.chat.assistant-actions', id: 'mnemon-save' }),
     ])))
     const props = (settingsEntry.inject as () => { t: (key: keyof typeof zh) => string })()
-    expect(props.t('config.storageTitle')).toBe('记忆范围')
+    expect(props.t('config.storageTitle')).toBe('存储')
     expect((settingsEntry.label as () => string)()).toBe('记忆系统')
     const save = slots.find(options => options.name === 'conversation.chat.assistant-actions')!
     expect((save.inject as (id: string) => { settingsScope: unknown })('session-1').settingsScope).toBe(scope)
     setLocale('en')
     expect((settingsEntry.label as () => string)()).toBe('Memory System')
-    expect(props.t('config.storageTitle')).toBe('Memory scope')
+    expect(props.t('config.storageTitle')).toBe('Storage')
     expect(slots.some(options => options.name === 'conversation.view')).toBe(false)
   })
 

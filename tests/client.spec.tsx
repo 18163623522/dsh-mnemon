@@ -726,8 +726,8 @@ describe('MnemonWorkbench', () => {
     const onClose = vi.fn()
     const { container } = render(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" surface={surface} {...(surface === 'sidebar' ? { onClose } : {})} />)
 
-    expect(screen.queryByLabelText('存储位置模式：自定义') !== null).toBe(surface === 'sidebar')
-    expect(screen.queryByLabelText('存储位置模式：—')).toBeNull()
+    expect(screen.queryByLabelText('存储范围：自定义') !== null).toBe(surface === 'sidebar')
+    expect(screen.queryByLabelText('存储范围：—')).toBeNull()
     await waitFor(() => expect(screen.getByText('已连接')).toBeTruthy())
     expect(container.querySelector(`[data-mnemon-surface="${surface}"]`)).toBeTruthy()
     const sidebarHeader = screen.getByRole('heading', { name: '记忆系统', level: 1 }).closest('header')
@@ -740,7 +740,7 @@ describe('MnemonWorkbench', () => {
     } else {
       expect(within(sidebarHeader).queryByRole('button', { name: '返回会话' })).toBeNull()
     }
-    expect(within(sidebarHeader).queryByLabelText('存储位置模式：自定义') !== null).toBe(surface === 'sidebar')
+    expect(within(sidebarHeader).queryByLabelText('存储范围：自定义') !== null).toBe(surface === 'sidebar')
     expect(within(sidebarHeader).getByText('已连接')).toBeTruthy()
     expect(within(sidebarHeader).queryByText(/个已激活/)).toBeNull()
     expect(screen.getByRole('heading', { name: '记忆系统', level: 1 })).toBeTruthy()
@@ -1285,11 +1285,11 @@ describe('MnemonWorkbench', () => {
       }}
     />)
 
-    expect(screen.getByLabelText('存储位置模式：工作区')).toBeTruthy()
+    expect(screen.getByLabelText('存储范围：工作区')).toBeTruthy()
     expect((screen.getByRole('combobox', { name: '选择要查看的记忆工作区' }) as HTMLSelectElement).value).toBe('workspace-2')
     const header = (await screen.findByRole('heading', { name: '记忆系统', level: 1 })).closest('header')
     if (header === null) throw new Error('Sidebar header missing')
-    expect(within(header).getByLabelText('存储位置模式：工作区')).toBeTruthy()
+    expect(within(header).getByLabelText('存储范围：工作区')).toBeTruthy()
     const alignment = within(header).getByRole('status', { name: /查看目录与当前会话未对齐/ })
     expect(alignment.getAttribute('aria-label')).toContain('查看：/tmp/workspace-two/.mnemon')
     expect(alignment.getAttribute('aria-label')).toContain('生效：/tmp/workspace-one/.mnemon')
@@ -1329,7 +1329,7 @@ describe('MnemonWorkbench', () => {
     expect(screen.queryByText('运行时条目 1')).toBeNull()
     expect((await screen.findByRole('textbox', { name: '筛选运行时记忆' }) as HTMLInputElement).value).toBe('')
     expect(screen.queryByRole('dialog', { name: '添加热记忆' })).toBeNull()
-    expect(screen.queryByLabelText('存储位置模式：自定义') !== null).toBe(surface === 'sidebar')
+    expect(screen.queryByLabelText('存储范围：自定义') !== null).toBe(surface === 'sidebar')
     await waitFor(() => expect(delayedCall).toHaveBeenCalledWith(expect.anything(), 'status-summary', expect.objectContaining(surface === 'sidebar' ? { workspaceId: 'workspace-2' } : { sessionId: 'session-2' })))
   })
 
@@ -1386,7 +1386,7 @@ describe('MnemonWorkbench', () => {
 
     await waitFor(() => expect(screen.getByTestId('mnemon-canvas')).not.toBe(oldCanvas))
     expect(screen.getByTestId('mnemon-canvas').scrollTop).toBe(0)
-    expect(screen.queryByLabelText('存储位置模式：全局') !== null).toBe(surface === 'sidebar')
+    expect(screen.queryByLabelText('存储范围：全局') !== null).toBe(surface === 'sidebar')
     expect(screen.queryByText('运行时条目 1')).toBeNull()
     expect((screen.getByRole('textbox', { name: '筛选运行时记忆' }) as HTMLInputElement).value).toBe('')
 

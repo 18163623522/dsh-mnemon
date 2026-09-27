@@ -5,7 +5,7 @@ import type { MemoryPluginEntryView, MemoryPluginPreference, MemoryViewDashboard
 import { MnemonClient } from './api.ts'
 import css from './MnemonSettingsCard.module.css'
 import type { MnemonKey, MnemonTranslate } from './locales.ts'
-import { ChoiceCard, ToggleRow } from './settings-controls.tsx'
+import { SelectRow, ToggleRow } from './settings-controls.tsx'
 
 /** Shipped Strategy copy; any other installed Strategy shows its own descriptor text. */
 const SHIPPED_COPY: Readonly<Record<string, { label: MnemonKey; hint: MnemonKey }>> = {
@@ -150,35 +150,29 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
     void apply(entry.entryId, 'enhancement', dashboard.strategyTypeId, { [entry.entryId]: { enabled: !entry.enabled, config: structuredClone(entry.config) } })
   }
 
-  return <>
-    {mains.length > 1 && <section className={css.section} aria-labelledby={`${instance}-strategy-heading`} aria-busy={working !== null}>
-      <div className={css.sectionHeading}>
-        <div><h2 id={`${instance}-strategy-heading`}>{props.t('config.strategyTitle')}</h2><p>{props.t('config.strategyDescription')}</p></div>
-      </div>
-      <div className={css.choiceGrid} role="radiogroup" aria-label={props.t('config.strategyTitle')}>
-        {mains.map(entry => {
+  return <section className={`${css.section} ${css.enhancementsSection}`} aria-labelledby={`${instance}-strategy-heading`} aria-busy={working !== null}>
+    <div className={css.sectionHeading}>
+      <h2 id={`${instance}-strategy-heading`}>{props.t('config.strategySectionTitle')}</h2>
+      <p>{props.t('config.strategySectionDescription')}</p>
+    </div>
+    <div className={css.rows}>
+      {mains.length > 1 && <SelectRow id={domId(`${instance}-strategy`, 'main')} label={props.t('config.strategyTitle')} value={dashboard.strategyTypeId}
+        disabled={disabled || !mains.some(entry => entry.writable)}
+        onChange={typeId => { const entry = mains.find(candidate => candidate.typeId === typeId); if (entry !== undefined) choose(entry) }}
+        options={mains.map(entry => {
           const text = copy(entry)
-          return <ChoiceCard key={entry.entryId} id={domId(`${instance}-strategy`, entry.entryId)} name={`${instance}-main-strategy`} label={text.label} detail={text.hint}
-            checked={entry.typeId === dashboard.strategyTypeId} disabled={disabled || !entry.writable} onChange={() => choose(entry)} />
-        })}
-      </div>
-      {(selected === undefined || !selected.active) && working === null && <p className={css.error} role="status">{props.t('config.strategyInactive')}</p>}
-      {failure === 'strategy' && <p className={css.error} role="alert">{props.t('config.strategyFailed')}</p>}
-    </section>}
-    {enhancements.length > 0 && <section className={`${css.section} ${css.enhancementsSection}`} aria-labelledby={`${instance}-enhancements-heading`} aria-busy={working !== null}>
-      <div className={css.sectionHeading}>
-        <div><h2 id={`${instance}-enhancements-heading`}>{props.t('config.enhancementsTitle')}</h2><p>{props.t('config.enhancementsDescription')}</p></div>
-      </div>
-      <div className={css.rowGroup}>
-        {enhancements.map(entry => {
-          const text = copy(entry)
-          return <ToggleRow key={entry.entryId} id={domId(`${instance}-enhancement`, entry.entryId)} label={text.label} hint={text.hint}
-            checked={entry.enabled} disabled={disabled || !entry.writable} onChange={() => toggle(entry)} />
-        })}
-      </div>
-      {(failure === 'enhancement' || failure === 'refresh') && <p className={css.error} role="alert">{props.t(failure === 'refresh' ? 'config.enhancementsRefreshFailed' : 'config.enhancementsFailed')}</p>}
-    </section>}
-  </>
+          return { value: entry.typeId!, label: text.label, detail: text.hint, ...(entry.writable ? {} : { disabled: true }) }
+        })} />}
+      {enhancements.map(entry => {
+        const text = copy(entry)
+        return <ToggleRow key={entry.entryId} id={domId(`${instance}-enhancement`, entry.entryId)} label={text.label} hint={text.hint}
+          checked={entry.enabled} disabled={disabled || !entry.writable} onChange={() => toggle(entry)} />
+      })}
+    </div>
+    {mains.length > 1 && (selected === undefined || !selected.active) && working === null && <p className={css.error} role="status">{props.t('config.strategyInactive')}</p>}
+    {failure === 'strategy' && <p className={css.error} role="alert">{props.t('config.strategyFailed')}</p>}
+    {(failure === 'enhancement' || failure === 'refresh') && <p className={css.error} role="alert">{props.t(failure === 'refresh' ? 'config.enhancementsRefreshFailed' : 'config.enhancementsFailed')}</p>}
+  </section>
 }
 
 export interface MemoryCompositionPluginPageProps {

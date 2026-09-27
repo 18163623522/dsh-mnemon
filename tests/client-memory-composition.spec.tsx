@@ -8,6 +8,14 @@ import type { ClientConnectionHandle, MemoryPluginEntryView, MemoryViewConfigura
 
 afterEach(cleanup)
 
+/** The main Strategy selectors; each accessible name is the row title followed by the chosen Strategy. */
+const mainSelectors = (title = 'Main strategy') => screen.queryAllByRole('button', { name: new RegExp(`^${title} `, 'u') })
+function chooseMain(strategy: string, index = 0): void {
+  fireEvent.click(mainSelectors()[index]!)
+  fireEvent.click(screen.getByRole('menuitem', { name: new RegExp(`^${strategy}`, 'u') }))
+}
+const checked = (element: HTMLElement) => element.getAttribute('aria-checked') === 'true'
+
 function entry(entryId: string, packageName: string, roles: MemoryPluginEntryView['roles'], typeId: string, overrides: Partial<MemoryPluginEntryView> = {}): MemoryPluginEntryView {
   return {
     entryId, packageName, typeId, roles, label: { en: `${typeId} label`, 'zh-CN': `${typeId} 标签` },
@@ -51,10 +59,10 @@ describe('memory composition controls', () => {
   it('switches the mutually exclusive main Strategy in one View transaction', async () => {
     const { applied, connection } = fixture([threeTier, general, capture])
     render(<MemoryCompositionSections connection={connection} language="en" t={translateEn} />)
-    const next = await screen.findByRole('radio', { name: 'General' })
-    expect((screen.getByRole('radio', { name: 'Default three-tier' }) as HTMLInputElement).checked).toBe(true)
-    fireEvent.click(next)
-    await waitFor(() => expect((screen.getByRole('radio', { name: 'General' }) as HTMLInputElement).checked).toBe(true))
+    await waitFor(() => expect(mainSelectors()).toHaveLength(1))
+    expect(mainSelectors()[0]!.textContent).toBe('Default three-tier')
+    chooseMain('General')
+    await waitFor(() => expect(mainSelectors()[0]!.textContent).toBe('General'))
     expect(applied).toEqual([{ expectedRevision: 'view-1', strategyTypeId: 'general', entries: {
       'mnemon-strategy-general': { enabled: true, config: {} },
       'mnemon-strategy-default-three-tier': { enabled: false, config: {} },
@@ -65,26 +73,27 @@ describe('memory composition controls', () => {
   it('keeps the previous choice when the switch is rejected', async () => {
     const { connection } = fixture([threeTier, general], { failApply: true })
     render(<MemoryCompositionSections connection={connection} language="en" t={translateEn} />)
-    fireEvent.click(await screen.findByRole('radio', { name: 'General' }))
+    await waitFor(() => expect(mainSelectors()).toHaveLength(1))
+    chooseMain('General')
     expect(await screen.findByRole('alert')).toHaveProperty('textContent', translateEn('config.strategyFailed'))
-    expect((screen.getByRole('radio', { name: 'Default three-tier' }) as HTMLInputElement).checked).toBe(true)
+    expect(mainSelectors()[0]!.textContent).toBe('Default three-tier')
   })
 
   it('shows no main Strategy choice while only one is installed', async () => {
     const { connection } = fixture([threeTier, capture])
     render(<MemoryCompositionSections connection={connection} language="zh" t={translateZh} />)
-    expect(await screen.findByRole('checkbox', { name: '主动记录' })).toBeTruthy()
-    expect(screen.queryByRole('radiogroup')).toBeNull()
+    expect(await screen.findByRole('switch', { name: '主动记录' })).toBeTruthy()
+    expect(mainSelectors('主策略')).toHaveLength(0)
   })
 
   it('labels installed third-party enhancements with their own text in the active language', async () => {
     const { connection } = fixture([threeTier, external])
     const { unmount } = render(<MemoryCompositionSections connection={connection} language="zh-CN" t={translateZh} />)
-    expect(await screen.findByRole('checkbox', { name: 'focus 标签' })).toBeTruthy()
+    expect(await screen.findByRole('switch', { name: 'focus 标签' })).toBeTruthy()
     expect(screen.getByText('focus 说明')).toBeTruthy()
     unmount()
     render(<MemoryCompositionSections connection={connection} language="en" t={translateEn} />)
-    expect(await screen.findByRole('checkbox', { name: 'focus label' })).toBeTruthy()
+    expect(await screen.findByRole('switch', { name: 'focus label' })).toBeTruthy()
   })
 
   it('reports a selected main Strategy that is not running', async () => {
@@ -99,25 +108,25 @@ describe('memory composition controls', () => {
       <MemoryCompositionSections connection={connection} language="en" t={translateEn} />
       <MemoryCompositionSections connection={connection} language="en" t={translateEn} />
     </>)
-    await waitFor(() => expect(screen.getAllByRole('radio', { name: 'General' })).toHaveLength(2))
+    await waitFor(() => expect(mainSelectors()).toHaveLength(2))
     const ids = [...container.querySelectorAll('[id]')].map(element => element.id)
     expect(new Set(ids).size).toBe(ids.length)
-    // Each card's label targets its own input, so the second instance applies the change.
-    fireEvent.click(screen.getAllByText('General')[1]!)
-    await waitFor(() => expect(screen.getAllByRole('radio', { name: 'General' }).map(radio => (radio as HTMLInputElement).checked)).toEqual([true, true]))
-    fireEvent.click(screen.getAllByRole('checkbox', { name: 'Active capture' })[0]!)
-    await waitFor(() => expect(screen.getAllByRole('checkbox', { name: 'Active capture' }).map(box => (box as HTMLInputElement).checked)).toEqual([true, true]))
+    // Each selector names itself from its own row, so the second instance applies the change.
+    chooseMain('General', 1)
+    await waitFor(() => expect(mainSelectors().map(button => button.textContent)).toEqual(['General', 'General']))
+    fireEvent.click(screen.getAllByRole('switch', { name: 'Active capture' })[0]!)
+    await waitFor(() => expect(screen.getAllByRole('switch', { name: 'Active capture' }).map(checked)).toEqual([true, true]))
   })
 
   it('shows the Host state after a change meets a newer revision', async () => {
     const { applied, connection, external } = fixture([threeTier, general, capture])
     render(<MemoryCompositionSections connection={connection} language="en" t={translateEn} />)
-    const toggle = await screen.findByRole('checkbox', { name: 'Active capture' })
+    const toggle = await screen.findByRole('switch', { name: 'Active capture' })
     external('general')
     fireEvent.click(toggle)
     expect(await screen.findByRole('alert')).toHaveProperty('textContent', translateEn('config.enhancementsFailed'))
-    await waitFor(() => expect((screen.getByRole('radio', { name: 'General' }) as HTMLInputElement).checked).toBe(true))
-    expect((screen.getByRole('checkbox', { name: 'Active capture' }) as HTMLInputElement).checked).toBe(false)
+    await waitFor(() => expect(mainSelectors()[0]!.textContent).toBe('General'))
+    expect(checked(screen.getByRole('switch', { name: 'Active capture' }))).toBe(false)
     expect(applied).toEqual([])
   })
 
@@ -127,7 +136,7 @@ describe('memory composition controls', () => {
     const { container, rerender } = render(<MemoryCompositionPluginPage view="summary" connection={connection} localeRuntime={locale} t={translateEn} />)
     expect(container.innerHTML).toBe('')
     rerender(<MemoryCompositionPluginPage view="page" connection={connection} localeRuntime={locale} t={translateEn} />)
-    expect(await screen.findByRole('radio', { name: 'General' })).toBeTruthy()
+    await waitFor(() => expect(mainSelectors()).toHaveLength(1))
     expect(screen.getByText(translateEn('config.compositionPluginsHint'))).toBeTruthy()
   })
 })
