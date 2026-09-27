@@ -84,7 +84,7 @@ Starter 随附 **3 个 Source、2 个主策略（同一时间选中一个）、3
 | [dsh-mnemon-source-runtime](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-source-runtime/README.md) | USER / MEMORY、修订与本地热记忆 | 启用 |
 | [dsh-mnemon-source-documents](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-source-documents/README.md) | Markdown、搜索、修订与归档 | 启用 |
 | [dsh-mnemon-source-memory-spaces](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-source-memory-spaces/README.md) | 长期证据及 Source 自有 Provider 子模块 | 启用 |
-| [dsh-mnemon-strategy-default-three-tier](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-default-three-tier/README.md) | 默认三层 View 与回合检索策略 | 选中 |
+| [dsh-mnemon-strategy-default-three-tier](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-default-three-tier/README.md) | 分层策略：默认的 View 与回合检索策略 | 选中 |
 | [dsh-mnemon-strategy-general](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-general/README.md) | 全部可用 Source 共享一份预算，由模型决定如何使用 | 关闭 |
 | [dsh-mnemon-strategy-auto-capture](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-auto-capture/README.md) | 当前回合中主动记录有用事实的指引 | 关闭 |
 | [dsh-mnemon-strategy-light-context](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-light-context/README.md) | 所有选中 Source 共享的常驻投影上限 | 关闭 |

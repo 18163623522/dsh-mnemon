@@ -16,7 +16,7 @@ const disabled = (element: HTMLElement) => (element as HTMLButtonElement).disabl
 
 /** The names every component declares for itself, as the shipped packages do. */
 const NAMES: Record<string, [string, string]> = {
-  'default-three-tier': ['Default three-tier', '默认三层'], general: ['General', '通用'], 'auto-capture': ['Active capture', '主动记录'],
+  'default-three-tier': ['Layered strategy', '分层策略'], general: ['General strategy', '通用策略'], 'auto-capture': ['Active capture', '主动记录'],
   'light-context': ['Light context', '轻量上下文'], runtime: ['Runtime Memory', '运行时记忆'], documents: ['Project Documents', '项目档案'], 'memory-spaces': ['Memory Spaces', '记忆空间'],
 }
 
@@ -123,25 +123,25 @@ describe('memory composition board', () => {
   it('chooses the main Strategy from a selector, turning the other one off', async () => {
     const { applied, connection } = fixture([threeTier, general, capture])
     render(<Composition connection={connection} language="en" t={translateEn} />)
-    await waitFor(() => expect(selectedMain()).toBe('Default three-tier'))
+    await waitFor(() => expect(selectedMain()).toBe('Layered strategy'))
     // Memory is composed as chosen: the board says nothing more.
     expect(problem()).toBeNull()
-    chooseMain('General')
+    chooseMain('General strategy')
     await waitFor(() => expect(applied).toHaveLength(1))
     expect(applied[0]).toEqual({ expectedRevision: 'view-1', strategyTypeId: 'general', entries: {
       'mnemon-strategy-default-three-tier': { enabled: false, config: {} },
       'mnemon-strategy-general': { enabled: true, config: {} },
     } })
-    expect((await screen.findByRole('alert')).textContent).toContain('Switched to “General” and turned off “Default three-tier”')
-    await waitFor(() => expect(selectedMain()).toBe('General'))
+    expect((await screen.findByRole('alert')).textContent).toContain('Switched to “General strategy” and turned off “Layered strategy”')
+    await waitFor(() => expect(selectedMain()).toBe('General strategy'))
     expect(problem()).toBeNull()
   })
 
   it('undoes a switch from its toast, and only confirms the undo', async () => {
     const { applied, connection } = fixture([threeTier, general, capture])
     render(<Composition connection={connection} language="en" t={translateEn} />)
-    await waitFor(() => expect(selectedMain()).toBe('Default three-tier'))
-    chooseMain('General')
+    await waitFor(() => expect(selectedMain()).toBe('Layered strategy'))
+    chooseMain('General strategy')
     fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(applied).toHaveLength(2))
     expect(applied[1]).toEqual({ expectedRevision: 'view-2', strategyTypeId: 'default-three-tier', entries: {
@@ -150,7 +150,7 @@ describe('memory composition board', () => {
     } })
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Undone; the previous settings are back'))
     expect(within(screen.getByRole('alert')).queryByRole('button')).toBeNull()
-    await waitFor(() => expect(selectedMain()).toBe('Default three-tier'))
+    await waitFor(() => expect(selectedMain()).toBe('Layered strategy'))
   })
 
   it('says nothing beyond the row for a plain switch', async () => {
@@ -202,7 +202,7 @@ describe('memory composition board', () => {
     expect(disabled(screen.getByRole('switch', { name: 'Runtime Memory' }))).toBe(false)
     const page = openDetails('Memory Spaces')
     expect(within(page).getByText('The only running source; it stays on')).toBeTruthy()
-    expect(within(page).getByText('Needed by').nextElementSibling!.textContent).toBe('Default three-tier')
+    expect(within(page).getByText('Needed by').nextElementSibling!.textContent).toBe('Layered strategy')
   })
 
   it('shows on a component\'s page what it relates to and what its switch would move', async () => {
@@ -247,13 +247,13 @@ describe('memory composition board', () => {
     const tiered = entry('tiered', 'acme-memory-tiered', ['strategy-extension'], 'tiered', { ...on, strategyTypeId: 'default-three-tier', requires: ['strategy.default-three-tier'] })
     const { applied, connection } = fixture([threeTier, general, tiered])
     render(<Composition connection={connection} language="en" t={translateEn} />)
-    await waitFor(() => expect(selectedMain()).toBe('Default three-tier'))
-    chooseMain('General')
+    await waitFor(() => expect(selectedMain()).toBe('Layered strategy'))
+    chooseMain('General strategy')
     await waitFor(() => expect(applied).toHaveLength(1))
     expect(applied[0]!.entries).toEqual({
       'mnemon-strategy-default-three-tier': { enabled: false, config: {} }, 'mnemon-strategy-general': { enabled: true, config: {} }, tiered: { enabled: false, config: {} },
     })
-    expect((await screen.findByRole('alert')).textContent).toContain('Switched to “General” and turned off “Default three-tier”, “tiered label”')
+    expect((await screen.findByRole('alert')).textContent).toContain('Switched to “General strategy” and turned off “Layered strategy”, “tiered label”')
   })
 
   it('keeps the enhancements for other main Strategies in a closed group', async () => {
@@ -316,25 +316,25 @@ describe('memory composition board', () => {
   it('says what a switch on DSH\'s component list did, and points at the board', async () => {
     const { connection, switchElsewhere } = fixture([threeTier, { ...general, ...on }])
     const { rerender } = render(<Composition connection={connection} language="en" t={translateEn} />)
-    await waitFor(() => expect(problem()?.textContent).toBe('Also running, composing nothing: “General”Turn off “General”'))
+    await waitFor(() => expect(problem()?.textContent).toBe('Also running, composing nothing: “General strategy”Turn off “General strategy”'))
     switchElsewhere('mnemon-strategy-default-three-tier', false)
     // DSH's plugin manager announces the switch; the page re-reads.
     rerender(<Composition connection={connection} language="en" refreshKey={1} t={translateEn} />)
     const toast = await screen.findByRole('alert')
-    expect(toast.textContent).toContain('“Default three-tier” is off; “General” composes memory for now')
+    expect(toast.textContent).toContain('“Layered strategy” is off; “General strategy” composes memory for now')
     expect(within(toast).getByRole('button', { name: 'Show' })).toBeTruthy()
-    await waitFor(() => expect(problem()?.textContent).toContain('The selected “Default three-tier” is not running; “General” composes memory for now'))
+    await waitFor(() => expect(problem()?.textContent).toContain('The selected “Layered strategy” is not running; “General strategy” composes memory for now'))
   })
 
   it('keeps the previous choice when the switch is refused, and offers to retry', async () => {
     const { connection } = fixture([threeTier, general], { failApply: true })
     render(<Composition connection={connection} language="en" t={translateEn} />)
-    await waitFor(() => expect(selectedMain()).toBe('Default three-tier'))
-    chooseMain('General')
+    await waitFor(() => expect(selectedMain()).toBe('Layered strategy'))
+    chooseMain('General strategy')
     const toast = await screen.findByRole('alert')
     expect(toast.textContent).toContain(translateEn('config.strategyFailed'))
     expect(within(toast).getByRole('button', { name: 'Retry' })).toBeTruthy()
-    expect(selectedMain()).toBe('Default three-tier')
+    expect(selectedMain()).toBe('Layered strategy')
   })
 
   it('shows the only installed main Strategy as a value rather than a choice', async () => {
@@ -342,7 +342,7 @@ describe('memory composition board', () => {
     render(<Composition connection={connection} language="zh" t={translateZh} />)
     expect(await screen.findByRole('switch', { name: '主动记录' })).toBeTruthy()
     expect(screen.queryByRole('button', { name: /^主策略 /u })).toBeNull()
-    expect(screen.getByText('默认三层')).toBeTruthy()
+    expect(screen.getByText('分层策略')).toBeTruthy()
   })
 
   it('names every component by its own declaration, in the active language', async () => {
@@ -350,7 +350,7 @@ describe('memory composition board', () => {
     const { unmount } = render(<Composition connection={connection} language="zh-CN" t={translateZh} />)
     expect(await screen.findByRole('switch', { name: 'focus 标签' })).toBeTruthy()
     expect(screen.getByText('focus 说明')).toBeTruthy()
-    expect(screen.getByText('默认三层')).toBeTruthy()
+    expect(screen.getByText('分层策略')).toBeTruthy()
     unmount()
     render(<Composition connection={connection} language="en" t={translateEn} />)
     expect(await screen.findByRole('switch', { name: 'focus label' })).toBeTruthy()
@@ -359,11 +359,11 @@ describe('memory composition board', () => {
   it('says memory is off while no main Strategy runs, and turns the selected one back on', async () => {
     const { applied, connection } = fixture([{ ...threeTier, ...off }, { ...general, ...off }, capture])
     render(<Composition connection={connection} language="en" t={translateEn} />)
-    await waitFor(() => expect(problem()?.textContent).toContain('Memory is not in use: the main strategy “Default three-tier” is off'))
+    await waitFor(() => expect(problem()?.textContent).toContain('Memory is not in use: the main strategy “Layered strategy” is off'))
     // Components wait: the Host checks every write against the selected main Strategy.
     expect(disabled(screen.getByRole('switch', { name: 'Active capture' }))).toBe(true)
-    fireEvent.click(within(problem()!).getByRole('button', { name: 'Turn on “Default three-tier”' }))
-    expect((await screen.findByRole('alert')).textContent).toContain('Memory is back, composed by “Default three-tier”')
+    fireEvent.click(within(problem()!).getByRole('button', { name: 'Turn on “Layered strategy”' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('Memory is back, composed by “Layered strategy”')
     expect(applied).toEqual([{ expectedRevision: 'view-1', strategyTypeId: 'default-three-tier', entries: { 'mnemon-strategy-default-three-tier': { enabled: true, config: {} } } }])
     await waitFor(() => expect(problem()).toBeNull())
     expect(disabled(screen.getByRole('switch', { name: 'Active capture' }))).toBe(false)
@@ -372,19 +372,19 @@ describe('memory composition board', () => {
   it('names the main Strategy composing in place of the selected one and offers both ways out', async () => {
     const { applied, connection } = fixture([{ ...threeTier, ...off }, { ...general, ...on }])
     render(<Composition connection={connection} language="zh" t={translateZh} />)
-    await waitFor(() => expect(problem()?.textContent).toContain('所选的“默认三层”没有运行，记忆暂由“通用”组合'))
-    expect(within(problem()!).getByRole('button', { name: '开启“默认三层”' })).toBeTruthy()
-    fireEvent.click(within(problem()!).getByRole('button', { name: '改用“通用”' }))
+    await waitFor(() => expect(problem()?.textContent).toContain('所选的“分层策略”没有运行，记忆暂由“通用策略”组合'))
+    expect(within(problem()!).getByRole('button', { name: '开启“分层策略”' })).toBeTruthy()
+    fireEvent.click(within(problem()!).getByRole('button', { name: '改用“通用策略”' }))
     await waitFor(() => expect(problem()).toBeNull())
     expect(applied).toEqual([{ expectedRevision: 'view-1', strategyTypeId: 'general', entries: { 'mnemon-strategy-general': { enabled: true, config: {} } } }])
-    expect(selectedMain('主策略')).toBe('通用')
+    expect(selectedMain('主策略')).toBe('通用策略')
   })
 
   it('turns off a second main Strategy that runs unused', async () => {
     const { applied, connection } = fixture([threeTier, { ...general, ...on }])
     render(<Composition connection={connection} language="en" t={translateEn} />)
-    await waitFor(() => expect(within(problem()!).getByRole('button', { name: 'Turn off “General”' })).toBeTruthy())
-    fireEvent.click(within(problem()!).getByRole('button', { name: 'Turn off “General”' }))
+    await waitFor(() => expect(within(problem()!).getByRole('button', { name: 'Turn off “General strategy”' })).toBeTruthy())
+    fireEvent.click(within(problem()!).getByRole('button', { name: 'Turn off “General strategy”' }))
     await waitFor(() => expect(problem()).toBeNull())
     expect(applied).toEqual([{ expectedRevision: 'view-1', strategyTypeId: 'default-three-tier', entries: { 'mnemon-strategy-general': { enabled: false, config: {} } } }])
   })
@@ -400,7 +400,7 @@ describe('memory composition board', () => {
   it('keeps every control read-only with a configuration that cannot be saved', async () => {
     const { applied, connection } = fixture([threeTier, general, capture, source('runtime'), source('documents')])
     render(<Composition connection={connection} language="en" readOnly system={system({ runtime: true, documents: true })} t={translateEn} />)
-    await waitFor(() => expect(selectedMain()).toBe('Default three-tier'))
+    await waitFor(() => expect(selectedMain()).toBe('Layered strategy'))
     expect(disabled(mainSelector())).toBe(true)
     expect(screen.getAllByRole('switch').every(disabled)).toBe(true)
     fireEvent.click(screen.getByRole('switch', { name: 'Active capture' }))
@@ -416,7 +416,7 @@ describe('memory composition board', () => {
     fireEvent.click(toggle)
     await waitFor(() => expect(applied).toEqual([{ expectedRevision: 'view-9', strategyTypeId: 'general', entries: { 'mnemon-strategy-auto-capture': { enabled: true, config: {} } } }]))
     await waitFor(() => expect(checked(screen.getByRole('switch', { name: 'Active capture' }))).toBe(true))
-    expect(selectedMain()).toBe('General')
+    expect(selectedMain()).toBe('General strategy')
   })
 
   it('reports a write the Host still refuses after the retry', async () => {
@@ -496,15 +496,15 @@ describe('memory composition board', () => {
     const { applied, connection } = fixture([{ ...threeTier, ...off }, main('general', { ...on, fields: [resident], config: { residentSourceKeys: ['memory-spaces/default'] } }), source('runtime'), source('memory-spaces')], { sources, strategyTypeId: 'general' })
     render(<Composition connection={connection} language="en" t={translateEn} />)
     // The main Strategy row's gear opens the selected Strategy's page.
-    fireEvent.click(await screen.findByRole('button', { name: 'Details of “General”' }))
-    const page = screen.getByRole('dialog', { name: 'General' })
+    fireEvent.click(await screen.findByRole('button', { name: 'Details of “General strategy”' }))
+    const page = screen.getByRole('dialog', { name: 'General strategy' })
     expect(within(page).getByText('Current main strategy')).toBeTruthy()
     expect((within(page).getByRole('checkbox', { name: 'Memory Spaces' }) as HTMLInputElement).checked).toBe(true)
     fireEvent.click(within(page).getByRole('checkbox', { name: 'Runtime Memory' }))
     fireEvent.click(within(page).getByRole('button', { name: 'Apply' }))
     await waitFor(() => expect(applied).toHaveLength(1))
     expect(applied[0]).toEqual({ expectedRevision: 'view-1', strategyTypeId: 'general', entries: { 'mnemon-strategy-general': { enabled: true, config: { residentSourceKeys: ['memory-spaces/default', 'runtime/default'] } } } })
-    const again = screen.getByRole('dialog', { name: 'General' })
+    const again = screen.getByRole('dialog', { name: 'General strategy' })
     await waitFor(() => expect(within(again).queryByRole('button', { name: 'Apply' })).toBeNull())
     fireEvent.click(within(again).getByRole('button', { name: 'Reset to default' }))
     expect(within(again).getByText('Default')).toBeTruthy()

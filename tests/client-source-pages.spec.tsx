@@ -289,7 +289,7 @@ describe('Source Client presentation conformance', () => {
     const dashboard = {
       revision: 'view-1', writable: true, strategyTypeId: 'general', sources: [], diagnostics: [], pluginInstallation: { supported: false, suggestions: [] },
       entries: [
-        component('mnemon-strategy-general', 'dsh-mnemon-strategy-general', ['strategy'], 'general', { en: 'General', 'zh-CN': '通用' }),
+        component('mnemon-strategy-general', 'dsh-mnemon-strategy-general', ['strategy'], 'general', { en: 'General strategy', 'zh-CN': '通用策略' }),
         component('mnemon-source-runtime', 'dsh-mnemon-source-runtime', ['source'], 'runtime', { en: 'Runtime memory', 'zh-CN': '运行时记忆' }),
         component('notes', 'acme-memory-notes', ['source'], 'notes', { en: 'Notes', 'zh-CN': '笔记' }),
         // A Source switched off has registered nothing, yet still has its card.
@@ -326,7 +326,7 @@ describe('Source Client presentation conformance', () => {
     expect(within(card('Drafts')).getByText('Off')).toBeTruthy()
     expect(card('Drafts').getAttribute('data-component')).toBe('acme-memory-drafts')
     // The header names the composing main Strategy as it declares itself.
-    expect(screen.getByRole('button', { name: 'Connected · General' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Connected · General strategy' })).toBeTruthy()
   })
 
   it('reveals only a connected Source element inside the owning canvas', async () => {

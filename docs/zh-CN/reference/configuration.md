@@ -14,7 +14,7 @@ Web profile 的 patch 通常是 `~/.dsh/profiles/web/cordis.patch.yml`。旧宿�
 
 执行中的回合保留已固定的运行图。已经派发的子 Agent 保留委托运行图直到本次 activation 销毁，即使父回合已结束；后续父回合和新委托的 activation 使用新 generation。保存设置不会静默扩大既有任务的 Recall 权限。
 
-与 DSH 0.1.7 对所有自带配置的插件一样，Web 界面在“插件”中该插件自己的页面编辑配置，而不在“设置”中。**插件 → 可组合记忆**页面编辑 `storageScope`、独立的 `runtimeUserScope`、`dataDir`、Mnemon Native 的 Ollama 嵌入覆盖、记忆组合（主策略、每个记忆来源与增强的开关，以及各组件声明的选项）、后台任务 Agent 的模型路由，以及 `mnemon-ui` 下的回合记忆栏和存入记忆按钮。页面只保留记忆组合、存储与界面；各组件自己的设置在它的组件页中（点击组件名称打开）：USER.md 用户画像范围在“运行时记忆”页面，记忆 Provider 与嵌入在“记忆空间”页面，后台任务 Agent 路由与空闲审查在“默认三层”页面。记忆层与为它服务的 Source 组件共用一个开关。“存储”中的“全局 / 工作区 / 集中存储 · 按工作区隔离”是整个记忆系统的范围；同组唯一的“数据目录”在全局范围下留空即使用默认目录、填写路径即为 `custom`，在集中存储下是可选的集中根目录；USER.md 用户画像也可以显式保持全局，而项目记忆继续跟随该范围；ZIP 备份与迁移也在“存储”中。Mnemon Native 是第一张 Provider 卡片，只包含嵌入运行配置。每个第三方 Provider 有独立的服务配置折叠栏，保存 endpoint、凭据或可执行文件等可复用服务信息。启用或保存时发现 Provider 已有的命名空间，并同步到“记忆空间 → 概览”；禁用只移除本地映射，不删除 Provider 数据。其他高级项需要直接修改 YAML。
+与 DSH 0.1.7 对所有自带配置的插件一样，Web 界面在“插件”中该插件自己的页面编辑配置，而不在“设置”中。**插件 → 可组合记忆**页面编辑 `storageScope`、独立的 `runtimeUserScope`、`dataDir`、Mnemon Native 的 Ollama 嵌入覆盖、记忆组合（主策略、每个记忆来源与增强的开关，以及各组件声明的选项）、后台任务 Agent 的模型路由，以及 `mnemon-ui` 下的回合记忆栏和存入记忆按钮。页面只保留记忆组合、存储与界面；各组件自己的设置在它的组件页中（点击组件名称打开）：USER.md 用户画像范围在“运行时记忆”页面，记忆 Provider 与嵌入在“记忆空间”页面，后台任务 Agent 路由与空闲审查在“分层策略”页面。记忆层与为它服务的 Source 组件共用一个开关。“存储”中的“全局 / 工作区 / 集中存储 · 按工作区隔离”是整个记忆系统的范围；同组唯一的“数据目录”在全局范围下留空即使用默认目录、填写路径即为 `custom`，在集中存储下是可选的集中根目录；USER.md 用户画像也可以显式保持全局，而项目记忆继续跟随该范围；ZIP 备份与迁移也在“存储”中。Mnemon Native 是第一张 Provider 卡片，只包含嵌入运行配置。每个第三方 Provider 有独立的服务配置折叠栏，保存 endpoint、凭据或可执行文件等可复用服务信息。启用或保存时发现 Provider 已有的命名空间，并同步到“记忆空间 → 概览”；禁用只移除本地映射，不删除 Provider 数据。其他高级项需要直接修改 YAML。
 
 OpenViking user key 没有 admin 权限时，可组合服务字段 `discoveryUser`、`endpoint`、`apiKey`、`account`，显式发现单个用户的记忆空间；`discoveryUser` 留空仍枚举 admin。服务字段保存在 Memory Spaces 的 Provider 注册表，不是新的 Mnemon 顶层 YAML 设置。参见 [OpenViking 配置与兼容性](../guides/memory-providers.md#运维边界)。
 
@@ -303,7 +303,7 @@ Memory Space 目录建立后，长期语义操作使用明确的记忆空间 ID�
 
 AI 元信息、Agent 查询、工作台/对话区的记忆沉淀和档案归档会创建一个无会话历史的独立顶层任务 Agent。它使用当前查看工作区作为 cwd；即使没有选中主 Agent session，也能落到左上角选定工作区。任务完成后 Agent 会被释放。
 
-默认的 `inherit` 先使用 DSH“创建新会话”时的默认 Provider / Model；该路由不可用时才沿用当前可用主 Agent 的完整模型路由。在“默认三层”页面的“后台任务 → 任务 Agent 模型”中选择“指定模型”后，会保存完整的 Provider + Model，并只覆盖 Mnemon 后台任务，不改变对话主 Agent。独立任务 Agent 内部如需语义判断，仍可调度受限 worker；该 worker 继承任务 Agent 的模型路由。
+默认的 `inherit` 先使用 DSH“创建新会话”时的默认 Provider / Model；该路由不可用时才沿用当前可用主 Agent 的完整模型路由。在“分层策略”页面的“后台任务 → 任务 Agent 模型”中选择“指定模型”后，会保存完整的 Provider + Model，并只覆盖 Mnemon 后台任务，不改变对话主 Agent。独立任务 Agent 内部如需语义判断，仍可调度受限 worker；该 worker 继承任务 Agent 的模型路由。
 
 ```yaml
 mnemon:

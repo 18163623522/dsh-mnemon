@@ -8,7 +8,7 @@ and how to use each Source; the Strategy adds no retrieval policy of its own.
 
 Compared with `dsh-mnemon-strategy-default-three-tier`:
 
-| | Default three-tier | General |
+| | Layered strategy | General strategy |
 |---|---|---|
 | Source roles | one working-context, narrative and durable-evidence Source | any role, any number (up to 32) |
 | Resident context | Runtime Memory | Sources listed in `residentSourceKeys`, else working-context Sources |

@@ -1,6 +1,6 @@
 # dsh-mnemon-strategy-scoped
 
-Optional additive Source selection for any Mnemon main Strategy that accepts Core's standard `selection` slot, including the default three-tier and general Strategies.
+Optional additive Source selection for any Mnemon main Strategy that accepts Core's standard `selection` slot, including the Layered and General strategies.
 
 Enable the plugin alongside the selected main Strategy. With no configuration it includes every ready Source whose role is `working-context`, `narrative`, or `durable-evidence`, in deterministic role/key order. Configure exact `sourceKeys` to express priority; configure `writableSourceKeys` to make the remaining selected Sources read-only in the View.
 
@@ -15,7 +15,7 @@ Enable the plugin alongside the selected main Strategy. With no configuration it
       - source:project-runtime
 ```
 
-Keys name already installed Source instances; this plugin does not create or migrate storage. Uninstalling it removes only its selection contribution. If duplicate roles remain installed, the unextended default three-tier Strategy will correctly report ambiguity rather than choose by load order; the general Strategy admits every instance.
+Keys name already installed Source instances; this plugin does not create or migrate storage. Uninstalling it removes only its selection contribution. If duplicate roles remain installed, the Layered strategy, unextended, reports the ambiguity rather than choosing by load order; the General strategy admits every instance.
 
 ## Installation and verification
 

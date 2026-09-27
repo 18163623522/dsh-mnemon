@@ -7,7 +7,7 @@ export const inject = ['mnemonMemory']
 
 export const memoryPlugin = defineMemoryPlugin({
   packageName: name,
-  label: { en: 'Default three-tier', 'zh-CN': '默认三层' },
+  label: { en: 'Layered strategy', 'zh-CN': '分层策略' },
   description: { en: 'Resident runtime memory, on-demand documents and durable memory.', 'zh-CN': '运行时记忆常驻，档案与长期记忆按需读取。' },
   roles: ['strategy'],
   provides: [{ id: 'strategy' }, { id: 'strategy.default-three-tier' }],
@@ -16,7 +16,7 @@ export const memoryPlugin = defineMemoryPlugin({
 
 export const memoryStrategyConfiguration = defineMemoryStrategyConfiguration({
   kind: 'strategy', typeId: 'default-three-tier',
-  label: { en: 'Default three-tier', 'zh-CN': '默认三层' },
+  label: memoryPlugin.label,
   description: { en: 'Compose runtime context, documents and durable memory.', 'zh-CN': '组合运行时、档案与长期记忆。' },
   fields: [], create: () => ({ plugin: memoryPlugin, strategies: [DEFAULT_THREE_TIER_VIEW_STRATEGY] }),
 })
