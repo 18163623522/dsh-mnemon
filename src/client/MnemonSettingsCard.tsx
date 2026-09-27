@@ -457,6 +457,8 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
   return (
     <section className={css.page} aria-label={t('config.aria')} aria-busy={saving || loading}>
       {loading ? <p className={css.loading} role="status">{t('common.loading')}</p> : <>
+        {/* Like DSH's own settings forms, a read-only document says so above its controls. */}
+        {!writable && <p className={css.readOnlyNotice}>{t('config.readOnly')}</p>}
         <MemoryCompositionSections
           {...(connection === undefined ? {} : { connection })}
           {...(sessionId === undefined ? {} : { sessionId })}
@@ -567,7 +569,6 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
           {error !== null && <p className={css.error} role="alert">{error}</p>}
           {failed !== null && <p className={css.error} role="alert">{t('config.saveFailed', { error: failed })}</p>}
           {applied && <p className={css.success} role="status">{t('config.ready')}</p>}
-          {!writable && <p className={css.readOnly}>{t('config.readOnly')}</p>}
         </div>
 
         <footer className={`${css.actions} ${dirty.size > 0 ? css.actionsVisible : ''}`} aria-live="polite">

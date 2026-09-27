@@ -368,7 +368,7 @@ details[open] > summary .providerChevron { transform: rotate(180deg); }
 .feedback p, .packFeedback p { margin: 0; font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
 .error { color: var(--dsw-alias-state-error-primary); }
 .success { color: var(--dsw-alias-state-success-primary); }
-.readOnly { color: var(--dsw-alias-label-tertiary); }
+.readOnlyNotice { margin: 0 0 -20px; color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }
 .packSuccess { color: var(--dsw-alias-state-success-primary); }
 
 /* Unsaved changes: a bar that floats above the bottom of the Plugins page
