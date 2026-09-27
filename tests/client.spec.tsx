@@ -523,11 +523,12 @@ describe('MnemonWorkbench', () => {
     expect(screen.queryByText('记忆子 Agent 可用')).toBeNull()
     expect(screen.queryByRole('heading', { name: '子 Agent 生命周期' })).toBeNull()
     expect(screen.queryByRole('heading', { name: '记忆系统流转' })).toBeNull()
-    expect(screen.getByRole('heading', { name: '三方 Provider' })).toBeTruthy()
-    const nativeProviderStatus = screen.getByRole('region', { name: 'mnemon Provider 状态' })
-    const providerStatus = screen.getByRole('region', { name: '三方 Provider 状态' })
-    expect(within(nativeProviderStatus).getByText('mnemon')).toBeTruthy()
-    expect(nativeProviderStatus.compareDocumentPosition(providerStatus) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '记忆 Provider' })).toBeTruthy()
+    const providerStatus = screen.getByRole('region', { name: '记忆 Provider 状态' })
+    const nativeProviderStatus = within(providerStatus).getByRole('article', { name: 'Mnemon Native 状态' })
+    expect(within(nativeProviderStatus).getByText('Mnemon Native')).toBeTruthy()
+    // Native leads the one Provider list as a peer of the third-party Providers.
+    expect(within(providerStatus).getAllByRole('article')[0]).toBe(nativeProviderStatus)
     expect(within(providerStatus).getByText('OpenViking')).toBeTruthy()
     expect(within(providerStatus).getByText('连接正常')).toBeTruthy()
     expect(within(providerStatus).getByText('Mem0')).toBeTruthy()
@@ -548,8 +549,8 @@ describe('MnemonWorkbench', () => {
     expect(screen.getByText('系统正常')).toBeTruthy()
     expect(screen.queryByText('Mnemon 不可用')).toBeNull()
 
-    const nativeStatus = screen.getByRole('region', { name: 'mnemon Provider 状态' })
-    expect(within(nativeStatus).getByText('连接需要检查')).toBeTruthy()
+    const nativeStatus = screen.getByRole('article', { name: 'Mnemon Native 状态' })
+    expect(within(nativeStatus).getByText(/^连接需要检查/u)).toBeTruthy()
     expect(within(nativeStatus).getByText('项目记忆空间: Mnemon Store 无法打开')).toBeTruthy()
   })
 
@@ -699,8 +700,8 @@ describe('MnemonWorkbench', () => {
     trigger.focus()
     fireEvent.click(trigger)
     const dialog = screen.getByRole('dialog', { name: '检查与更新版本' })
-    const close = within(dialog).getAllByRole('button', { name: '取消' })[0]!
-    const cancel = within(dialog).getAllByRole('button', { name: '取消' }).at(-1)!
+    const close = within(dialog).getByRole('button', { name: '关闭' })
+    const cancel = within(dialog).getByRole('button', { name: '取消' })
     expect(dialog.getAttribute('aria-busy')).toBe('true')
     expect(close.hasAttribute('disabled')).toBe(false)
     expect(cancel.hasAttribute('disabled')).toBe(false)
@@ -726,8 +727,8 @@ describe('MnemonWorkbench', () => {
     const onClose = vi.fn()
     const { container } = render(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" surface={surface} {...(surface === 'sidebar' ? { onClose } : {})} />)
 
-    expect(screen.queryByLabelText('存储位置模式：自定义') !== null).toBe(surface === 'sidebar')
-    expect(screen.queryByLabelText('存储位置模式：—')).toBeNull()
+    expect(screen.queryByLabelText('存储范围：自定义') !== null).toBe(surface === 'sidebar')
+    expect(screen.queryByLabelText('存储范围：—')).toBeNull()
     await waitFor(() => expect(screen.getByText('已连接')).toBeTruthy())
     expect(container.querySelector(`[data-mnemon-surface="${surface}"]`)).toBeTruthy()
     const sidebarHeader = screen.getByRole('heading', { name: '记忆系统', level: 1 }).closest('header')
@@ -740,7 +741,7 @@ describe('MnemonWorkbench', () => {
     } else {
       expect(within(sidebarHeader).queryByRole('button', { name: '返回会话' })).toBeNull()
     }
-    expect(within(sidebarHeader).queryByLabelText('存储位置模式：自定义') !== null).toBe(surface === 'sidebar')
+    expect(within(sidebarHeader).queryByLabelText('存储范围：自定义') !== null).toBe(surface === 'sidebar')
     expect(within(sidebarHeader).getByText('已连接')).toBeTruthy()
     expect(within(sidebarHeader).queryByText(/个已激活/)).toBeNull()
     expect(screen.getByRole('heading', { name: '记忆系统', level: 1 })).toBeTruthy()
@@ -1285,11 +1286,11 @@ describe('MnemonWorkbench', () => {
       }}
     />)
 
-    expect(screen.getByLabelText('存储位置模式：工作区')).toBeTruthy()
+    expect(screen.getByLabelText('存储范围：工作区')).toBeTruthy()
     expect((screen.getByRole('combobox', { name: '选择要查看的记忆工作区' }) as HTMLSelectElement).value).toBe('workspace-2')
     const header = (await screen.findByRole('heading', { name: '记忆系统', level: 1 })).closest('header')
     if (header === null) throw new Error('Sidebar header missing')
-    expect(within(header).getByLabelText('存储位置模式：工作区')).toBeTruthy()
+    expect(within(header).getByLabelText('存储范围：工作区')).toBeTruthy()
     const alignment = within(header).getByRole('status', { name: /查看目录与当前会话未对齐/ })
     expect(alignment.getAttribute('aria-label')).toContain('查看：/tmp/workspace-two/.mnemon')
     expect(alignment.getAttribute('aria-label')).toContain('生效：/tmp/workspace-one/.mnemon')
@@ -1329,7 +1330,7 @@ describe('MnemonWorkbench', () => {
     expect(screen.queryByText('运行时条目 1')).toBeNull()
     expect((await screen.findByRole('textbox', { name: '筛选运行时记忆' }) as HTMLInputElement).value).toBe('')
     expect(screen.queryByRole('dialog', { name: '添加热记忆' })).toBeNull()
-    expect(screen.queryByLabelText('存储位置模式：自定义') !== null).toBe(surface === 'sidebar')
+    expect(screen.queryByLabelText('存储范围：自定义') !== null).toBe(surface === 'sidebar')
     await waitFor(() => expect(delayedCall).toHaveBeenCalledWith(expect.anything(), 'status-summary', expect.objectContaining(surface === 'sidebar' ? { workspaceId: 'workspace-2' } : { sessionId: 'session-2' })))
   })
 
@@ -1386,7 +1387,7 @@ describe('MnemonWorkbench', () => {
 
     await waitFor(() => expect(screen.getByTestId('mnemon-canvas')).not.toBe(oldCanvas))
     expect(screen.getByTestId('mnemon-canvas').scrollTop).toBe(0)
-    expect(screen.queryByLabelText('存储位置模式：全局') !== null).toBe(surface === 'sidebar')
+    expect(screen.queryByLabelText('存储范围：全局') !== null).toBe(surface === 'sidebar')
     expect(screen.queryByText('运行时条目 1')).toBeNull()
     expect((screen.getByRole('textbox', { name: '筛选运行时记忆' }) as HTMLInputElement).value).toBe('')
 
@@ -1413,7 +1414,7 @@ describe('MnemonWorkbench', () => {
     expect(dialog.textContent).toContain('全文预览窗口的打开与关闭')
     expect(dialog.getAttribute('aria-labelledby')).toBeTruthy()
     expect(dialog.getAttribute('aria-describedby')).toBeTruthy()
-    const close = within(dialog).getByRole('button', { name: '取消' })
+    const close = within(dialog).getByRole('button', { name: '关闭' })
     expect(document.activeElement).toBe(close)
     fireEvent.click(close)
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
@@ -1447,8 +1448,8 @@ describe('MnemonWorkbench', () => {
         }
       }
       const statusFrame = frame()
-      expect(statusFrame.top).toEqual(['14px'])
-      expect(statusFrame.left).toEqual([width <= 760 ? '12px' : '16px'])
+      expect(statusFrame.top).toEqual([width <= 760 ? '16px' : '20px'])
+      expect(statusFrame.left).toEqual([width <= 760 ? '16px' : '24px'])
       expect(statusFrame.minimumHeights).toEqual(['100%'])
       expect(statusFrame.innerScrollports).toBe(0)
       expect(getComputedStyle(canvas).overflow).toBe('auto')
@@ -1458,8 +1459,8 @@ describe('MnemonWorkbench', () => {
         expect(sticky).toHaveLength(1)
         expect(sticky[0]!.top).toBe('0px')
         const offset = (padding: 'paddingTop' | 'paddingLeft', margin: 'marginTop' | 'marginLeft') => styles.reduce((sum, style) => sum + (Number.parseFloat(style[padding]) || 0) + (Number.parseFloat(style[margin]) || 0), 0)
-        expect(offset('paddingTop', 'marginTop')).toBe(14)
-        expect(offset('paddingLeft', 'marginLeft')).toBe(width <= 760 ? 12 : 16)
+        expect(offset('paddingTop', 'marginTop')).toBe(width <= 760 ? 16 : 20)
+        expect(offset('paddingLeft', 'marginLeft')).toBe(width <= 760 ? 16 : 24)
       }
       checkHeader(within(canvas).getAllByRole('heading', { level: 2 })[0]!)
       for (const tab of ['运行时', '档案', '记忆空间']) {

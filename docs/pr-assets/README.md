@@ -12,6 +12,7 @@ For new evaluations, commit the reusable harness, workload generator, concise bi
 
 | Record / 记录 | Scope / 范围 |
 |---|---|
+| [DSH-style memory interface](./dsh-style-ui-20260927/README.md) / [中文](./dsh-style-ui-20260927/README.zh-CN.md) | Settings groups and preference rows, Status Provider list, Memory Spaces and conversation controls in light and dark / 设置分组与偏好行、状态页 Provider 列表、记忆空间与对话控件的浅色和深色对比 |
 | [Optional Mnemon CLI](./optional-mnemon-cli-20260927/README.md) / [中文](./optional-mnemon-cli-20260927/README.zh-CN.md) | No-CLI WebUI and Headless persistence on Docker Mem0, eight-Provider lab with recall, content and entities / 无 CLI 的 WebUI 与 Docker Mem0 上的 Headless 沉淀、八个 Provider 的检索、内容与实体 |
 | [Main Strategy choice](./main-strategy-choice-20260927/README.md) / [中文](./main-strategy-choice-20260927/README.zh-CN.md) | Plugins page and Settings controls, general Strategy conversation, packed composition and release intent / 插件页与设置控件、通用主策略对话、打包组合与发布意图 |
 | [Memory System brain icon](./sidebar-brain-icon-20260927/README.md) / [中文](./sidebar-brain-icon-20260927/README.zh-CN.md) | Shared thin brain outline, native navigation and retained composable naming / 共用细线大脑轮廓、原生导航与可组合记忆命名保留 |

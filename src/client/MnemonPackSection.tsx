@@ -4,6 +4,7 @@ import { MnemonClient } from './api.ts'
 import type { MnemonTranslate } from './locales.ts'
 import { humanBytes, message } from './page-kit.tsx'
 import css from './MnemonSettingsCard.module.css'
+import { SettingRow } from './settings-controls.tsx'
 
 interface MnemonPackSectionProps {
   connection?: ClientConnectionHandle
@@ -11,7 +12,6 @@ interface MnemonPackSectionProps {
   workspaceId?: string
   refreshKey: number
   t: MnemonTranslate
-  embedded?: boolean
 }
 
 interface PendingZip {
@@ -53,7 +53,7 @@ function download(result: MnemonPackExport): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
-export function MnemonPackSection({ connection, sessionId, workspaceId, refreshKey, t, embedded = false }: MnemonPackSectionProps): JSX.Element {
+export function MnemonPackSection({ connection, sessionId, workspaceId, refreshKey, t }: MnemonPackSectionProps): JSX.Element {
   const client = useMemo(() => connection === undefined ? null : new MnemonClient(connection, sessionId, workspaceId), [connection, sessionId, workspaceId])
   const input = useRef<HTMLInputElement | null>(null)
   const [target, setTarget] = useState<{ root: string; scope: 'global' | 'workspace' | 'custom' } | null>(null)
@@ -71,8 +71,6 @@ export function MnemonPackSection({ connection, sessionId, workspaceId, refreshK
     }).finally(() => { if (active) setBusy(null) })
     return () => { active = false }
   }, [client, refreshKey])
-
-  const scopeLabel = (scope: string): string => scope === 'global' ? t('config.global') : scope === 'workspace' ? t('config.workspace') : scope === 'workspaces' ? t('config.workspaces') : t('config.custom')
 
   const exportZip = async (): Promise<void> => {
     if (client === null || busy !== null) return
@@ -118,21 +116,14 @@ export function MnemonPackSection({ connection, sessionId, workspaceId, refreshK
 
   const items = pending?.preview.manifest.summary.reduce((sum, component) => sum + component.items, 0) ?? 0
 
-  return <section className={embedded ? css.embeddedSection : css.section} aria-labelledby="mnemon-pack-heading">
-    <div className={css.sectionHeading}><div><h2 id="mnemon-pack-heading">{t('config.packTitle')}</h2><p>{t('config.packSimpleDescription')}</p></div></div>
-    <div className={css.settingRow}>
-      <div className={css.settingCopy}>
-        <strong>{t('config.packWholeZip')}</strong>
-        <small>{t('config.packWholeZipHint')}</small>
-        <code className={css.activePath} title={target?.root}>{target?.root ?? t('config.packTargetLoading')}</code>
-        {target !== null && <em className={css.scopeMeta}>{scopeLabel(target.scope)}</em>}
-      </div>
+  return <div className={css.packRow} role="group" aria-labelledby="mnemon-pack-heading">
+    <SettingRow title={t('config.packTitle')} titleId="mnemon-pack-heading" hint={<>{t('config.packSimpleDescription')}<code className={css.activePath} title={target?.root}>{target?.root ?? t('config.packTargetLoading')}</code></>}>
       <div className={css.rowActions}>
         <button type="button" className={css.pillButton} disabled={client === null || busy !== null} onClick={() => input.current?.click()}>{busy === 'inspect' ? t('config.packInspecting') : t('config.packImportZip')}</button>
         <button type="button" className={css.pillButton} disabled={client === null || busy !== null || target === null} onClick={() => void exportZip()}>{busy === 'export' ? t('config.packExporting') : t('config.packExportZip')}</button>
       </div>
       <input ref={input} className={css.visuallyHidden} type="file" accept={ZIP_ACCEPT} aria-label={t('config.packChooseZip')} onChange={chooseFile} />
-    </div>
+    </SettingRow>
     {pending !== null && <div className={css.importBar} role="status">
       <div><strong>{pending.preview.fileName ?? t('config.packUnnamedZip')}</strong><small>{t('config.packZipReady', { components: pending.preview.manifest.components.length, items, size: humanBytes(pending.preview.archiveBytes) })}</small></div>
       <button type="button" className={css.textButton} disabled={busy !== null} onClick={() => setPending(null)}>{t('common.cancel')}</button>
@@ -143,5 +134,5 @@ export function MnemonPackSection({ connection, sessionId, workspaceId, refreshK
       {notice !== null && <p className={css.packSuccess}>{notice}</p>}
       {client === null && <p className={css.readOnly}>{t('config.packUnavailable')}</p>}
     </div>
-  </section>
+  </div>
 }

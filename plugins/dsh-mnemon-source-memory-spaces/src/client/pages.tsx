@@ -909,7 +909,7 @@ export function OverviewPage(props: { client: MemorySpacesPageClient; metadataCl
     <label>{t('overview.editDescription')}<textarea aria-label={t('overview.editDescription')} value={editDescription} onChange={event => setEditDescription(event.target.value)} rows={4} maxLength={1000} /></label>
     {!nativeSpaceProvider(body.provider) && (() => { const descriptor = providers.find(provider => provider.id === body.provider.id); return descriptor === undefined ? null : <ProviderMemoryFields provider={descriptor} connection={editConnection} onChange={(key, value) => setEditConnection(current => ({ ...current, [key]: value }))} body={body} clearSecrets={editClearSecrets} onClearSecretsChange={setEditClearSecrets} /> })()}
   </form>
-  const spaceCreateForm = <form id={spaceCreateFormId} className={appearanceClass(css.bodyEdit, css.spaceCreateForm)} onSubmit={event => void create(event)}>
+  const spaceCreateForm = <form id={spaceCreateFormId} className={appearanceClass(css.bodyEdit, css.bodyCreateForm)} onSubmit={event => void create(event)}>
     <section className={css.createSection}>
       <div className={css.createSectionHeading}><span>01</span><div><strong>{t('overview.createIdentityTitle')}</strong><small>{t('overview.createIdentityHint')}</small></div></div>
       <div className={css.createIdentityGrid}>

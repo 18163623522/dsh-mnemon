@@ -12,7 +12,7 @@ $DSH_HOME/settings.yaml
 
 The default is commonly `~/.dsh/settings.yaml`. All current settings are marked `live`; after Save, the Host initializes a candidate runtime graph and then switches to it atomically.
 
-The Web settings page edits `storageScope`, the independent `runtimeUserScope`, `dataDir`, Mnemon Native's Ollama embedding override, one master switch for each of the three memory Sources, the background task Agent model route, and the Turn memory and Save-to-memory switches under `mnemon-ui`. The scope selector applies to the complete memory system. Centralized workspaces exposes its optional root beside that selector; the USER.md profile may explicitly remain global while project memory follows the selected scope. Mnemon Native owns its Custom data location, embedding runtime, and ZIP backup/migration controls. Each external provider has a collapsible service configuration for reusable endpoints, credentials, or executables. Enabling or saving it discovers the provider's existing namespaces and maps them into Memory Spaces → Overview; disabling it removes those local mappings without deleting provider data. Other advanced settings must be changed directly in YAML.
+The Web settings page edits `storageScope`, the independent `runtimeUserScope`, `dataDir`, Mnemon Native's Ollama embedding override, one master switch for each of the three memory Sources, the background task Agent model route, and the Turn memory bar and Save-to-memory switches under `mnemon-ui`. The page groups them as Interface, Storage, Memory layers, Strategy, Memory providers and Background tasks. The Storage scope (Global, Workspace, or Centralized · isolated by workspace) applies to the complete memory system. The group's one Data directory field is the default when empty under Global and makes the scope `custom` when set, and it is the optional central root under Centralized; the USER.md profile may explicitly remain global while project memory follows the selected scope; ZIP backup and migration live in the same group. Mnemon Native is the first card under Memory providers and holds only its embedding runtime. Each external provider has a collapsible service configuration for reusable endpoints, credentials, or executables. Enabling or saving it discovers the provider's existing namespaces and maps them into Memory Spaces → Overview; disabling it removes those local mappings without deleting provider data. Other advanced settings must be changed directly in YAML.
 
 OpenViking user keys without admin access can opt into one-owner discovery using the service field `discoveryUser` together with `endpoint`, `apiKey`, and `account`. Leave it empty to retain admin enumeration. These service fields stay in the Memory Spaces provider registry; they are not new top-level Mnemon YAML settings. See [OpenViking setup and compatibility](../guides/memory-providers.md#operational-boundaries).
 
@@ -217,7 +217,7 @@ Headless has no `workspaceRegistry`; its fresh session cwd is the directory from
 
 ### Global USER.md with workspace project memory
 
-To share user-level collaboration requirements across repositories while keeping project facts isolated, select **Workspace** plus **Global user profile**, or configure:
+To share user-level collaboration requirements across repositories while keeping project facts isolated, set Storage scope to **Workspace** and User profile scope to **Shared globally**, or configure:
 
 ```yaml
 mnemon:
@@ -231,7 +231,7 @@ Changing this setting never copies, merges, or deletes entries. Switching back t
 
 ### `workspaces`
 
-This built-in mode is available with the Starter; no additional plugin is required. Select **Centralized · isolated by workspace** in Memory scope; configure its optional **Central root directory** in the same section.
+This built-in mode is available with the Starter; no additional plugin is required. Select **Centralized · isolated by workspace** as the Storage scope; set its optional central root in the same group's **Data directory** field.
 
 ```yaml
 mnemon:
@@ -301,7 +301,7 @@ After the Memory Space directory has been established, long-term semantic operat
 
 AI metadata, Agent Query, workbench/conversation memory distillation, and document archiving create a clean independent top-level task Agent. It uses the selected workspace as its cwd, works even when no main Agent session is selected, and is disposed after the task finishes.
 
-The default `inherit` mode first uses the DSH Provider / Model selected for new sessions, then falls back to a complete route from the current available main Agent. Choosing **Choose model provider** in Settings stores a complete Provider + Model and overrides only Mnemon background tasks; it does not change the conversation Agent. When semantic judgment requires a bounded worker inside that task Agent, the worker inherits the task Agent route.
+The default `inherit` mode first uses the DSH Provider / Model selected for new sessions, then falls back to a complete route from the current available main Agent. Choosing **Choose a model** under **Background tasks → Task Agent model** stores a complete Provider + Model and overrides only Mnemon background tasks; it does not change the conversation Agent. When semantic judgment requires a bounded worker inside that task Agent, the worker inherits the task Agent route.
 
 ```yaml
 mnemon:

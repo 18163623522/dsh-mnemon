@@ -1,7 +1,7 @@
 import { isWorkspaceStorageScope } from '../host/protocol.ts'
 import { isDefaultSourceInstance } from '../host/protocol.ts'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from 'react'
-import { IconChevronLeftOutline14 } from './ui-icons.ts'
+import { IconChevronLeftOutline14, IconRefreshOutlineRegular } from './ui-icons.ts'
 import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import { consumeMnemonAnchor, subscribeMnemonAnchor, type MnemonAnchor } from "./anchor.ts"
 
@@ -275,8 +275,7 @@ function StatusPage(props: { client: MnemonClient; status: StatusView | null; lo
         <article><span className={`${css.healthIndicator} ${documents === undefined ? css.healthMuted : css.healthGood}`} /><div><small>{t('status.documents')}</small><strong>{documents === undefined ? t('status.documentsWaiting') : t('status.documentRatio', { active: documents.activeCount, archived: documents.archivedCount })}</strong><p>{documents === undefined ? t('status.documentsSession') : t('status.documentUsage', { used: humanBytes(documents.activeBytes), limit: humanBytes(documents.limitBytes) })}</p></div></article>
       </section>
 
-      <div className={css.asyncStatusBlock}>{status !== null && status.memoryBodies !== undefined && nativeInUse(status) && <NativeProviderHealth status={status} />}</div>
-      <div className={css.asyncStatusBlock}>{status?.providerServices !== undefined && <ProviderHealth services={status.providerServices} />}</div>
+      <div className={css.asyncStatusBlock}>{status !== null && (status.providerServices !== undefined || (status.memoryBodies !== undefined && nativeInUse(status))) && <ProviderHealth status={status} services={status.providerServices ?? []} />}</div>
       <div className={css.asyncStatusBlock}><StorageDomains catalog={storage} selected={selectedScope} selectedKind={selectedScopeKind} /></div>
       {versionsOpen && <VersionDialog client={props.client} writeEnabled={props.writeEnabled} onClose={() => setVersionsOpen(false)} onRefreshStatus={props.onRefresh} />}
     </div>
@@ -288,7 +287,8 @@ function nativeInUse(status: StatusView): boolean {
   return status.commandFound || (status.memoryBodies ?? []).some(body => body.provider.origin === 'native')
 }
 
-function NativeProviderHealth({ status }: { status: StatusView }): JSX.Element {
+/** Mnemon Native as the first row of the Provider list; its health comes from the CLI and its own spaces. */
+function NativeProviderRow({ status }: { status: StatusView }): JSX.Element {
   const t = useT()
   const bodies = (status.memoryBodies ?? []).filter(body => body.provider.origin === 'native')
   const active = bodies.filter(body => body.active)
@@ -298,40 +298,46 @@ function NativeProviderHealth({ status }: { status: StatusView }): JSX.Element {
   const error = !status.commandFound
     ? t('status.nativeCliMissing')
     : failed.map(body => `${body.name}: ${body.error ?? t('status.engineUnavailable')}`).join('; ')
-  return <section className={css.nativeProviderHealth} aria-label={t('status.nativeAria')} data-status={state}>
+  const version = status.version === undefined ? t('status.versionWaiting') : `Mnemon ${status.version}`
+  return <article aria-label={t('status.nativeAria')} data-status={state} data-native="">
     <ProviderIcon providerId="mnemon-native" icon={{ kind: 'brand', value: 'mnemon' }} className={css.providerHealthMark} />
-    <div className={css.nativeProviderCopy}>
-      <small>{t('status.nativeLabel')}</small>
-      <strong>mnemon</strong>
+    <div className={css.providerHealthCopy}>
+      <strong>{t('config.nativeName')}</strong>
+      <small>{t(`status.providerState.${state}` as MnemonKey)} · <span>{version}</span></small>
       {error !== '' && <p title={error}>{error}</p>}
     </div>
-    <div className={css.nativeProviderMeta}>
-      <span><i aria-hidden="true" />{t(`status.providerState.${state}` as MnemonKey)}</span>
-      <small><span>{status.version === undefined ? t('status.versionWaiting') : `Mnemon ${status.version}`}</span><span> · {t('status.providerSpaces', { active: active.length, total: bodies.length })}</span></small>
+    <div className={css.providerHealthMeta}>
+      <span className={css.providerHealthSignal} aria-hidden="true" />
+      <small>{t('status.providerSpaces', { active: active.length, total: bodies.length })}</small>
     </div>
-  </section>
+  </article>
 }
 
-function ProviderHealth({ services }: { services: MemoryProviderRuntimeStatus[] }): JSX.Element {
+function ProviderHealth({ status, services }: { status: StatusView; services: MemoryProviderRuntimeStatus[] }): JSX.Element {
   const t = useT()
-  const enabled = services.filter(service => service.enabled).length
+  const native = status.memoryBodies !== undefined && nativeInUse(status)
+  const enabled = services.filter(service => service.enabled).length + (native && status.commandFound ? 1 : 0)
+  const total = services.length + (native ? 1 : 0)
   return <section className={css.providerHealth} aria-label={t('status.providersAria')}>
     <div className={css.statusSectionHeader}>
       <div><h3>{t('status.providersTitle')}</h3><p>{t('status.providersDescription')}</p></div>
-      <span className={css.phaseBadge}>{t('status.providersEnabled', { enabled, total: services.length })}</span>
+      <span className={css.phaseBadge}>{t('status.providersEnabled', { enabled, total })}</span>
     </div>
-    <div className={css.providerHealthList}>{services.map(service => <article key={service.providerId} data-status={service.status}>
-      <ProviderIcon providerId={service.providerId} icon={service.icon} className={css.providerHealthMark} />
-      <div className={css.providerHealthCopy}>
-        <strong>{service.label}</strong>
-        <small>{t(`status.providerState.${service.status}` as MnemonKey)}</small>
-        {service.error !== undefined && <p title={service.error}>{service.error}</p>}
-      </div>
-      <div className={css.providerHealthMeta}>
-        <span className={css.providerHealthSignal} aria-hidden="true" />
-        <small>{t('status.providerSpaces', { active: service.activeMemoryBodyCount, total: service.memoryBodyCount })}</small>
-      </div>
-    </article>)}</div>
+    <div className={css.providerHealthList}>
+      {native && <NativeProviderRow status={status} />}
+      {services.map(service => <article key={service.providerId} data-status={service.status}>
+        <ProviderIcon providerId={service.providerId} icon={service.icon} className={css.providerHealthMark} />
+        <div className={css.providerHealthCopy}>
+          <strong>{service.label}</strong>
+          <small>{t(`status.providerState.${service.status}` as MnemonKey)}</small>
+          {service.error !== undefined && <p title={service.error}>{service.error}</p>}
+        </div>
+        <div className={css.providerHealthMeta}>
+          <span className={css.providerHealthSignal} aria-hidden="true" />
+          <small>{t('status.providerSpaces', { active: service.activeMemoryBodyCount, total: service.memoryBodyCount })}</small>
+        </div>
+      </article>)}
+    </div>
   </section>
 }
 
@@ -605,7 +611,7 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
             {canAlignWorkspace && <div className={appearanceClass(css.workspaceMismatch, sidebarCss.workspaceMismatch)} role="status" aria-label={`${t('workspace.mismatchTitle')}. ${workspaceDifference}`} title={workspaceDifference}><span>{t('workspace.mismatchShort')}</span><button type="button" onClick={workspaceSelection.onAlign}>{t('workspace.align')}</button></div>}
           </>}
         </div>
-        <div className={appearanceClass(css.headerActions, sidebarCss.headerActions)}><div className={appearanceClass(css.statusCluster, sidebarCss.statusCluster)}><span className={`${css.statusDot} ${statusLoading && status === null ? css.checking : status?.healthy === true ? css.online : css.offline}`} /><span>{connectionLabel}</span><button type="button" className={css.iconButton} disabled={statusLoading} onClick={refreshAll} aria-label={t('common.refresh')}>↻</button></div></div>
+        <div className={appearanceClass(css.headerActions, sidebarCss.headerActions)}><div className={appearanceClass(css.statusCluster, sidebarCss.statusCluster)}><span className={`${css.statusDot} ${statusLoading && status === null ? css.checking : status?.healthy === true ? css.online : css.offline}`} /><span>{connectionLabel}</span><button type="button" className={css.iconButton} disabled={statusLoading} onClick={refreshAll} aria-label={t('common.refresh')} title={t('common.refresh')}><IconRefreshOutlineRegular size={16} /></button></div></div>
       </header>
       {sourceCatalogState.contextKey === viewContextKey && sourceCatalogState.error !== null && <div className={css.alert} role="alert">{sourceCatalogState.error}</div>}
       {(statusError !== null || status?.healthy === false) && <div className={css.alert} role="alert"><strong>{t('header.notReady')}</strong><span>{statusError ?? status?.error}</span></div>}

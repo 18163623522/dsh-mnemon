@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type JSX } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent, type JSX, type ReactNode } from 'react'
+import { IconChevronDownOutlineRegular, Switch } from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   ClientConnectionHandle,
   MemoryProviderConfigField,
@@ -30,6 +31,8 @@ interface ProviderSettingsSectionProps {
   disabled: boolean
   scopeChanging: boolean
   t: MnemonTranslate
+  /** Rendered first in the list; Settings puts Mnemon Native here as a peer of the others. */
+  leading?: ReactNode
 }
 
 interface ServiceDraft {
@@ -327,15 +330,12 @@ function ProviderPanel(props: {
     <div className={css.providerRowHeader}>
       <button type="button" className={css.providerDisclosure} aria-expanded={expanded} disabled={!enabled || controlDisabled} onClick={toggleExpanded}>
         <span className={css.providerIdentity}><ProviderIcon providerId={props.provider.id} icon={props.provider.icon} className={css.providerMark} /><span><strong>{props.provider.label}</strong><small>{providerSummary(props.t, props.provider)}</small></span></span>
-        {enabled && <i className={css.providerChevron} aria-hidden="true">›</i>}
+        {enabled && <IconChevronDownOutlineRegular className={css.providerChevron} size={14} />}
       </button>
       <div className={css.providerEnableControl}>
         <span className={css.providerScopeTag} data-scope={providerScope}>{props.t(`config.${providerScope}`)}</span>
         <span className={css.providerState} data-enabled={enabled || undefined}>{props.t(stateKey)}</span>
-        <label className={css.providerToggle}>
-          <input type="checkbox" aria-label={props.t('config.providerToggleAria', { provider: props.provider.label })} checked={enabled} disabled={controlDisabled} onChange={event => void toggle(event.target.checked)} />
-          <span aria-hidden="true"><i /></span>
-        </label>
+        <Switch className={css.providerToggle} checked={enabled} label={props.t('config.providerToggleAria', { provider: props.provider.label })} disabled={controlDisabled} onChange={next => void toggle(next)} />
       </div>
     </div>
     {failed !== null && <p className={css.providerToggleError} role="alert">{props.t('config.providerToggleFailed', { error: failed })}</p>}
@@ -407,7 +407,7 @@ export function ProviderSettingsSection(props: ProviderSettingsSectionProps): JS
     {props.workspaceLabel !== undefined && <p className={css.providerTarget}>{props.t('config.providerTargetWorkspace', { workspace: props.workspaceLabel })}</p>}
     {loading && <span className={css.visuallyHidden} role="status">{props.t('config.loadingProviders')}</span>}
     {failed !== null && <div className={css.providerLoadError}><span className={css.error}>{props.t('config.providerLoadFailed', { error: failed })}</span><button type="button" className={css.textButton} onClick={() => void load()}>{props.t('config.retryProviders')}</button></div>}
-    <div className={css.providerList} aria-busy={loading}>{catalog.providers.map(provider => {
+    <div className={css.providerList} aria-busy={loading}>{props.leading}{catalog.providers.map(provider => {
       const service = catalog.items.find(item => item.providerId === provider.id) ?? { providerId: provider.id, enabled: false, configured: false, settings: {}, configuredSecrets: [] }
       return <ProviderPanel key={provider.id} provider={provider} service={service} disabled={disabled} activeScope={props.activeScope} t={props.t} onSave={save} onToggle={toggle} />
     })}</div>
