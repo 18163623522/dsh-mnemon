@@ -3,7 +3,7 @@ import { IconChevronDownOutlineRegular, IconLinkOutlineRegular, IconSearchOutlin
 import type { MemoryCompositionStatus } from '../host/protocol.ts'
 import type { MemoryPluginEntryView, MemoryPluginPreference, MemoryViewDashboard } from '../host/view-protocol.ts'
 import { componentCopy, nameList } from './component-copy.ts'
-import { ComponentDetails, MainChoice, type ComponentState } from './component-details.tsx'
+import { ComponentDetails, ComponentPage, MainChoice, type ComponentDetailsProps, type ComponentState } from './component-details.tsx'
 import { componentModel, enhancementApplies, layerOf, mainPlan, relationsOf, sourceOf, switchPlan, unmetRequirements, type MemoryComponentModel, type SwitchPlan } from './component-model.ts'
 import { ActionButton, Callout, Reveal, TARGET } from './feedback.tsx'
 import type { MnemonKey, MnemonTranslate } from './locales.ts'
@@ -194,6 +194,8 @@ export interface CompositionBoardProps {
   componentSettings?: ComponentSettingsRenderer
   /** The pages open, when the configuration opens them from elsewhere too. */
   pages?: PageTrail
+  /** Show only this component's page, by its package name, as DSH's row page does; related pages open over it. */
+  page?: string | undefined
   readOnly: boolean
   language: string
   t: MnemonTranslate
@@ -220,7 +222,8 @@ export function CompositionBoard(props: CompositionBoardProps): JSX.Element | nu
   // Without the View the components cannot be read, but the saved memory
   // layers can still be switched.
   const componentsUnavailable = dashboard === null && view.state.status === 'unavailable'
-  if (componentsUnavailable && system === null) return null
+  const pageMode = props.page !== undefined
+  if (componentsUnavailable && (pageMode || system === null)) return pageMode ? <p className={css.boardEmpty} role="status">{t('board.componentsUnavailable')}</p> : null
   const name: Name = entry => componentCopy(entry, language).label
   const model = dashboard === null ? undefined : componentModel(dashboard)
   const working = view.state.working
@@ -243,6 +246,7 @@ export function CompositionBoard(props: CompositionBoardProps): JSX.Element | nu
     <div className={css.board}>{content}</div>
   </section>
   if (model === undefined && !componentsUnavailable) {
+    if (pageMode) return <p className={css.boardLoading} role="status"><StateDot state="ongoing" /><TextShimmer active>{t('board.loading')}</TextShimmer></p>
     return frame(<>
       <p className={css.boardLoading} role="status"><StateDot state="ongoing" /><TextShimmer active>{t('board.loading')}</TextShimmer></p>
       {placeholders(4)}
@@ -368,23 +372,37 @@ export function CompositionBoard(props: CompositionBoardProps): JSX.Element | nu
     if (entry === model?.composing) return { tone: 'done', text: t('board.composing') }
     return entry.enabled ? { tone: 'warning', text: t('board.notRunning') } : { tone: 'idle', text: t('board.off') }
   }
+  /** A component's page: its state and control, as its row has them, and what it declares and contributed. */
+  const pageOf = (entry: MemoryPluginEntryView, board: MemoryViewDashboard): Omit<ComponentDetailsProps, 'onClose' | 'onOpen' | 'back'> => {
+    const isMain = entry.roles.includes('strategy')
+    const item = isMain ? undefined : [...sourceItems, ...otherItems].find(candidate => candidate.entry === entry)
+    const control = isMain
+      ? <MainChoice selected={entry.typeId === board.strategyTypeId} disabled={locked || !entry.writable} t={t} onChoose={() => { void chooseMain(view.store, board, entry) }} />
+      : item === undefined ? null : <Switch className={css.switch} checked={item.checked} label={item.label} disabled={item.disabled} onChange={item.onSwitch} />
+    return {
+      entry, dashboard: board, name, hint: componentCopy(entry, language).hint,
+      state: isMain ? mainState(entry) : item?.state, control, writable: !locked, applying: working?.key === 'options:' + entry.entryId, language, t,
+      settings: props.componentSettings?.has(entry.packageName) === true ? props.componentSettings.render(entry, !props.readOnly) : undefined,
+      onApply: config => view.store.configure('options:' + entry.entryId, entry, config),
+    }
+  }
   const openedId = pages.trail.at(-1)
   const open = openedId === undefined || dashboard === null ? undefined : dashboard.entries.find(entry => entry.entryId === openedId)
   const previous = pages.trail.length < 2 || dashboard === null ? undefined : dashboard.entries.find(entry => entry.entryId === pages.trail.at(-2))
-  let details: ReactNode = null
-  if (open !== undefined && dashboard !== null) {
-    const isMain = open.roles.includes('strategy')
-    const item = isMain ? undefined : [...sourceItems, ...otherItems].find(candidate => candidate.entry === open)
-    const control = isMain
-      ? <MainChoice selected={open.typeId === dashboard.strategyTypeId} disabled={locked || !open.writable} t={t} onChoose={() => { void chooseMain(view.store, dashboard, open) }} />
-      : item === undefined ? null : <Switch className={css.switch} checked={item.checked} label={item.label} disabled={item.disabled} onChange={item.onSwitch} />
-    details = <ComponentDetails entry={open} dashboard={dashboard} name={name} hint={componentCopy(open, language).hint}
-      state={isMain ? mainState(open) : item?.state} control={control} writable={!locked} applying={working?.key === 'options:' + open.entryId} language={language} t={t}
-      settings={props.componentSettings?.has(open.packageName) === true ? props.componentSettings.render(open, !props.readOnly) : undefined}
-      {...(previous === undefined ? {} : { back: { name: name(previous), go: pages.back } })}
-      onOpen={other => pages.open(other.entryId, 'page')}
-      onClose={pages.close}
-      onApply={config => view.store.configure('options:' + open.entryId, open, config)} />
+  const details: ReactNode = open === undefined || dashboard === null ? null : <ComponentDetails {...pageOf(open, dashboard)}
+    {...(previous === undefined ? {} : { back: { name: name(previous), go: pages.back } })}
+    onOpen={other => pages.open(other.entryId, 'page')}
+    onClose={pages.close} />
+
+  // DSH's row page shows the component's own page in place; a related name opens over it.
+  if (pageMode) {
+    const own = dashboard?.entries.find(entry => entry.packageName === props.page)
+    return <section className={css.componentRowPage} aria-busy={working !== null}>
+      {own === undefined || dashboard === null
+        ? <p className={css.boardEmpty} role="status">{t('board.componentsUnavailable')}</p>
+        : <ComponentPage {...pageOf(own, dashboard)} headed onOpen={other => pages.open(other.entryId, 'configuration')} />}
+      {details}
+    </section>
   }
 
   return frame(<>

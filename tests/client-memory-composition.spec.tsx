@@ -90,14 +90,14 @@ function fixture(entries: MemoryPluginEntryView[], options: { failApply?: boolea
 const NO_LAYERS: LayerSettings = { set: async () => {} }
 
 /** The configuration page's wiring: one View store, re-read when `refreshKey` moves, the board and its feedback. */
-function Composition(props: { connection: ClientConnectionHandle; language: string; readOnly?: boolean; refreshKey?: number; system?: MemoryCompositionStatus; layers?: LayerSettings; componentSettings?: ComponentSettingsRenderer; t: MnemonTranslate }) {
+function Composition(props: { connection: ClientConnectionHandle; language: string; readOnly?: boolean; refreshKey?: number; system?: MemoryCompositionStatus; layers?: LayerSettings; componentSettings?: ComponentSettingsRenderer; page?: string; t: MnemonTranslate }) {
   const client = useMemo(() => new MnemonClient(props.connection), [props.connection])
   const view = useViewStore(client, props.refreshKey ?? 0)
   const root = useRef<HTMLElement | null>(null)
   const feedback = useViewFeedback(view, root, props.t, props.language)
   return <section ref={root}>
     <CompositionBoard view={view} system={props.system ?? null} layers={props.layers ?? NO_LAYERS} readOnly={props.readOnly ?? false} language={props.language} t={props.t}
-      {...(props.componentSettings === undefined ? {} : { componentSettings: props.componentSettings })} />
+      {...(props.componentSettings === undefined ? {} : { componentSettings: props.componentSettings })} {...(props.page === undefined ? {} : { page: props.page })} />
     {feedback}
   </section>
 }
@@ -546,5 +546,23 @@ describe('memory composition board', () => {
     fireEvent.click(within(related).getByRole('button', { name: 'Back to “Active capture”' }))
     expect(screen.getByRole('dialog', { name: 'Active capture' })).toBeTruthy()
     expect(within(screen.getByRole('dialog')).queryByRole('button', { name: /^Back to/u })).toBeNull()
+  })
+
+  it('shows one component\'s page alone, as DSH\'s row page does, with related pages over it', async () => {
+    const { applied, connection } = fixture([threeTier, needy, source('runtime'), source('memory-spaces')])
+    render(<Composition connection={connection} language="en" system={system(allLayers)} page="dsh-mnemon-strategy-auto-capture" t={translateEn} />)
+    // The page stands in place of the board: its state, switch and relations.
+    const own = await screen.findByRole('switch', { name: 'Active capture' })
+    expect(screen.queryByRole('region', { name: 'Memory composition' })).toBeNull()
+    expect(screen.queryByRole('switch', { name: 'Runtime memory' })).toBeNull()
+    fireEvent.click(own)
+    await waitFor(() => expect(applied).toHaveLength(1))
+    expect(applied[0]!.entries['mnemon-strategy-auto-capture']).toEqual({ enabled: true, config: {} })
+    // A related name opens that component's page over it, without leaving the row page.
+    fireEvent.click(screen.getByRole('button', { name: 'Memory Spaces' }))
+    const related = screen.getByRole('dialog', { name: 'Memory Spaces' })
+    fireEvent.click(within(related).getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(screen.getByRole('switch', { name: 'Active capture' })).toBeTruthy()
   })
 })

@@ -1,4 +1,4 @@
-import { createElement, type ReactNode } from 'react'
+import { Component, createElement, type ComponentType, type ErrorInfo, type ReactNode } from 'react'
 
 /**
  * A component's own settings, on its page: keyed by the component's package
@@ -121,4 +121,28 @@ export function createComponentRegionDirectory(ctx: ComponentRegionDirectoryCont
 
 export function createComponentSettingsDirectory(ctx: ComponentRegionDirectoryContext): ComponentSettingsDirectory {
   return createComponentRegionDirectory(ctx, MNEMON_COMPONENT_SETTINGS_SLOT)
+}
+
+interface ComponentRegionEntriesContext {
+  slots: { entriesOfSlot(name: ComponentRegion): readonly { component: unknown; options: { key?: string } }[] }
+}
+
+/** A contribution that fails renders nothing and leaves the page around it working. */
+class ContributionBoundary extends Component<{ packageName: string; children: ReactNode }, { failed: boolean }> {
+  override state = { failed: false }
+  static getDerivedStateFromError(): { failed: boolean } { return { failed: true } }
+  override componentDidCatch(error: unknown, info: ErrorInfo): void {
+    console.error(`dsh-mnemon: the interface ${this.props.packageName} contributed failed`, error, info.componentStack)
+  }
+  override render(): ReactNode { return this.state.failed ? null : this.props.children }
+}
+
+/**
+ * Render what one component registered into a region, where the page is not
+ * the region's declaring owner, as DSH's row page for a component is not:
+ * a child slot has one declaring entry, the configuration's.
+ */
+export function renderComponentRegion<P extends object>(ctx: ComponentRegionEntriesContext, region: ComponentRegion, packageName: string, props: P): ReactNode {
+  const entry = ctx.slots.entriesOfSlot(region).find(candidate => candidate.options.key === packageName)
+  return entry === undefined ? null : createElement(ContributionBoundary, { packageName, children: createElement(entry.component as ComponentType<P>, props) })
 }

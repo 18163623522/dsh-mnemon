@@ -127,6 +127,8 @@
 .detailsMissing { color: var(--dsw-alias-label-secondary); }
 .detailsEffect { margin: 0; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 18px; }
 .detailsBody .optionsPanel { margin: 0; border-radius: 0; padding: 0; background: transparent; }
+/* A component's page on DSH's own row page, under the title DSH draws. */
+.componentRowPage { display: flex; min-width: 0; flex-direction: column; gap: 16px; }
 /* What a component contributed to its page, after what its declarations give. */
 .detailsContributed { display: flex; min-width: 0; flex-direction: column; gap: 16px; border-top: .5px solid var(--dsw-alias-border-l2); padding-top: 14px; }
 .panelSection { display: flex; min-width: 0; flex-direction: column; gap: 8px; }

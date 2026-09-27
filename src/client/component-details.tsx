@@ -33,6 +33,8 @@ export interface ComponentDetailsProps {
   settings?: ReactNode | undefined
   /** The page this one was opened from, to go back to. */
   back?: { name: string; go: () => void } | undefined
+  /** The page's container already heads it with the component's name, package and description, as DSH's row page does. */
+  headed?: boolean | undefined
   /** Open a related component's page in place of this one. */
   onOpen: (entry: MemoryPluginEntryView) => void
   /** Save the options; resolves whether they were saved. The page stays open. */
@@ -40,14 +42,22 @@ export interface ComponentDetailsProps {
   onClose: () => void
 }
 
+/** A component's page in a dialog over the configuration, the way the board opens it. */
+export function ComponentDetails(props: ComponentDetailsProps): JSX.Element {
+  return <Modal open onClose={props.onClose} title={props.name(props.entry)} description={props.hint} closeLabel={props.t('common.close')} className={css.detailsDialog ?? ''} contentClassName={css.detailsScroll ?? ''}>
+    <ComponentPage {...props} />
+  </Modal>
+}
+
 /**
  * Everything one component brings, in one place: what it is and where it
  * came from, how it relates to the other components installed and what its
- * switch would move, and the options it declares. Relations and options are
- * drawn from the component's own declarations, so an installed extension
- * gets the same page as a shipped component.
+ * switch would move, the options it declares and the settings it contributed.
+ * Relations and options are drawn from the component's own declarations, so an
+ * installed extension gets the same page as a shipped component. The same
+ * page shows in a dialog over the configuration and on DSH's own row page.
  */
-export function ComponentDetails(props: ComponentDetailsProps): JSX.Element {
+export function ComponentPage(props: Omit<ComponentDetailsProps, 'onClose'>): JSX.Element {
   const { entry, dashboard, name, t } = props
   const relations = relationsOf(dashboard, entry)
   const names = (entries: readonly MemoryPluginEntryView[]): string => nameList(entries.map(name), t)
@@ -66,8 +76,7 @@ export function ComponentDetails(props: ComponentDetailsProps): JSX.Element {
     <StateDot state={on ? 'done' : 'idle'} /><span>{name(other)}</span>
   </button>
 
-  return <Modal open onClose={props.onClose} title={name(entry)} description={props.hint} closeLabel={t('common.close')} className={css.detailsDialog ?? ''} contentClassName={css.detailsScroll ?? ''}>
-    <div className={`${css.surface} ${css.detailsBody}`}>
+  return <div className={`${css.surface} ${css.detailsBody}`}>
     {props.back !== undefined && <button type="button" className={css.detailsBack} onClick={props.back.go}>
       <IconChevronLeftOutlineRegular size={12} aria-hidden="true" />{t('details.back', { component: props.back.name })}
     </button>}
@@ -81,7 +90,7 @@ export function ComponentDetails(props: ComponentDetailsProps): JSX.Element {
         <Tag tone={isShipped(entry) ? 'neutral' : 'info'}>{t(isShipped(entry) ? 'details.shipped' : 'details.installed')}</Tag>
         <span className={css.detailsControl}>{props.control}</span>
       </div>
-      <code className={css.detailsPackage}>{entry.packageName}</code>
+      {props.headed !== true && <code className={css.detailsPackage}>{entry.packageName}</code>}
     </div>
     {hasRelations && <section className={css.detailsSection} aria-label={t('details.relations')}>
       <h3>{t('details.relations')}</h3>
@@ -109,8 +118,7 @@ export function ComponentDetails(props: ComponentDetailsProps): JSX.Element {
         disabled={!props.writable || !entry.writable} pending={props.applying} onApply={props.onApply} />
     </section>}
     {props.settings !== undefined && props.settings !== null && <div className={css.detailsContributed}>{props.settings}</div>}
-    </div>
-  </Modal>
+  </div>
 }
 
 /** The choice of a main Strategy inside its page: the current one says so, another offers to switch. */

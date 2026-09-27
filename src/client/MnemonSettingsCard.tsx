@@ -46,6 +46,8 @@ export interface MnemonSettingsCardProps {
   componentChanges?: Pick<MnemonChangeSignal, 'subscribe' | 'getSnapshot'>
   /** The settings components contribute to their pages; without it a page shows what their declarations give. */
   componentSettings?: ComponentSettingsSource
+  /** Show one component's page alone, by its package name, as DSH's row page for that component. */
+  component?: string
 }
 
 const NO_CHANGE_SIGNAL: Pick<MnemonChangeSignal, 'subscribe' | 'getSnapshot'> = { subscribe: () => () => {}, getSnapshot: () => 0 }
@@ -60,7 +62,7 @@ const NO_CHANGE_SIGNAL: Pick<MnemonChangeSignal, 'subscribe' | 'getSnapshot'> = 
  * Typed values wait for their group's Apply; the storage location waits too,
  * because it moves where every component reads and writes.
  */
-export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractionScope, connection, sessionId, workspaceId, workspaceLabel, t = translateZh, language = 'zh', componentChanges = NO_CHANGE_SIGNAL, componentSettings }: MnemonSettingsCardProps): JSX.Element | null {
+export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractionScope, connection, sessionId, workspaceId, workspaceLabel, t = translateZh, language = 'zh', componentChanges = NO_CHANGE_SIGNAL, componentSettings, component }: MnemonSettingsCardProps): JSX.Element | null {
   const interactionScope = suppliedInteractionScope ?? scope as unknown as ClientSettingsScope<InteractionConfig>
   const coreSnapshot = useScope(scope)
   const interactionSnapshot = useScope(interactionScope)
@@ -137,6 +139,15 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
 
   const coreDisabled = loading || !coreSnapshot.writable
   const interactionDisabled = loading || !interactionSnapshot.writable
+  // DSH's row page for one component shows that component's page alone.
+  if (component !== undefined) {
+    return <section ref={root} className={css.page} aria-label={t('config.aria')} aria-busy={loading}>
+      {!writable && !loading && <p className={css.readOnlyNotice}>{t('config.readOnly')}</p>}
+      <CompositionBoard view={view} system={memorySystem} systemPending={memorySystemState === 'loading'} layers={layerSettings} readOnly={!coreSnapshot.writable} language={language} t={t}
+        pages={pages} page={component} {...(settingsRenderer === undefined ? {} : { componentSettings: settingsRenderer })} />
+      {feedbackToast}
+    </section>
+  }
   // The DSH Plugins page draws the plugin's title and description above this
   // section. Composition comes first, then where memory lives, then how the
   // in-conversation surfaces behave.

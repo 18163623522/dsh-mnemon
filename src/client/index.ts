@@ -7,10 +7,11 @@ import {
   type InteractionConfig,
   type MnemonDisplayMode,
 } from "../host/protocol.ts"
-import { MnemonSettingsHost } from './MnemonSettingsHost.tsx'
-import { createComponentSettingsDirectory, MNEMON_COMPONENT_SETTINGS_SLOT, MNEMON_COMPONENT_STATUS_SLOT } from './component-ui.tsx'
+import { MnemonComponentRowHost, MnemonSettingsHost } from './MnemonSettingsHost.tsx'
+import { createComponentSettingsDirectory, type MemoryComponentSettingsProps, MNEMON_COMPONENT_SETTINGS_SLOT, MNEMON_COMPONENT_STATUS_SLOT, renderComponentRegion } from './component-ui.tsx'
 import { installShippedComponentSettings } from './component-settings.tsx'
 import { installShippedComponentStatus } from './component-status.tsx'
+import { STARTER_COMPONENT_ROWS } from './starter-rows.ts'
 import { MnemonTurnTail } from './MnemonTurnTail.tsx'
 import { MnemonPluginActions, MNEMON_PACKAGE_NAME } from './MnemonPluginActions.tsx'
 import { MnemonSaveAction } from './MnemonSaveAction.tsx'
@@ -349,6 +350,18 @@ export function apply(rawContext: unknown): void {
   // and its components.
   // Components contribute their own settings to their pages there, keyed by package name.
   const componentSettingsDirectory = createComponentSettingsDirectory(ctx)
+  const configurationServices = () => ({
+    componentSettingsDirectory,
+    scope: settings,
+    interactionScope: interactionSettings,
+    connection: ctx.connection,
+    sessions: ctx.sessions,
+    workspaces: ctx.workspaces,
+    currentSession: ctx.uiSession.adapter.current,
+    localeRuntime: ctx.locale,
+    componentChanges: seats.components,
+    t: translate,
+  })
   ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
     name: 'plugins.bundle.config',
     key: MNEMON_PACKAGE_NAME,
@@ -356,19 +369,21 @@ export function apply(rawContext: unknown): void {
     children: {
       [MNEMON_COMPONENT_SETTINGS_SLOT]: { kind: 'keyed', scope: 'root' },
     },
-    inject: () => ({
-      componentSettingsDirectory,
-      scope: settings,
-      interactionScope: interactionSettings,
-      connection: ctx.connection,
-      sessions: ctx.sessions,
-      workspaces: ctx.workspaces,
-      currentSession: ctx.uiSession.adapter.current,
-      localeRuntime: ctx.locale,
-      componentChanges: seats.components,
-      t: translate,
-    }),
+    inject: configurationServices,
   }, MnemonSettingsHost))
+  // Each component row in DSH's list below opens a page of its own: the
+  // component's page, with the settings it contributed, as the board opens it.
+  // A child slot has one declaring entry, the configuration above, so a row
+  // page renders what a component registered there as it was registered.
+  const renderContributed = (packageName: string, owner: MemoryComponentSettingsProps) => renderComponentRegion(ctx, MNEMON_COMPONENT_SETTINGS_SLOT, packageName, owner)
+  for (const { rowId, packageName } of STARTER_COMPONENT_ROWS) {
+    ctx.slots.inject('plugins.row.config', () => ctx.slots.register({
+      name: 'plugins.row.config',
+      key: `${MNEMON_PACKAGE_NAME}#${rowId}`,
+      locale: namespace,
+      inject: () => ({ ...configurationServices(), component: packageName, renderContributed }),
+    }, MnemonComponentRowHost))
+  }
   // The shipped components' own settings and Status cards arrive the way an installed component's do.
   ctx.effect(() => installShippedComponentSettings(ctx, { scope: settings, connection: ctx.connection, t: translate }), 'dsh-mnemon: shipped component settings')
   ctx.effect(() => installShippedComponentStatus(ctx), 'dsh-mnemon: shipped component status')
