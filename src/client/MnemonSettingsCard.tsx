@@ -23,14 +23,16 @@ import type { MemoryPluginEntryView, MemoryViewDashboard } from '../host/view-pr
 import { MnemonClient } from './api.ts'
 import css from './MnemonSettingsCard.module.css'
 import { GlobalLocationSetting } from './GlobalLocationSetting.tsx'
+import { isRecord } from './is-record.ts'
 import { translateZh, type MnemonKey, type MnemonTranslate } from './locales.ts'
+import { message } from './page-kit.tsx'
 import { MnemonPackSection } from './MnemonPackSection.tsx'
 import { ProviderIcon } from './ProviderIcon.tsx'
 import { ProviderSettingsSection } from './ProviderSettingsSection.tsx'
 
 export interface MnemonSettingsCardProps {
   scope: ClientSettingsScope<Config>
-  /** Separate live namespace; falls back to the core scope for older hosts. */
+  /** Separate live namespace; without it the interaction toggles use `scope`. */
   interactionScope?: ClientSettingsScope<InteractionConfig>
   /** Loopback RPC used for whole-directory ZIP backup and restore. */
   connection?: ClientConnectionHandle
@@ -72,10 +74,6 @@ const MEMORY_ENHANCEMENTS: ReadonlyArray<{ packageName: string; label: MnemonKey
   { packageName: 'dsh-mnemon-strategy-light-context', label: 'config.enhancementLightContext', hint: 'config.enhancementLightContextHint' },
   { packageName: 'dsh-mnemon-strategy-scoped', label: 'config.enhancementScoped', hint: 'config.enhancementScopedHint' },
 ]
-function record(value: unknown): Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {}
-}
-
 function legacyPackDirectory(value: Config): string {
   const packs = value.customPacks ?? []
   return packs.find(pack => pack.id === value.customPackId)?.dataDir?.trim()
@@ -189,17 +187,6 @@ function operations(fields: readonly DraftField[], dirty: ReadonlySet<Field>, dr
   })
 }
 
-async function commit<T>(scope: ClientSettingsScope<T>, edits: SettingsOperation[]): Promise<void> {
-  if (scope.mutate !== undefined) return scope.mutate(edits)
-  for (const edit of edits) {
-    if (edit.path.length === 1) {
-      if (edit.op === 'set') await scope.set(edit.path[0]!, edit.value)
-      else await scope.unset(edit.path[0]!)
-    } else if (edit.op === 'set') await scope.setPath(edit.path, edit.value)
-    else await scope.unsetPath(edit.path)
-  }
-}
-
 /** Dedicated Mnemon page contributed directly to DSH's settings navigation. */
 export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractionScope, connection, sessionId, workspaceId, workspaceLabel, t = translateZh }: MnemonSettingsCardProps): JSX.Element | null {
   const interactionScope = suppliedInteractionScope ?? scope as unknown as ClientSettingsScope<InteractionConfig>
@@ -268,7 +255,7 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
     }, reason => {
       if (modelCatalogRequest.current !== request) return
       setModelCatalogState('error')
-      setModelCatalogError(reason instanceof Error ? reason.message : String(reason))
+      setModelCatalogError(message(reason))
     })
   }, [connection])
 
@@ -323,12 +310,12 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
       setEmbeddingStatusState('ready')
     }, reason => {
       if (embeddingStatusRequest.current !== request) return
-      setEmbeddingStatusError(reason instanceof Error ? reason.message : String(reason))
+      setEmbeddingStatusError(message(reason))
       setEmbeddingStatusState('error')
     })
   }
 
-  const coreUser = useMemo(() => record(coreSnapshot.user), [coreSnapshot.user])
+  const coreUser = useMemo(() => isRecord(coreSnapshot.user) ? coreSnapshot.user : {}, [coreSnapshot.user])
   const activeScope = isWorkspaceStorageScope(coreDraft(coreSnapshot.value).storageScope) ? 'workspace' : 'global'
   const error = validation(t, draft)
   const loading = coreSnapshot.status === 'loading' || interactionSnapshot.status === 'loading'
@@ -417,14 +404,14 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
       }
       const interactionOps = operations(INTERACTION_FIELDS, dirty, draft)
       await Promise.all([
-        ...(coreOps.length === 0 ? [] : [commit(scope, coreOps)]),
-        ...(interactionOps.length === 0 ? [] : [commit(interactionScope, interactionOps)]),
+        ...(coreOps.length === 0 ? [] : [scope.mutate(coreOps)]),
+        ...(interactionOps.length === 0 ? [] : [interactionScope.mutate(interactionOps)]),
       ])
       setDirty(new Set())
       setApplied(true)
       if (regularCoreChanged || embeddingChanged || topologyChanged) setTargetRevision(revision => revision + 1)
     } catch (reason) {
-      setFailed(reason instanceof Error ? reason.message : String(reason))
+      setFailed(message(reason))
     } finally {
       setSaving(false)
     }
@@ -480,7 +467,7 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
                   onChange={event => edit('dataDir', event.target.value)} />
               </div>
             </div>
-            <p className={css.description}>{t('config.workspacesIdentityHint')}</p>
+            <p>{t('config.workspacesIdentityHint')}</p>
           </div>}
         </section>
 
@@ -635,8 +622,8 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
 }
 
 /**
- * v0.5 exposes the shipped behavior toggles, not the underlying plugin graph.
- * Older Hosts simply omit this section when the View settings channel is absent.
+ * Exposes the shipped behavior toggles, not the underlying plugin graph. The
+ * section stays hidden whenever the View dashboard cannot be read.
  */
 function MemoryEnhancementsSection(props: {
   connection?: ClientConnectionHandle
@@ -746,6 +733,14 @@ function MemoryEnhancementsSection(props: {
   </section>
 }
 
+/** Reachability and coverage line; the protocol appears only when the Host reports one. */
+function embeddingStatusText(t: MnemonTranslate, status: MnemonEmbeddingStatus): string {
+  const coverage = { embedded: status.embedded, total: status.totalInsights, coverage: status.coverage }
+  return status.protocol === undefined
+    ? t(status.available ? 'config.embeddingStatusAvailable' : 'config.embeddingStatusUnavailable', { model: status.model, ...coverage })
+    : t(status.available ? 'config.embeddingStatusAvailableWithProtocol' : 'config.embeddingStatusUnavailableWithProtocol', { model: status.model, protocol: status.protocol, ...coverage })
+}
+
 function EmbeddingSettingsSection(props: {
   draft: Draft
   disabled: boolean
@@ -765,35 +760,7 @@ function EmbeddingSettingsSection(props: {
       : props.state === 'error'
         ? props.t('config.embeddingStatusFailed', { error: props.error ?? '' })
         : props.state === 'ready' && props.status !== null
-          ? props.status.available
-            ? props.status.protocol === undefined
-              ? props.t('config.embeddingStatusAvailable', {
-                  model: props.status.model,
-                  embedded: props.status.embedded,
-                  total: props.status.totalInsights,
-                  coverage: props.status.coverage,
-                })
-              : props.t('config.embeddingStatusAvailableWithProtocol', {
-                  model: props.status.model,
-                  protocol: props.status.protocol,
-                  embedded: props.status.embedded,
-                  total: props.status.totalInsights,
-                  coverage: props.status.coverage,
-                })
-            : props.status.protocol === undefined
-              ? props.t('config.embeddingStatusUnavailable', {
-                  model: props.status.model,
-                  embedded: props.status.embedded,
-                  total: props.status.totalInsights,
-                  coverage: props.status.coverage,
-                })
-              : props.t('config.embeddingStatusUnavailableWithProtocol', {
-                  model: props.status.model,
-                  protocol: props.status.protocol,
-                  embedded: props.status.embedded,
-                  total: props.status.totalInsights,
-                  coverage: props.status.coverage,
-                })
+          ? embeddingStatusText(props.t, props.status)
           : props.state === 'unavailable'
             ? props.t('config.embeddingTestUnavailable')
             : props.t('config.embeddingNotTested')

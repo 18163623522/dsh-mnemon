@@ -53,7 +53,7 @@ DSH rc.8 首次说明的可选 SQLite 不兼容性在 DSH 0.1.1-rc.2 中仍然�
 
 ## DSH 0.1.5 兼容与旧会话恢复
 
-锁定的开发基线为 DSH `0.1.5-rc.1`；其他经过验证的版本见[兼容性矩阵](../reference/compatibility.md)。升级 Mnemon 后重启 Web Profile：Starter 补丁为拥有路由的 `connection` Entry 同时声明 `webRuntime` 和 `webServer`，恢复此前在“记忆系统”或其设置页返回 HTTP 405 的全部七个 RPC 通道。绕过 Starter 独立安装 Host 的自定义 Profile，也应在自己的 connection Entry 声明这两个依赖，并保留自定义组合原有的其他依赖。不修改 DSH 包源码；浏览器认证和 Mnemon grant 仍然生效。
+支持的宿主为 DSH `0.1.7-rc.2`，参见[兼容性矩阵](../reference/compatibility.md)。升级 Mnemon 后重启 Web Profile：Starter 补丁为拥有路由的 `connection` Entry 同时声明 `webRuntime` 和 `webServer`，恢复此前在“记忆系统”或其设置页返回 HTTP 405 的全部七个 RPC 通道。绕过 Starter 独立安装 Host 的自定义 Profile，也应在自己的 connection Entry 声明这两个依赖，并保留自定义组合原有的其他依赖。不修改 DSH 包源码；浏览器认证和 Mnemon grant 仍然生效。
 
 另一项 `source summary requires notice form; source v0 artifact remains unchanged` 错误来自旧版 Mnemon 写入的 DSH 会话消息。新消息已移除 recall/instructions 中不合法的 summary；更新插件不会改写现有会话。修复单个受影响日志时：
 
@@ -152,9 +152,9 @@ DSH 以写权限打开旧会话时，会迁移为不可变的 v3 generation。Mn
 
 <a id="cloud-hosted-webui"></a>
 
-## DSH 0.1.5-rc.1 的云端 WebUI
+## 云端 WebUI
 
-DSH 0.1.5-rc.1 是推荐的 registry 安装目标。页面、每个 RPC 与每条 stream 都通过 Host 输出的启动 token URL 建立同一份、与 authority 绑定的浏览器会话。`--trusted-host` 仍只是 Host/Origin 防线，不能替代 HTTPS 或部署层访问控制。
+DSH 0.1.7-rc.2 是支持的 registry 安装目标。页面、每个 RPC 与每条 stream 都通过 Host 输出的启动 token URL 建立同一份、与 authority 绑定的浏览器会话。`--trusted-host` 仍只是 Host/Origin 防线，不能替代 HTTPS 或部署层访问控制。
 
 1. 在反向代理或访问网关终止 HTTPS，并只向预期用户开放公网入口。把同源的 `/` 与 `/api` 流量（包括 stream）代理到 `http://127.0.0.1:3080`，同时保留外部 `Host` authority。
 2. 使用外部 authority 启动回环服务。参数应为裸 `host[:port]`，不是 URL：
@@ -185,7 +185,7 @@ HTTP 403 可能来自 Host/Origin 不匹配，或旧远程 Client 仍调用独�
 
 ### 远程管理与 DSH 0.1.1-rc.2 回滚
 
-下列 DSH `0.1.1-rc.2` 流程属于历史记录。当前 Mnemon Client 需要 DSH `0.1.5-rc.1` 或[兼容性矩阵](../reference/compatibility.md)中经过验证的更新版本。回滚时，将旧版 DSH 与之前针对它验证过的 Mnemon 版本配套使用，并恢复对应的升级前会话备份。
+下列 DSH `0.1.1-rc.2` 流程属于历史记录。当前 Mnemon 需要 DSH `0.1.7-rc.2`，参见[兼容性矩阵](../reference/compatibility.md)。回滚时，将旧版 DSH 与之前针对它验证过的 Mnemon 版本配套使用，并恢复对应的升级前会话备份。
 
 对于 v0.5.5 已认证网关客户端，`remoteAccess: trusted-host` 授予管理操作；默认远程读取与小范围激活不需要该授权。旧 DSH rc.2 通过逐方法 authority 层执行同一份本地配置，设置、备份与宽泛 mutation 默认仅限 loopback。仅为预期的已认证用户配置远程管理权限。
 
@@ -274,13 +274,12 @@ HTTP 403 可能来自 Host/Origin 不匹配，或旧远程 Client 仍调用独�
 | 自定义目录被拒绝 | 使用绝对路径、`~` 或 `~/...` |
 | `memoryBodyId is required...` | active 数量不是恰好 1；显式选择目标 |
 | `memory space is not active for reading` | 在概览激活目标；写入 inactive 可以，读取不行 |
-| Provider 错误 | 审查需要受 guard 保护的本地子 Agent；默认有界 `spawn`，可选择 `fork`。DSH/Teams 0.1.7-rc.1 可选择 `idleReview.agentTeams: scoped`，旧版策略保留 `pause`；重试前核对部分写入回执 |
+| Provider 错误 | 审查需要受 guard 保护的本地子 Agent；默认有界 `spawn`，可选择 `fork`。DSH/Teams 0.1.7-rc.2 可选择 `idleReview.agentTeams: scoped`，默认仍为 `pause`；重试前核对部分写入回执 |
 | Runtime replace 超容量 | 缩短 replacement 或先显式整理；自动维护只处理 add 溢出 |
 | Document source path 被拒绝 | 路径必须在会话工作区内，且不能引用受管 Documents 目录 |
 | CLI timeout | 增大 `timeoutMs`；大 Store 的状态与图谱可能超过 10 秒 |
 | lock timeout | 检查其他写进程，不要删除仍属于活跃进程的 lock |
 | 记忆系统白屏并提示 `refreshSnapshot` 或 settings store 错误 | 将 dsh-mnemon 升级到 v0.4.1 并重启所属 DSH profile；设置回调会保留宿主 store 的 `this` 绑定 |
-| DSH alpha 提示 `list slot "conversation.chat.turnTail" requires options.id` | 安装包含 DSH `0.1.6-alpha.2` 回合尾修复的 dsh-mnemon 版本，重启所属 Web profile 并重新加载页面。修复保留“本回合记忆”开关，无需修复数据 |
 | ZIP 导出提示 `date not in range 1980-2099` | 将 dsh-mnemon 升级到 v0.4.1；固定本地 ZIP 日期字段后，UTC 以西时区可以正常导出，相同导出的归档字节也不再因时区变化 |
 | ZIP 导出提示 WAL busy | 等待 Memory Space 写入完成并重试；不要绕过未 checkpoint WAL 检查 |
 | ZIP 导入 checksum / schema 失败 | 备份损坏或格式不兼容；保留当前根，不要手工解压覆盖 |

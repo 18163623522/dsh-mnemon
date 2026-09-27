@@ -2,7 +2,6 @@ import { createHash, randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import type { MnemonRunner, MnemonTextCommand } from './runner.ts'
-import type { MemoryPlacementCandidate } from './provider-placement.ts'
 import {
   EMPTY_MEMORY_PROVIDER_CATALOG,
   type MemoryProviderCatalog,
@@ -11,6 +10,7 @@ import type {
   CreateMemorySpaceRequest,
   MemorySpace,
   MemorySpaceProvider,
+  MemoryPlacementCandidate,
   MemoryPlacementDecision,
   MemoryProviderServiceCatalog,
   MemoryProviderServiceView,
@@ -21,8 +21,6 @@ import type {
   UpdateMemorySpaceRequest,
 } from './contracts.ts'
 import type { ProviderMemorySpace } from './providers/adapter.ts'
-
-export type { CreateMemorySpaceRequest, MemorySpace, UpdateMemorySpaceRequest } from './contracts.ts'
 
 const NATIVE_REGISTRY_VERSION = 1
 const PROVIDER_REGISTRY_VERSION = 4
@@ -268,18 +266,6 @@ export class MemorySpaceRegistry {
     const body = this.list().find(entry => entry.id === normalized)
     if (body === undefined) throw new Error(`unknown memory space: ${normalized}`)
     return body
-  }
-
-  openVikingConnection(id: string): OpenVikingSpaceConnection {
-    const connection = this.providerConnection(id, 'openviking')
-    return {
-      endpoint: String(connection.endpoint ?? ''),
-      targetUri: String(connection.targetUri ?? ''),
-      apiKey: String(connection.apiKey ?? ''),
-      account: String(connection.account ?? ''),
-      user: String(connection.user ?? ''),
-      actorPeerId: String(connection.actorPeerId ?? ''),
-    }
   }
 
   providerConnection(id: string, expectedProviderId?: MemoryProviderId): MemoryProviderConnection {

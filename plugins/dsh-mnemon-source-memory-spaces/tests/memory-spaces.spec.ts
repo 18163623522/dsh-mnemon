@@ -241,7 +241,7 @@ describe('MemorySpaceRegistry', () => {
         capabilities: expect.objectContaining({ graph: false, remember: true, writeMode: 'exact' }),
       },
     })
-    expect(registry.openVikingConnection(created.id)).toMatchObject({ apiKey: 'secret-token' })
+    expect(registry.providerConnection(created.id, 'openviking')).toMatchObject({ apiKey: 'secret-token' })
     expect(JSON.parse(readFileSync(registry.registryPath, 'utf8'))).toEqual({ version: 1, bodies: [] })
     expect(JSON.parse(readFileSync(registry.providerRegistryPath, 'utf8'))).toMatchObject({
       version: 4,

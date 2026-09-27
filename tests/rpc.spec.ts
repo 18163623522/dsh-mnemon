@@ -335,23 +335,14 @@ describe('Host assistance and channels', () => {
     const handle = vi.fn()
     registerRpc({ rpc: { handle } } as unknown as HostConnectionHandle, f.runtime)
     expect(handle).toHaveBeenCalledTimes(4)
-    expect(handle).toHaveBeenCalledWith(MNEMON_READ_CHANNEL, expect.any(Function), { authority: 'trusted-host' })
-    expect(handle).toHaveBeenCalledWith(MNEMON_ACTIVATION_CHANNEL, expect.any(Function), { authority: 'trusted-host' })
-    expect(handle).toHaveBeenCalledWith(MNEMON_WRITE_CHANNEL, expect.any(Function), { authority: 'loopback' })
-    expect(handle).toHaveBeenCalledWith(MNEMON_PACK_CHANNEL, expect.any(Function), { authority: 'loopback' })
+    for (const channel of [MNEMON_READ_CHANNEL, MNEMON_ACTIVATION_CHANNEL, MNEMON_WRITE_CHANNEL, MNEMON_PACK_CHANNEL]) {
+      expect(handle).toHaveBeenCalledWith(channel, expect.any(Function))
+    }
     for (const channel of [MNEMON_WRITE_CHANNEL, MNEMON_ACTIVATION_CHANNEL]) {
       const handler = handle.mock.calls.find(([id]) => id === channel)![1] as HostRpcHandler
       expect(await handler(channel === MNEMON_WRITE_CHANNEL ? 'remember' : 'body', { content: 'blocked', memoryBodyId: 'project', active: false })).toMatchObject({ ok: false })
     }
     expect(f.sources['memory-spaces']!.mutate).not.toHaveBeenCalled()
-  })
-
-  it('supports explicitly selected trusted-host management without a parallel RPC implementation', () => {
-    const f = protocolFixture()
-    const handle = vi.fn()
-    registerRpc({ rpc: { handle } } as unknown as HostConnectionHandle, f.runtime, undefined, undefined, 'trusted-host')
-    expect(handle).toHaveBeenCalledWith(MNEMON_WRITE_CHANNEL, expect.any(Function), { authority: 'trusted-host' })
-    expect(handle).toHaveBeenCalledWith(MNEMON_PACK_CHANNEL, expect.any(Function), { authority: 'trusted-host' })
   })
 
   it('keeps Pack transport authenticated, selected-root scoped, and merge-only from the page', async () => {

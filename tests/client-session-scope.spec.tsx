@@ -17,6 +17,8 @@ vi.mock('../src/client/better-sidebar.tsx', () => ({ mountBetterSidebarTab: () =
 import { apply } from '../src/client/index.ts'
 import { consumeMnemonAnchor, dispatchMnemonAnchor } from '../src/client/anchor.ts'
 import { MnemonBuiltinWorkspaceHost, MnemonWorkspaceHost } from '../src/client/workspace-mount.tsx'
+import type { Config } from '../src/host/protocol.ts'
+import { settingsScope } from './helpers/settings-scope.ts'
 
 const disposers: Array<() => void> = []
 afterEach(() => {
@@ -64,14 +66,16 @@ function fixture() {
     sessions: { list: catalog },
     workspaces: { list: workspaces },
     locale: { ...locale, register: () => () => {}, bind: () => (key: string) => key },
-    connection: { rpc: { call: vi.fn(async () => ({ ok: true, value: { status: 'ready', value: { displayMode: 'builtin' }, writable: true, mode: 'host' } })) } },
+    connection: { rpc: { call: vi.fn(async () => ({ ok: true, value: { status: 'ready', value: { displayMode: 'builtin' }, writable: true, mode: 'host' } })) }, isLoopback: true },
     effect(callback: () => unknown) { const dispose = callback(); if (typeof dispose === 'function') disposers.push(dispose as () => void) },
     slots: {
       inject(_name: string, factory: () => (() => void)) { const dispose = factory(); disposers.push(dispose); return dispose },
+      entries: () => [],
+      subscribe: () => () => {},
       register(options: unknown, component: unknown) { entries.push({ options, component } as typeof entries[number]); return () => {} },
     },
   }
-  const settings = { getSnapshot: () => ({ status: 'ready' as const, value: {}, writable: true, mode: 'host' as const }), subscribe: () => () => {}, set: async () => {}, unset: async () => {}, setPath: async () => {}, unsetPath: async () => {} }
+  const settings = settingsScope<Config>({ status: 'ready', value: {}, writable: true, mode: 'host' })
   const workspaceProps = {
     connection: ctx.connection as never,
     settingsScope: settings,

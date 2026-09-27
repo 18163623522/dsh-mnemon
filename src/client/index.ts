@@ -8,13 +8,14 @@ import {
   type MnemonDisplayMode,
 } from "../host/protocol.ts"
 import { MnemonSettingsHost } from './MnemonSettingsHost.tsx'
-import { MnemonTurnTail, selectMnemonTurnTail } from './MnemonTurnTail.tsx'
+import { MnemonTurnTail } from './MnemonTurnTail.tsx'
 import { MnemonSaveAction } from './MnemonSaveAction.tsx'
 import { en, zh, type MnemonKey } from './locales.ts'
 import { MnemonSettingsScope } from './settings.ts'
 import type { MnemonClientContext } from "./dsh-context.ts"
 import {
   createMemorySourcePageDirectory,
+  MNEMON_SOURCE_PAGE_SLOT,
 } from './source-pages.tsx'
 import { MnemonBetterSidebarSeat } from './better-sidebar-seat.ts'
 import {
@@ -27,6 +28,7 @@ import { mountBetterSidebarTab } from './better-sidebar.tsx'
 import { MnemonWorkspaceController } from './workspace-controller.ts'
 import { MNEMON_ANCHOR_EVENT, type MnemonAnchor } from './anchor.ts'
 import { mountSubagentTokenUsageOverride } from './subagent-token-usage.tsx'
+import { isRecord } from './is-record.ts'
 
 export * from './extension-sdk.ts'
 
@@ -48,21 +50,17 @@ const INTERACTION_UNITS: Record<'turnBar' | 'saveAction', InteractionUnit> = {
     slot: 'conversation.chat.turnTail',
     enabled: (value: unknown): boolean => enabledOf(value, 'turnBar'),
     register(ctx: MnemonClientContext, namespace: MnemonNamespace, translate: (key: MnemonKey, params?: Record<string, unknown>) => string): () => void {
-      // RC hosts use a chain; alpha hosts use a list. A named options value
-      // satisfies both public contracts while retaining each runtime's field.
-      const options = {
-        name: 'conversation.chat.turnTail' as const,
+      return ctx.slots.register({
+        name: 'conversation.chat.turnTail',
         id: 'dsh-mnemon/turn-tail',
         locale: namespace,
-        select: selectMnemonTurnTail,
         inject: (sessionId: unknown): { sessionId?: string; connection: ClientConnectionHandle; localeRuntime: MnemonClientContext['locale']; t: (key: MnemonKey, params?: Record<string, unknown>) => string } => ({
           ...(typeof sessionId === 'string' && sessionId !== '' ? { sessionId } : {}),
           connection: ctx.connection,
           localeRuntime: ctx.locale,
           t: translate as (key: MnemonKey, params?: Record<string, unknown>) => string,
         }),
-      }
-      return ctx.slots.register(options, MnemonTurnTail)
+      }, MnemonTurnTail)
     },
   },
   saveAction: {
@@ -90,8 +88,7 @@ type InteractionUnitKey = keyof typeof INTERACTION_UNITS
 
 /** Ready snapshots default each interaction on; loading has no value and mounts nothing. */
 function enabledOf(value: unknown, key: 'turnBar' | 'saveAction'): boolean {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
-  return (value as Partial<Record<typeof key, boolean>>)[key] !== false
+  return isRecord(value) && value[key] !== false
 }
 
 function mountSidebarMemoryView(ctx: MnemonClientContext, settings: MnemonSettingsScope<Config>, namespace: MnemonNamespace, translate: (key: MnemonKey, params?: Record<string, unknown>) => string): () => void {
@@ -112,7 +109,7 @@ function mountSidebarMemoryView(ctx: MnemonClientContext, settings: MnemonSettin
     label: () => translate('tab.label'),
     locale: namespace,
     children: {
-      'mnemon.source.page': { kind: 'list', scope: 'root' },
+      [MNEMON_SOURCE_PAGE_SLOT]: { kind: 'list', scope: 'root' },
     },
     inject: () => ({
       connection: ctx.connection,
@@ -171,7 +168,7 @@ function mountBuiltinMemoryView(ctx: MnemonClientContext, settings: MnemonSettin
     label: () => translate('tab.label'),
     locale: namespace,
     children: {
-      'mnemon.source.page': { kind: 'list', scope: 'root' },
+      [MNEMON_SOURCE_PAGE_SLOT]: { kind: 'list', scope: 'root' },
     },
     inject: sessionId => ({
       connection: ctx.connection,

@@ -31,7 +31,6 @@ import {
 } from './view-protocol.ts'
 import { inspectMemoryView } from './view-presentation.ts'
 import { schema, legacySchema, preferences, legacyPreferences, type LegacySourcePreferences } from './view-preferences.ts'
-import { subscribeSettings } from './settings-service.ts'
 
 /** Deliberately excludes Loader.write(): generated or package YAML is never edited. */
 export interface MemoryPluginLoaderEntry {
@@ -154,7 +153,7 @@ export class MemoryPluginManagement {
   private changingEntries = false
   private restorePending = false
 
-  constructor(private readonly ctx: HostContextShape, private readonly engine: MemoryRuntime, private readonly settingsService: HostSettingsService = ctx.settings as HostSettingsService) {
+  constructor(private readonly ctx: HostContextShape, private readonly engine: MemoryRuntime, private readonly settingsService: HostSettingsService) {
     const loader = this.loader()
     const anchor = loader?.config?.baseUrl ?? loader?.ctx?.baseUrl ?? loader?.context?.baseUrl
     const suffix = anchor ? `-${hash(anchor).slice(0, 16)}` : ''
@@ -180,7 +179,7 @@ export class MemoryPluginManagement {
       // ConfigEditor reconciles the whole profile, including unrelated writes.
       // Its public settled event can arrive while an overlay is being restored.
       this.ctx.on('app-boot/config-reload', () => this.scheduleRestore(true)),
-      subscribeSettings(this.ctx, this.settingsService, (namespace: string) => {
+      this.settingsService.onUpdated(namespace => {
         if (namespace === this.settingsNamespace || namespace === `mnemon-plugins${this.settingsNamespace.slice(MNEMON_VIEW_SETTINGS_NAMESPACE.length)}`) schedule()
       })]
     schedule()

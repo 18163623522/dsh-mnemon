@@ -48,6 +48,7 @@ export async function viewManagementFixture(saved?: MemoryViewPreferences, ancho
     return modules[name]
   })
   const settingsDocuments = new Map<string, { value: object; revision: number; validate?: (value: never) => void }>()
+  const updateListeners = new Set<(namespace: string, value: unknown) => void>()
   const settings: HostSettingsService = {
     writable: true,
     register: (namespace, _schema, options) => {
@@ -68,13 +69,14 @@ export async function viewManagementFixture(saved?: MemoryViewPreferences, ancho
       current.validate?.(next as never)
       current.value = next
       current.revision += 1
-      ctx.emit('settings/updated' as never, namespace, next)
+      for (const listener of updateListeners) listener(namespace, next)
     }),
+    onUpdated: listener => { updateListeners.add(listener); return () => { updateListeners.delete(listener) } },
   }
   ctx.provide('settings', settings)
   const config = resolveConfig({ storageScope: 'custom', dataDir: join(root, 'data'), cliPath: '/fake/mnemon', runtimeUserScope: 'storage' })
   settings.register('mnemon', {}, { base: config, applies: 'live' })
-  const management = new MemoryPluginManagement(ctx as unknown as HostContextShape, engine)
+  const management = new MemoryPluginManagement(ctx as unknown as HostContextShape, engine, settings)
   const stop = management.start()
   const profileEntries = [
     { id: 'mnemon-source-runtime', name: runtime.name },

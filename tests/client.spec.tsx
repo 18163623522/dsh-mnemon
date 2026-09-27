@@ -9,6 +9,7 @@ import { translateEn } from '../src/client/locales.ts'
 import { TEST_PROVIDERS as MEMORY_PROVIDER_CATALOG } from './fixtures/providers.ts'
 import { memoryPageStyles } from '../src/client/page-kit.tsx'
 import { installClientFrameStyles } from './helpers/client-frame-styles.ts'
+import { settingsScope as staticSettingsScope } from './helpers/settings-scope.ts'
 
 describe('MnemonWorkbench', () => {
   afterEach(cleanup)
@@ -27,19 +28,8 @@ describe('MnemonWorkbench', () => {
     fireEvent.click(await screen.findByRole('button', { name: '沉淀记忆' }))
   }
   const settingsSnapshot = { status: 'ready' as const, value: { storageScope: 'custom' as const }, base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const }
-  const settingsScope = {
-    getSnapshot: () => settingsSnapshot,
-    subscribe: () => () => {},
-    set: async () => {},
-    unset: async () => {},
-    setPath: async () => {},
-    unsetPath: async () => {},
-  } satisfies ClientSettingsScope<Config>
-  const readOnlySettingsSnapshot = { status: 'unavailable' as const, writable: false, mode: 'host' as const }
-  const readOnlySettingsScope = {
-    ...settingsScope,
-    getSnapshot: () => readOnlySettingsSnapshot,
-  } satisfies ClientSettingsScope<Config>
+  const settingsScope = staticSettingsScope<Config>(settingsSnapshot)
+  const readOnlySettingsScope = staticSettingsScope<Config>({ status: 'unavailable', writable: false, mode: 'host' })
 
   function createConnection(options: { reviewPartial?: boolean; reviewTeam?: boolean; reviewError?: string; isLoopback?: boolean; withInactiveBody?: boolean; withSecondActiveBody?: boolean; metadataFailureBodyId?: string; withPlacement?: boolean; withProviderSources?: boolean; listCount?: number; searchCount?: number; entityCount?: number; entityInsightCount?: number; documentCount?: number; runtimeCount?: number; runtimeBranch?: boolean; longContent?: boolean; workspaceMismatch?: boolean; nativeUnhealthy?: boolean; graphPending?: boolean; statusPending?: boolean; directoryPending?: boolean; reconnectPending?: boolean; relatedDeferred?: boolean; versionsDeferred?: boolean; layerSwitches?: Record<'runtime' | 'documents' | 'memory-spaces', boolean> } = {}) {
     const body = {
@@ -352,7 +342,7 @@ describe('MnemonWorkbench', () => {
       return { ok: false, error: { code: 'unexpected', message: endpoint } }
     })
     return {
-      connection: { rpc: { call }, ...(options.isLoopback === undefined ? {} : { isLoopback: options.isLoopback }) } as unknown as ClientConnectionHandle,
+      connection: { rpc: { call }, isLoopback: options.isLoopback ?? true } as unknown as ClientConnectionHandle,
       call,
       resolveRelated: (index: number, content: string) => relatedResolvers[index]?.({ ok: true, value: [{ ...memory, id: `related-${index}`, graphId: `${body.id}:related-${index}`, content }] }),
       resolveVersions: (index: number) => versionResolvers[index]?.(versionResponse()),
@@ -1169,8 +1159,8 @@ describe('MnemonWorkbench', () => {
 
   it('keeps manual creation explicit and saves automatic Provider selection as a distillation strategy', async () => {
     const { connection, call } = createConnection({ withInactiveBody: true })
-    const setPath = vi.fn(async () => {})
-    const strategySettingsScope = { ...settingsScope, setPath }
+    const mutate = vi.fn(async () => {})
+    const strategySettingsScope = { ...settingsScope, mutate }
     render(<MnemonWorkbench connection={connection} settingsScope={strategySettingsScope} sessionId="session-1" />)
 
     fireEvent.click(await screen.findByRole('tab', { name: '记忆空间' }))
@@ -1204,7 +1194,7 @@ describe('MnemonWorkbench', () => {
     fireEvent.click(saveStrategy)
 
     await waitFor(() => expect(screen.queryByRole('dialog', { name: '沉淀策略' })).toBeNull())
-    expect(setPath).toHaveBeenCalledWith(['persistenceStrategy'], {
+    expect(mutate).toHaveBeenCalledWith([{ op: 'set', path: ['persistenceStrategy'], value: {
       mode: 'automatic',
       providerId: 'mnemon-native',
       prompt: '这是团队知识；满足精确写入后优先共享。',
@@ -1217,7 +1207,7 @@ describe('MnemonWorkbench', () => {
       providerConnections: {
         openviking: expect.objectContaining({ targetUri: 'viking://user/team/memories' }),
       },
-    })
+    } }])
     expect(call.mock.calls.some(([, endpoint]) => endpoint === 'body-create')).toBe(false)
   })
 
@@ -1316,7 +1306,7 @@ describe('MnemonWorkbench', () => {
       if ((payload?.workspaceId === 'workspace-2' || payload?.sessionId === 'session-2') && (endpoint === 'status-summary' || endpoint === 'runtime-memory')) return await new Promise<never>(() => {})
       return call(channel, endpoint, payload)
     })
-    const delayedConnection = { rpc: { call: delayedCall } } as unknown as ClientConnectionHandle
+    const delayedConnection = { rpc: { call: delayedCall }, isLoopback: true } as unknown as ClientConnectionHandle
     const view = (workspaceId: string) => <MnemonWorkbench connection={delayedConnection} settingsScope={settingsScope} surface={surface} {...(surface === 'sidebar' ? { sessionId: 'session-1', workspaceId } : { sessionId: workspaceId === 'workspace-1' ? 'session-1' : 'session-2' })} />
     const { rerender } = render(view('workspace-1'))
 
@@ -1373,13 +1363,13 @@ describe('MnemonWorkbench', () => {
         },
       }
     })
-    const connection = { rpc: { call } } as unknown as ClientConnectionHandle
+    const connection = { rpc: { call }, isLoopback: true } as unknown as ClientConnectionHandle
     let snapshot: ClientSettingsSnapshot<Config> = { status: 'ready', value: { storageScope: 'custom' }, base: {}, user: {}, revision: 0, writable: true, mode: 'host' }
     const listeners = new Set<() => void>()
     const liveSettingsScope = {
       getSnapshot: () => snapshot,
       subscribe: (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener) },
-      set: async () => {}, unset: async () => {}, setPath: async () => {}, unsetPath: async () => {},
+      mutate: async () => {},
     } satisfies ClientSettingsScope<Config>
     render(<MnemonWorkbench connection={connection} settingsScope={liveSettingsScope} sessionId="session-1" surface={surface} />)
 
@@ -1795,7 +1785,7 @@ describe('MnemonWorkbench', () => {
       if (endpoint === 'graph') return { ok: true, value: { nodes: [], edges: [], generatedAt: '2026-08-13T03:00:00.000Z' } }
       return { ok: false, error: { code: 'unexpected', message: endpoint } }
     })
-    render(<MnemonWorkbench connection={{ rpc: { call } } as unknown as ClientConnectionHandle} settingsScope={settingsScope} sessionId="session-1" />)
+    render(<MnemonWorkbench connection={{ rpc: { call }, isLoopback: true } as unknown as ClientConnectionHandle} settingsScope={settingsScope} sessionId="session-1" />)
 
     await selectWorkspaceTab('记忆空间')
     await waitFor(() => expect(screen.getAllByRole('heading', { name: '还没有记忆空间' })).toHaveLength(1))
@@ -1825,7 +1815,7 @@ describe('MnemonWorkbench', () => {
       if (endpoint === 'graph') return { ok: true, value: { nodes: [], edges: [], generatedAt: '2026-08-13T03:00:00.000Z' } }
       return { ok: false, error: { code: 'unexpected', message: endpoint } }
     })
-    render(<MnemonWorkbench connection={{ rpc: { call } } as unknown as ClientConnectionHandle} settingsScope={settingsScope} sessionId="session-1" />)
+    render(<MnemonWorkbench connection={{ rpc: { call }, isLoopback: true } as unknown as ClientConnectionHandle} settingsScope={settingsScope} sessionId="session-1" />)
 
     await waitFor(() => expect(screen.getByText('已连接')).toBeTruthy())
     await selectWorkspaceTab('记忆空间')

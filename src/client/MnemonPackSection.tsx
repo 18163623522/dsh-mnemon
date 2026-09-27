@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent, type JSX } from
 import type { ClientConnectionHandle, MnemonPackExport, MnemonPackPreview } from "../host/protocol.ts"
 import { MnemonClient } from './api.ts'
 import type { MnemonTranslate } from './locales.ts'
+import { humanBytes, message } from './page-kit.tsx'
 import css from './MnemonSettingsCard.module.css'
 
 interface MnemonPackSectionProps {
@@ -52,12 +53,6 @@ function download(result: MnemonPackExport): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
 export function MnemonPackSection({ connection, sessionId, workspaceId, refreshKey, t, embedded = false }: MnemonPackSectionProps): JSX.Element {
   const client = useMemo(() => connection === undefined ? null : new MnemonClient(connection, sessionId, workspaceId), [connection, sessionId, workspaceId])
   const input = useRef<HTMLInputElement | null>(null)
@@ -72,7 +67,7 @@ export function MnemonPackSection({ connection, sessionId, workspaceId, refreshK
     if (client === null) return
     setBusy('target'); setFailed(null)
     void client.packTarget().then(value => { if (active) setTarget(value) }).catch(reason => {
-      if (active) setFailed(reason instanceof Error ? reason.message : String(reason))
+      if (active) setFailed(message(reason))
     }).finally(() => { if (active) setBusy(null) })
     return () => { active = false }
   }, [client, refreshKey])
@@ -85,9 +80,9 @@ export function MnemonPackSection({ connection, sessionId, workspaceId, refreshK
     try {
       const result = await client.exportPack()
       download(result)
-      setNotice(t('config.packExported', { file: result.fileName, size: formatBytes(result.bytes) }))
+      setNotice(t('config.packExported', { file: result.fileName, size: humanBytes(result.bytes) }))
     } catch (reason) {
-      setFailed(reason instanceof Error ? reason.message : String(reason))
+      setFailed(message(reason))
     } finally { setBusy(null) }
   }
 
@@ -99,7 +94,7 @@ export function MnemonPackSection({ connection, sessionId, workspaceId, refreshK
       const preview = await client.inspectPack(base64, file.name)
       setPending({ base64, preview })
     } catch (reason) {
-      setFailed(reason instanceof Error ? reason.message : String(reason))
+      setFailed(message(reason))
     } finally { setBusy(null) }
   }
 
@@ -117,7 +112,7 @@ export function MnemonPackSection({ connection, sessionId, workspaceId, refreshK
       setNotice(t('config.packImportedWhole', { root: result.targetRoot }))
       setPending(null)
     } catch (reason) {
-      setFailed(reason instanceof Error ? reason.message : String(reason))
+      setFailed(message(reason))
     } finally { setBusy(null) }
   }
 
@@ -139,7 +134,7 @@ export function MnemonPackSection({ connection, sessionId, workspaceId, refreshK
       <input ref={input} className={css.visuallyHidden} type="file" accept={ZIP_ACCEPT} aria-label={t('config.packChooseZip')} onChange={chooseFile} />
     </div>
     {pending !== null && <div className={css.importBar} role="status">
-      <div><strong>{pending.preview.fileName ?? t('config.packUnnamedZip')}</strong><small>{t('config.packZipReady', { components: pending.preview.manifest.components.length, items, size: formatBytes(pending.preview.archiveBytes) })}</small></div>
+      <div><strong>{pending.preview.fileName ?? t('config.packUnnamedZip')}</strong><small>{t('config.packZipReady', { components: pending.preview.manifest.components.length, items, size: humanBytes(pending.preview.archiveBytes) })}</small></div>
       <button type="button" className={css.textButton} disabled={busy !== null} onClick={() => setPending(null)}>{t('common.cancel')}</button>
       <button type="button" className={css.primaryPill} disabled={busy !== null} onClick={() => void importZip()}>{busy === 'import' ? t('config.packImporting') : t('config.packImportZipAction')}</button>
     </div>}

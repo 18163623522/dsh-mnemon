@@ -3,7 +3,6 @@ import { SlotCore } from '@deepseek-ai/dsh-client-ui-slots'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { waitFor } from '@testing-library/react'
 import { apply } from '../src/client/index.ts'
-import { selectMnemonTurnTail } from '../src/client/MnemonTurnTail.tsx'
 import { consumeMnemonAnchor, dispatchMnemonAnchor } from '../src/client/anchor.ts'
 
 const mountedEffects: Array<() => void> = []
@@ -12,7 +11,6 @@ interface SlotOptions {
   name: string
   key?: string
   id?: string
-  select?: unknown
   order?: number
   priority?: number
   label?: unknown
@@ -21,16 +19,15 @@ interface SlotOptions {
   inject?: (...args: unknown[]) => Record<string, unknown>
 }
 
-function makeCtx(initialValue: unknown, coreValue: Record<string, unknown> = {}, turnTailKind: 'chain' | 'list' = 'chain') {
+function makeCtx(initialValue: unknown, coreValue: Record<string, unknown> = {}) {
   const core = new SlotCore()
-  // Exercise the published registry with each host declaration, without
-  // changing the pinned RC declarations in the production type boundary.
+  // Exercise the published registry with the DSH 0.1.7 slot declarations.
   const registerSlot = (options: SlotOptions, component: unknown = () => null): (() => void) =>
     (core.register as (options: SlotOptions, component: unknown) => () => void)(options, component)
   const disposeOwner = registerSlot({
     name: 'root',
     children: {
-      'conversation.chat.turnTail': { kind: turnTailKind, scope: 'session' },
+      'conversation.chat.turnTail': { kind: 'list', scope: 'session' },
       'conversation.chat.assistant-actions': { kind: 'list', scope: 'session' },
       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
       'conversation.view': { kind: 'list', scope: 'session' },
@@ -51,15 +48,18 @@ function makeCtx(initialValue: unknown, coreValue: Record<string, unknown> = {},
     on: vi.fn(() => () => {}),
     sessions: { list: { getSnapshot: () => ({ current: 'session-a', byId: {} }) } },
     uiSession: { adapter: { current: { getSnapshot: () => ({ key: 'session-a' }), subscribe: () => () => {} } } },
+    layout: { selectPanel: vi.fn() },
     slots: {
       inject: (slot: string, factory: () => unknown) => {
         injects.push(slot)
-        let dispose: (() => void) | undefined
-        dispose = factory() as (() => void) | undefined
+        // Like DSH, wait for the declaration: this root leaves the native Sidebar seats undeclared.
+        let dispose = core.specDynamic(slot) === undefined ? undefined : factory() as (() => void) | undefined
         const disposer = () => { dispose?.(); dispose = undefined }
         injectDisposers.set(slot, disposer)
         return disposer
       },
+      entries: (slot: string) => core.entries(slot),
+      subscribe: (slot: string, listener: () => void) => core.subscribe(slot, listener),
       register: (options: SlotOptions, component: unknown) => {
         const dispose = registerSlot(options, component)
         registeredOptions.push(options)
@@ -88,6 +88,7 @@ function makeCtx(initialValue: unknown, coreValue: Record<string, unknown> = {},
           return { ok: false, error: { code: 'internal', message: 'unexpected', details: {} } }
         }),
       },
+      isLoopback: true,
     },
     locale: {
       register: vi.fn(() => () => {}),
@@ -116,8 +117,6 @@ function makeCtx(initialValue: unknown, coreValue: Record<string, unknown> = {},
   return { ctx, core, registerSlot, dispose, injects, injectDisposers, registeredOptions, activeRegistrations, effectDisposers }
 }
 
-const TOOLVIEW_KEYS = ['mnemon_memory_bodies', 'mnemon_recall', 'mnemon_related', 'mnemon_status', 'mnemon_document_search', 'mnemon_document_manage', 'mnemon_runtime_memory', 'mnemon_remember', 'mnemon_link', 'mnemon_forget', 'mnemon_memory_body_create', 'mnemon_memory_body_update', 'mnemon_memory_body_merge']
-
 describe('interaction surfaces binding', () => {
   afterEach(() => {
     for (const dispose of mountedEffects.splice(0).reverse()) dispose()
@@ -125,17 +124,11 @@ describe('interaction surfaces binding', () => {
     vi.restoreAllMocks()
   })
 
-  it('declines an unsettled turn with the DSH chain-slot null sentinel', () => {
-    const owner = (status: string) => ({ turn: { status }, seq: 1, openFile: vi.fn() })
-    expect(selectMnemonTurnTail(owner('open') as never)).toBeNull()
-    expect(selectMnemonTurnTail(owner('closed') as never)).toEqual({})
-  })
-
-  it.each(['chain', 'list'] as const)('keeps a stable turn-tail registration across settings and client reload in a %s slot', async kind => {
-    const { ctx, core, registerSlot, registeredOptions, dispose } = makeCtx({}, {}, kind)
+  it('keeps a stable turn-tail list registration across settings and client reload', async () => {
+    const { ctx, core, registerSlot, registeredOptions, dispose } = makeCtx({})
     const slot = 'conversation.chat.turnTail'
     const peerIds = ['other-plugin/first-tail', 'other-plugin/second-tail']
-    for (const id of peerIds) registerSlot({ name: slot, id, select: () => ({}), priority: 1 })
+    for (const id of peerIds) registerSlot({ name: slot, id, priority: 1 })
     const peers = [...core.entriesOfSlot(slot)]
     const ids = () => core.entriesOfSlot(slot).map(entry => entry.options.id)
 
@@ -143,10 +136,8 @@ describe('interaction surfaces binding', () => {
     // The default-on entry must wait for the Host settings snapshot.
     expect(core.entriesOfSlot(slot)).toEqual(peers)
     await waitFor(() => expect(ids()).toEqual(['dsh-mnemon/turn-tail', ...peerIds]))
-    const entry = core.entriesOfSlot(slot)[0]!
-    expect(entry.select).toBe(selectMnemonTurnTail)
-    expect(entry.select?.({ turn: { status: 'open' } } as never)).toBeNull()
-    expect(entry.select?.({ turn: { status: 'closed' } } as never)).toEqual({})
+    // A list entry renders for every Turn; the component itself waits for the closing Turn.
+    expect(core.entriesOfSlot(slot)[0]!.select).toBeUndefined()
 
     const settings = registeredOptions.find(options => options.name === 'settings.section')?.inject?.() as {
       interactionScope: { mutate: (ops: unknown[]) => Promise<void> }
@@ -173,7 +164,6 @@ describe('interaction surfaces binding', () => {
     expect(injects).toContain('settings.section')
     await waitFor(() => expect(injects).toContain('shell.overlay'))
     await waitFor(() => expect(activeRegistrations()).toEqual(expect.arrayContaining(['dsh-mnemon/turn-tail', 'mnemon-save'])))
-    expect(activeRegistrations()).not.toEqual(expect.arrayContaining(TOOLVIEW_KEYS))
   })
 
   it('registers explicitly enabled surfaces after settings load', async () => {
@@ -181,7 +171,6 @@ describe('interaction surfaces binding', () => {
     apply(ctx)
     await waitFor(() => expect(activeRegistrations()).toEqual(expect.arrayContaining(['dsh-mnemon/turn-tail', 'mnemon-save'])))
     expect(activeRegistrations()).toEqual(expect.arrayContaining(['dsh-mnemon/turn-tail', 'mnemon-save']))
-    expect(activeRegistrations()).not.toEqual(expect.arrayContaining(TOOLVIEW_KEYS))
   })
 
   it('registers only the enabled surfaces when toggles are mixed', async () => {
@@ -189,7 +178,6 @@ describe('interaction surfaces binding', () => {
     apply(ctx)
     await waitFor(() => expect(activeRegistrations()).toEqual(expect.arrayContaining(['mnemon-save'])))
     expect(activeRegistrations()).toEqual(expect.arrayContaining(['mnemon-save']))
-    expect(activeRegistrations()).not.toEqual(expect.arrayContaining(TOOLVIEW_KEYS))
     expect(activeRegistrations()).not.toContain('dsh-mnemon/turn-tail')
   })
 

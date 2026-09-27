@@ -28,24 +28,7 @@ export class MnemonSettingsScope<T extends object> implements ClientSettingsScop
     return () => this.listeners.delete(listener)
   }
 
-  set(field: string, value: unknown): Promise<void> {
-    return this.mutate([{ op: 'set', path: [field], value }])
-  }
-
-  unset(field: string): Promise<void> {
-    return this.mutate([{ op: 'unset', path: [field] }])
-  }
-
-  /** Set a nested field. */
-  setPath(path: string[], value: unknown): Promise<void> {
-    return this.mutate([{ op: 'set', path, value }])
-  }
-
-  /** Unset a nested field, falling back to its schema default. */
-  unsetPath(path: string[]): Promise<void> {
-    return this.mutate([{ op: 'unset', path }])
-  }
-
+  /** Queue one revision-fenced Host write of these operations. */
   mutate(ops: SettingsOperation[]): Promise<void> {
     return this.write(ops)
   }

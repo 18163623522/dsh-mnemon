@@ -160,6 +160,7 @@ describe('selective, channel-safe official release', () => {
       '.github/workflows/ci.yml',
       'src/index.ts',
     ])).toEqual(new Set(['dsh-mnemon-provider-example', 'dsh-mnemon']))
+    expect(publicationInputsChanged(plan, ['bin/repair-legacy-session.mjs'])).toEqual(new Set(['dsh-mnemon']))
     expect(() => assertVersionedPublicationChanges(plan, ['plugins/dsh-mnemon-source-memory-spaces/src/source.ts']))
       .toThrow('dsh-mnemon-source-memory-spaces')
     expect(() => assertVersionedPublicationChanges(plan, ['plugins/dsh-mnemon-source-memory-spaces/tests/source.spec.ts']))

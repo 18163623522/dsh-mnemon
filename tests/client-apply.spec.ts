@@ -35,7 +35,7 @@ function workspaceContext(initialValue: Record<string, unknown>, load: () => Pro
         else { value = { ...value, ...Object.fromEntries((payload.ops ?? []).map(op => [op.path[0], op.value])) }; revision += 1 }
       }
       return { ok: true, value: { status: 'ready', value: payload.namespace === 'mnemon-ui' ? {} : value, base: {}, user: value, revision, writable: true, mode: 'host' } }
-    }) } },
+    }) }, isLoopback: true },
     effect: vi.fn((callback: () => unknown) => {
       const dispose = callback()
       if (typeof dispose === 'function') disposers.push(dispose as () => void)
@@ -48,6 +48,8 @@ function workspaceContext(initialValue: Record<string, unknown>, load: () => Pro
     },
     slots: {
       inject: vi.fn((_name: string, factory: () => unknown) => factory()),
+      entries: vi.fn(() => []),
+      subscribe: vi.fn(() => () => {}),
       register: vi.fn((options: Record<string, unknown>) => {
         slots.push(options)
         const stop = vi.fn()
@@ -85,13 +87,13 @@ describe('Mnemon Web client composition', () => {
       expect.objectContaining({ name: 'conversation.chat.assistant-actions', id: 'mnemon-save' }),
     ])))
     const props = (settingsEntry.inject as () => { t: (key: keyof typeof zh) => string })()
-    expect(props.t('config.scope')).toBe('存储范围')
+    expect(props.t('config.storageTitle')).toBe('记忆范围')
     expect((settingsEntry.label as () => string)()).toBe('记忆系统')
     const save = slots.find(options => options.name === 'conversation.chat.assistant-actions')!
     expect((save.inject as (id: string) => { settingsScope: unknown })('session-1').settingsScope).toBe(scope)
     setLocale('en')
     expect((settingsEntry.label as () => string)()).toBe('Memory System')
-    expect(props.t('config.scope')).toBe('Storage scope')
+    expect(props.t('config.storageTitle')).toBe('Memory scope')
     expect(slots.some(options => options.name === 'conversation.view')).toBe(false)
   })
 
@@ -103,14 +105,14 @@ describe('Mnemon Web client composition', () => {
     const shellProps = (shellEntry.inject as () => Record<string, unknown>)()
     expect(mountBetterSidebar.mock.calls[0]![2]).toBe(shellProps.betterSidebarSeat)
     const firstBetterSidebarStop = mountBetterSidebar.mock.results[0]!.value
-    await scope.setPath(['displayMode'], 'sidebar')
+    await scope.mutate([{ op: 'set', path: ['displayMode'], value: 'sidebar' }])
     expect(workspaceStops).toHaveLength(1)
     expect(workspaceStops[0]).not.toHaveBeenCalled()
-    await scope.set('tabEnabled', false)
-    await scope.set('tabEnabled', false)
+    await scope.mutate([{ op: 'set', path: ['tabEnabled'], value: false }])
+    await scope.mutate([{ op: 'set', path: ['tabEnabled'], value: false }])
     expect(workspaceStops[0]).toHaveBeenCalledOnce()
     expect(firstBetterSidebarStop).toHaveBeenCalledOnce()
-    await scope.set('tabEnabled', true)
+    await scope.mutate([{ op: 'set', path: ['tabEnabled'], value: true }])
     expect(workspaceStops).toHaveLength(2)
     expect(mountBetterSidebar).toHaveBeenCalledTimes(2)
     expect(slots.some(options => options.name === 'conversation.view')).toBe(false)
@@ -128,24 +130,24 @@ describe('Mnemon Web client composition', () => {
     expect(props).toMatchObject({ connection: context.connection, settingsScope: scope, sessionId: 'session-2', localeRuntime: context.locale })
     for (const key of ['workspaceId', 'workspaceSelection', 'sessions', 'workspaces', 'onClose']) expect(props).not.toHaveProperty(key)
 
-    await scope.set('displayMode', 'builtin')
-    await scope.set('storageScope', 'workspace')
+    await scope.mutate([{ op: 'set', path: ['displayMode'], value: 'builtin' }])
+    await scope.mutate([{ op: 'set', path: ['storageScope'], value: 'workspace' }])
     expect(workspaceStops).toHaveLength(1)
     expect(workspaceStops[0]).not.toHaveBeenCalled()
-    await scope.set('displayMode', 'sidebar')
+    await scope.mutate([{ op: 'set', path: ['displayMode'], value: 'sidebar' }])
     expect(workspaceStops[0]).toHaveBeenCalledOnce()
     expect(workspaceStops).toHaveLength(2)
     expect(mountBetterSidebar).toHaveBeenCalledTimes(1)
     expect(slots.at(-1)).toMatchObject({ name: 'shell.overlay' })
-    await scope.set('displayMode', 'builtin')
+    await scope.mutate([{ op: 'set', path: ['displayMode'], value: 'builtin' }])
     expect(workspaceStops[1]).toHaveBeenCalledOnce()
     expect(mountBetterSidebar.mock.results[0]!.value).toHaveBeenCalledOnce()
     expect(workspaceStops).toHaveLength(3)
     expect(slots.at(-1)).toMatchObject({ name: 'conversation.view' })
-    await scope.set('tabEnabled', false)
-    await scope.set('tabEnabled', false)
+    await scope.mutate([{ op: 'set', path: ['tabEnabled'], value: false }])
+    await scope.mutate([{ op: 'set', path: ['tabEnabled'], value: false }])
     expect(workspaceStops[2]).toHaveBeenCalledOnce()
-    await scope.set('tabEnabled', true)
+    await scope.mutate([{ op: 'set', path: ['tabEnabled'], value: true }])
     expect(workspaceStops).toHaveLength(4)
     expect(slots.at(-1)).toMatchObject({ name: 'conversation.view' })
   })
@@ -157,7 +159,7 @@ describe('Mnemon Web client composition', () => {
     ready.resolve({ displayMode: 'buildin', tabEnabled: false })
     await vi.waitFor(() => expect(scope.getSnapshot().status).toBe('ready'))
     expect(workspaceStops).toHaveLength(0)
-    await scope.set('tabEnabled', true)
+    await scope.mutate([{ op: 'set', path: ['tabEnabled'], value: true }])
     expect(workspaceStops).toHaveLength(1)
   })
 

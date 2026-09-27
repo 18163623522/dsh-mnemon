@@ -86,13 +86,35 @@ const scriptedModel = flags.has('--runtime-routing') ? runtimeRoutingModel(event
   : flags.has('--legacy-session-replay') ? legacySessionReplayModel(event => console.log('Legacy replay: ' + JSON.stringify(event)))
   : flags.has('--document-archive') ? documentArchiveModel(event => console.log('Document archive: ' + JSON.stringify(event))) : reviewModel ?? protectionModel
 const reviewFailure = flags.has('--review-failure')
+/**
+ * DSH's DeepSeek adapter speaks the Messages protocol. Scripted fixtures read
+ * one neutral request: system text as a system message, tool results as tool
+ * messages, tool calls on assistant messages and tools as functions.
+ */
+function fixtureRequest(wire) {
+  const blocks = content => typeof content === 'string' ? [{ type: 'text', text: content }] : content ?? []
+  const text = content => blocks(content).filter(block => block.type === 'text').map(block => block.text).join('\n')
+  const messages = (wire.messages ?? []).flatMap(message => {
+    const results = blocks(message.content).filter(block => block.type === 'tool_result')
+      .map(block => ({ role: 'tool', tool_call_id: block.tool_use_id, content: text(block.content) }))
+    const calls = blocks(message.content).filter(block => block.type === 'tool_use')
+      .map(block => ({ id: block.id, type: 'function', function: { name: block.name, arguments: JSON.stringify(block.input ?? {}) } }))
+    const body = text(message.content)
+    return [...results, ...(body === '' && calls.length === 0 ? [] : [{ role: message.role, content: body, ...(calls.length === 0 ? {} : { tool_calls: calls }) }])]
+  })
+  return {
+    ...wire,
+    messages: [...(wire.system === undefined ? [] : [{ role: 'system', content: text(wire.system) }]), ...messages],
+    tools: (wire.tools ?? []).map(tool => ({ type: 'function', function: { name: tool.name, description: tool.description, parameters: tool.input_schema } })),
+  }
+}
 const model = createServer(async (request, response) => {
   let input = ''
-  for await (const chunk of request) { if (scriptedModel !== undefined || reviewFailure) input += chunk }
+  for await (const chunk of request) input += chunk
   console.log('Fixture model request: ' + ++modelRequests)
-  const reviewPersona = reviewFailure ? (JSON.parse(input).messages ?? [])
-    .filter(message => message.role === 'system')
-    .map(message => typeof message.content === 'string' ? message.content : (message.content ?? []).map(block => block.text ?? '').join('\n')).join('\n') : ''
+  const wire = input === '' ? {} : JSON.parse(input)
+  const reviewPersona = reviewFailure ? fixtureRequest(wire).messages
+    .filter(message => message.role === 'system').map(message => message.content).join('\n') : ''
   if (/Completion protocol: call `mnemon_subagent_result(?:_[^`]+)?`/u.test(reviewPersona)) {
     console.log('Review fixture: rejected inherited context with CONTEXT_WINDOW_EXCEEDED')
     response.writeHead(400, { 'content-type': 'application/json' })
@@ -100,7 +122,7 @@ const model = createServer(async (request, response) => {
     return
   }
   let reply
-  try { reply = scriptedModel?.(JSON.parse(input)) ?? 'Isolated Mnemon WebUI test response.' }
+  try { reply = scriptedModel?.(fixtureRequest(wire)) ?? 'Isolated Mnemon WebUI test response.' }
   catch (error) {
     console.error(error)
     response.writeHead(500, { 'content-type': 'application/json' })
@@ -113,14 +135,15 @@ const model = createServer(async (request, response) => {
     return
   }
   response.writeHead(200, { 'content-type': 'text/event-stream', 'cache-control': 'no-cache' })
-  const delta = typeof reply === 'string' ? { role: 'assistant', content: reply } : {
-    role: 'assistant', tool_calls: [{ index: 0, id: 'fixture-call-' + modelRequests, type: 'function', function: { name: reply.name, arguments: JSON.stringify(reply.args) } }],
-  }
-  for (const choice of [
-    { index: 0, delta, finish_reason: null },
-    { index: 0, delta: {}, finish_reason: typeof reply === 'string' ? 'stop' : 'tool_calls' },
-  ]) response.write(`data: ${JSON.stringify({ id: 'mnemon-web-e2e', choices: [choice] })}\n\n`)
-  response.end('data: [DONE]\n\n')
+  const call = typeof reply !== 'string'
+  const event = value => response.write(`event: ${value.type}\ndata: ${JSON.stringify(value)}\n\n`)
+  event({ type: 'message_start', message: { id: 'mnemon-web-e2e-' + modelRequests, type: 'message', role: 'assistant', model: wire.model, content: [], usage: { input_tokens: 10, output_tokens: 0 } } })
+  event({ type: 'content_block_start', index: 0, content_block: call ? { type: 'tool_use', id: 'fixture-call-' + modelRequests, name: reply.name, input: {} } : { type: 'text', text: '' } })
+  event({ type: 'content_block_delta', index: 0, delta: call ? { type: 'input_json_delta', partial_json: JSON.stringify(reply.args) } : { type: 'text_delta', text: reply } })
+  event({ type: 'content_block_stop', index: 0 })
+  event({ type: 'message_delta', delta: { stop_reason: call ? 'tool_use' : 'end_turn' }, usage: { output_tokens: 5 } })
+  event({ type: 'message_stop' })
+  response.end()
 })
 await new Promise((resolveListen, reject) => {
   model.once('error', reject)
@@ -190,19 +213,27 @@ try {
     installer.once('error', reject)
     installer.once('exit', code => code === 0 ? resolveInstall() : reject(new Error('DSH installation failed: ' + code)))
   })
-  // A test-owned preset uses all Host memory tools without the unrelated
-  // coding preset's shell requirements. Never modify a shipped DSH preset.
-  const preset = join(dshHome, '.agent-presets/mnemon-e2e')
-  await mkdir(preset, { recursive: true })
-  await writeFile(join(preset, 'preset.yml'), 'name: Mnemon E2E\ndescription: Isolated memory UI test (no Shell).\norder: 0\n')
-  await writeFile(join(preset, 'agent.cordis.yml'), "- id: persona\n  name: '@deepseek-ai/dsh-persona'\n  config:\n    prefix: You are testing the Mnemon memory UI.\n")
   // Leave the entire real WebUI/plugin stack enabled. Only unrelated native
   // PTY/search tools are disabled so a test cannot launch workspace commands.
   const disabled = ['subprocess', 'open-in-app', 'bash-sandbox', 'pwsh-sandbox', 'tool-bash', 'tool-pwsh', 'permission', 'tool-fs-search', 'directory-picker']
-  const browsePicker = `- id: agent-presets
+  // A test-owned preset uses all Host memory tools without the shipped
+  // presets' shell requirements. Never modify a shipped DSH preset.
+  const browsePicker = `- id: agent-preset-registry
   config:
     default: mnemon-e2e
 - insert:
+    - id: preset-mnemon-e2e
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: mnemon-e2e
+        name: Mnemon E2E
+        description: Isolated memory UI test (no Shell).
+        order: 0
+        plugins:
+          - id: persona
+            name: '@deepseek-ai/dsh-persona'
+            config:
+              prefix: You are testing the Mnemon memory UI.
     - id: e2e-directory-picker
       name: '@deepseek-ai/dsh-host-directory-picker-browse'
     - id: e2e-directory-picker-ui

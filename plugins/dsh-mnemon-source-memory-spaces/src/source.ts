@@ -637,5 +637,3 @@ export function createMemorySpacesSource(providerSnapshot: MemorySpaceProviderSn
   },
   })
 }
-
-/** Empty template; actual installations must provide explicit Provider children. */

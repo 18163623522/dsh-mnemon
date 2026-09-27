@@ -18,7 +18,7 @@ function sourcePages(t: MnemonTranslate) {
     getVersion: slots.getVersion.bind(slots),
     entriesOfSlot: slots.entriesOfSlot.bind(slots),
     subscribe: slots.subscribe.bind(slots),
-  } }
+  }, locale: { getSnapshot: () => 'zh', subscribe: () => () => {} } }
   for (const install of [installRuntimeMemoryUI, installDocumentsMemoryUI, installMemorySpacesUI]) releases.push(install(ctx as never, t))
   return {
     sourcePageDirectory: createMemorySourcePageDirectory(ctx as never),

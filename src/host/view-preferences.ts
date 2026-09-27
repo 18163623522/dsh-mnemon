@@ -1,4 +1,4 @@
-import z from 'schemastery'
+import z from '@deepseek-ai/schemastery'
 import type { MemoryJsonValue } from '../core/contracts/index.ts'
 import type { MemoryViewPreferences } from './view-protocol.ts'
 

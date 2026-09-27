@@ -6,6 +6,7 @@ import type { HostAgent, HostContextShape, HostSessionEvent } from '../src/host/
 import { MnemonLifecycle } from '../src/host/lifecycle.ts'
 import { MemoryExecutions } from '../src/host/memory-executions.ts'
 import type { MnemonSubagentCoordinator } from '../src/host/subagent.ts'
+import { sessionLog } from './fixtures/session-log.ts'
 
 describe('Mnemon lifecycle with the real DSH SystemPrompt', () => {
   it('pins and injects the first-turn Wake inside the awaited assembly boundary', async () => {
@@ -15,7 +16,7 @@ describe('Mnemon lifecycle with the real DSH SystemPrompt', () => {
     const agent = {
       id: 'real-prompt-session',
       status: 'running',
-      session: { events },
+      session: { ...sessionLog(events) },
       ctx: agentContext as never,
       followup: vi.fn(),
       steer: vi.fn(),

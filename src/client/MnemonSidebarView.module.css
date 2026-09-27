@@ -171,7 +171,6 @@
 .shell .modal > [class*='modalBody'] { min-height: 0; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; padding: 18px; scrollbar-gutter: stable; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 .shell .modal > [class*='modalFooter'] { border-top-color: var(--dsw-alias-border-l1); }
 @supports (height: 100dvh) { .shell .modal { max-height: calc(100dvh - 48px); } }
-.shell .modal [class*='formActions'] { justify-content: flex-end; }
 
 /*
  * DSH action hierarchy, shared by the installed SSH and task-board panels.
@@ -240,7 +239,7 @@
 .shell [class*='dangerSolidButton']:hover:not(:disabled) { filter: brightness(1.08); }
 
 .shell [class*='iconButton'],
-.shell [class*='bodyEditButton'], .shell [class*='sectionHeading'] button {
+.shell [class*='sectionHeading'] button {
   display: inline-flex;
   width: 26px;
   height: 26px;
@@ -255,7 +254,7 @@
   font-size: 13px;
 }
 .shell [class*='iconButton']:hover:not(:disabled),
-.shell [class*='bodyEditButton']:hover:not(:disabled), .shell [class*='sectionHeading'] button:hover:not(:disabled) {
+.shell [class*='sectionHeading'] button:hover:not(:disabled) {
   border: 0;
   color: var(--dsw-alias-label-primary);
   background: var(--dsw-alias-interactive-bg-hover);
@@ -267,7 +266,7 @@
 .shell [class*='dangerButton'],
 .shell [class*='dangerSolidButton'],
 .shell [class*='iconButton'],
-.shell [class*='bodyEditButton'], .shell [class*='sectionHeading'] button {
+.shell [class*='sectionHeading'] button {
   cursor: pointer;
   transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease, outline-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
 }
@@ -277,7 +276,7 @@
 .shell [class*='dangerButton']:active:not(:disabled),
 .shell [class*='dangerSolidButton']:active:not(:disabled),
 .shell [class*='iconButton']:active:not(:disabled),
-.shell [class*='bodyEditButton']:active:not(:disabled), .shell [class*='sectionHeading'] button:active:not(:disabled) {
+.shell [class*='sectionHeading'] button:active:not(:disabled) {
   transform: translateY(1px);
 }
 .shell [class*='primaryButton']:disabled,
@@ -285,7 +284,7 @@
 .shell [class*='ghostButton']:disabled,
 .shell [class*='dangerButton']:disabled,
 .shell [class*='dangerSolidButton']:disabled,
-.shell [class*='iconButton']:disabled, .shell [class*='bodyEditButton']:disabled {
+.shell [class*='iconButton']:disabled {
   cursor: default;
   opacity: .45;
 }
@@ -343,7 +342,7 @@
 .shell [class*='bodyEdit'] select,
 .shell [class*='bodyEdit'] textarea,
 .shell [class*='formGrid'] select,
-.shell [class*='formGrid'] input, .shell [class*='bodyCreate'] input {
+.shell [class*='formGrid'] input {
   min-height: 34px;
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 8px;
@@ -356,15 +355,14 @@
 .shell select { cursor: pointer; font-weight: 400; }
 .shell textarea { font-weight: 400; line-height: 1.55; }
 
-.shell [class*='cardKicker'], .shell [class*='sectionHeading'] > div > span {
+.shell [class*='sectionHeading'] > div > span {
   font-size: 11px;
   letter-spacing: .06em;
 }
 
 .shell [class*='healthStrip'] p,
 .shell [class*='storageAreaGrid'] article > p,
-.shell [class*='statusSectionHeader'] p,
-.shell [class*='writeGuide'] li span, .shell [class*='writeGuide'] > p { font-size: 12px; }
+.shell [class*='statusSectionHeader'] p { font-size: 12px; }
 
 .shell [class*='runtimeFootnote'],
 .shell [class*='storageRoot'] span,
@@ -432,7 +430,6 @@
   .shell .canvas[data-lock-page-header] [class*='pageHeader'] { margin-inline: -12px; padding-inline: 12px; }
   .shell .modalBackdrop { align-items: flex-end; padding: max(10px, env(safe-area-inset-top, 0px)) 0 0; }
   .shell .modal, .shell .modal.modalWide { width: 100vw; max-height: calc(100vh - max(10px, env(safe-area-inset-top, 0px))); border-radius: 18px 18px 0 0; border-bottom: 0; }
-  .shell .modalDragHandle span { background: var(--dsw-alias-border-l2); }
   .shell .modal > header { gap: 12px; padding: 10px max(14px, env(safe-area-inset-right, 0px)) 12px max(14px, env(safe-area-inset-left, 0px)); }
   .shell .modal > header p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
   .shell .modal > header [class*='iconButton'] { width: 44px; min-width: 44px; height: 44px; min-height: 44px; }
@@ -485,7 +482,7 @@
 .shell [class*='dangerButton'],
 .shell [class*='dangerSolidButton'],
 .shell [class*='iconButton'],
-.shell [class*='bodyEditButton'], .shell [class*='sectionHeading'] button {
+.shell [class*='sectionHeading'] button {
     transition: none;
   }
 }

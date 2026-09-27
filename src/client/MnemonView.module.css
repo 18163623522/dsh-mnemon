@@ -80,7 +80,7 @@
 .storageMode { display: flex; min-height: 32px; flex: 0 0 auto; align-items: center; gap: 6px; padding: 0 9px; border: 1px solid var(--mn-line-strong); border-radius: 8px; color: var(--mn-muted); background: var(--mn-layer-1); white-space: nowrap; }
 .storageMode > span { font-size: 10px; }
 .storageMode > strong { color: var(--mn-text); font-size: 11px; font-weight: 600; }
-.cardKicker, .sectionHeading > div > span {
+.sectionHeading > div > span {
   color: var(--mn-faint); font: 650 9px/1.2 var(--mn-code); letter-spacing: .12em; text-transform: uppercase;
 }
 
@@ -178,7 +178,6 @@
 .sourceManagementForm > div:first-child p { margin: 3px 0 0; color: var(--mn-muted); font-size: 10px; }
 .sourceManagementForm .formGrid label > small { color: var(--mn-faint); font-size: 9px; line-height: 1.45; }
 .sourceManagementForm .formGrid input[type="checkbox"] { width: 16px; height: 16px; min-width: 0; accent-color: var(--mn-accent); }
-.loadingPanel { display: grid; min-height: 220px; place-items: center; border: 1px solid var(--mn-line); border-radius: 13px; color: var(--mn-muted); background: var(--mn-layer-1); }
 .sectionSpinner { position: absolute; z-index: 6; top: 9px; right: 9px; display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid color-mix(in srgb, var(--mn-accent) 18%, var(--mn-line)); border-radius: 7px; color: var(--mn-accent); background: color-mix(in srgb, var(--mn-layer-1) 90%, transparent); box-shadow: 0 4px 12px color-mix(in srgb, var(--mn-text) 6%, transparent); backdrop-filter: blur(7px); }
 .sectionSpinner > i { width: 11px; height: 11px; border: 1.5px solid color-mix(in srgb, currentColor 24%, transparent); border-top-color: currentColor; border-radius: 50%; animation: mnemon-spin .72s linear infinite; }
 @keyframes mnemon-spin { to { transform: rotate(360deg); } }
@@ -319,7 +318,6 @@
 .versionDialogBody { display: grid; gap: 12px; }
 .versionChecking { display: flex; min-height: 112px; align-items: center; justify-content: center; gap: 10px; color: var(--mn-muted); font-size: 12px; }
 .versionChecking span { width: 14px; height: 14px; border: 2px solid var(--mn-line); border-top-color: var(--mn-accent); border-radius: 50%; animation: mnemon-spin .8s linear infinite; }
-@keyframes mnemon-spin { to { transform: rotate(360deg); } }
 .versionError, .versionResult { padding: 11px 12px; border: 1px solid color-mix(in srgb, var(--mn-danger) 28%, var(--mn-line)); border-radius: 9px; color: var(--mn-danger); background: color-mix(in srgb, var(--mn-danger) 6%, transparent); }
 .versionResult { border-color: color-mix(in srgb, var(--mn-success) 28%, var(--mn-line)); color: var(--mn-success); background: color-mix(in srgb, var(--mn-success) 6%, transparent); }
 .versionError strong, .versionResult strong { font-size: 12px; }
@@ -421,7 +419,6 @@
   .storageRoot { align-items: flex-start; flex-direction: column; }
   .storageRoot > div:last-child { justify-items: start; }
   .storageAreaGrid { grid-template-columns: 1fr; }
-  .flowLegend span:last-child { width: 100%; margin-left: 0; }
   .healthStrip article { border-right: 0; border-bottom: 1px solid var(--mn-line); }
   .healthStrip article:last-child { border-bottom: 0; }
   .workspaceMismatch { align-items: stretch; flex-direction: column; margin-inline: 13px; }
@@ -490,7 +487,6 @@
   .shell *,
 .shell *::before, .shell *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
   .modalBackdrop, .modal { animation: none !important; }
-  .flowConnector[data-active] i::before { display: none; }
 }
 
 /* Hosted Source content reuses one outer frame at every viewport, including through renderer wrappers. */

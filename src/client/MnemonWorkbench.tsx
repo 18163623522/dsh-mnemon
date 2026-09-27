@@ -12,15 +12,16 @@ import { translateZh, type MnemonKey, type MnemonTranslate } from "./locales.ts"
 
 import { ProviderIcon } from "./ProviderIcon.tsx"
 
-import { MNEMON_SOURCE_CONFIGURATION_MUTATE, MNEMON_SOURCE_CONFIGURATION_READ, type MemorySourcePageDirectory, type MemorySourcePageEntry } from "./source-pages.tsx"
+import { MNEMON_SOURCE_CONFIGURATION_MUTATE, MNEMON_SOURCE_CONFIGURATION_READ, MNEMON_SOURCE_PAGE_SLOT, type MemorySourcePageDirectory, type MemorySourcePageEntry } from "./source-pages.tsx"
 import type { MnemonSourceManagementClient } from "./dsh-context.ts"
 import type { MnemonDisplayMode } from '../host/protocol.ts'
 import { appearanceClass } from './view-styles.ts'
+import { isRecord } from './is-record.ts'
 import sidebarCss from './MnemonSidebarView.module.css'
 import css from "./MnemonView.module.css"
-import { I18nContext, LocaleContext, useT, useLocale, humanBytes, message, short, PageHeader, SidebarModal, EmptyState } from "./page-kit.tsx"
+import { I18nContext, LocaleContext, useT, useLocale, humanBytes, message, short, PageHeader, EmptyState } from "./page-kit.tsx"
 
-export interface MnemonWorkbenchProps {
+interface MnemonWorkbenchProps {
   connection: ClientConnectionHandle
   settingsScope: ClientSettingsScope<Config>
   sessionId?: string
@@ -34,7 +35,7 @@ export interface MnemonWorkbenchProps {
   locale?: string
   onClose?: () => void
   sourcePageDirectory?: MemorySourcePageDirectory
-  renderSlot?: PropsRenderSlots<'mnemon.source.page'>['renderSlot']
+  renderSlot?: PropsRenderSlots<typeof MNEMON_SOURCE_PAGE_SLOT>['renderSlot']
 }
 
 export interface MnemonWorkspaceSelection {
@@ -101,7 +102,7 @@ function bindSourceManagementClient(client: MnemonClient, instance: MemorySource
 }
 
 function jsonRecord(value: JsonValue): Record<string, JsonValue> | undefined {
-  return typeof value === 'object' && value !== null && !Array.isArray(value) ? value : undefined
+  return isRecord(value) ? value : undefined
 }
 
 function SourceDisabledPage(props: { title: string }): JSX.Element {
@@ -242,7 +243,7 @@ function SourceManagementPage(props: {
       })}</div>
       {error !== null && <div className={css.alert} role="alert">{error}</div>}
       {saved && <div className={css.runtimeNotice} role="status">{t('sourcePage.configSaved')}</div>}
-      <div className={css.formActions}><button type="submit" className={css.primaryButton} disabled={saving || loading || props.management === undefined || props.instance.availability === 'unavailable'}>{saving ? t('sourcePage.configSaving') : t('sourcePage.configSave')}</button>{props.management === undefined && <span>{t('sourcePage.unavailable')}</span>}</div>
+      <div><button type="submit" className={css.primaryButton} disabled={saving || loading || props.management === undefined || props.instance.availability === 'unavailable'}>{saving ? t('sourcePage.configSaving') : t('sourcePage.configSave')}</button>{props.management === undefined && <span>{t('sourcePage.unavailable')}</span>}</div>
     </form>}
     {fields.length === 0 && props.instance.availability === 'unavailable' && <div className={css.emptyState}><span className={css.emptyGlyph}>!</span><div><h3>{t('sourcePage.unavailable')}</h3><p>{t('sourcePage.unavailableDescription')}</p></div></div>}
   </div>
@@ -519,9 +520,6 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
   const refreshAll = () => { setRevision(value => value + 1); void loadStatus() }
   const activationEnabled = status?.writeEnabled === true
   const writeEnabled = activationEnabled && settingsSnapshot.status === 'ready' && settingsSnapshot.writable
-  const catalogKnown = status?.memoryBodies !== undefined
-  const memorySpaces = useMemo(() => (status?.memoryBodies ?? []), [status])
-  const activeSpaces = memorySpaces.filter(body => body.active).length
   const workspaceContext = status?.workspaceContext
   const storageMode = workspaceContext?.mode ?? status?.storage?.activeKind ?? configuredStorageScope(settingsSnapshot.value)
   const storageModeText = storageScopeLabel(t, storageMode)
@@ -558,10 +556,10 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
         const connections = jsonRecord(strategy.providerConnections ?? {}) ?? {}
         const merged = { ...settingsSnapshot.value?.persistenceStrategy?.providerConnections }
         for (const [id, fields] of Object.entries(connections)) merged[id] = { ...merged[id], ...jsonRecord(fields) } as NonNullable<typeof merged[string]>
-        await settingsScope.setPath(['persistenceStrategy'], { ...strategy, providerConnections: merged })
+        await settingsScope.mutate([{ op: 'set', path: ['persistenceStrategy'], value: { ...strategy, providerConnections: merged } }])
       },
     }
-    return renderSlot('mnemon.source.page', {
+    return renderSlot(MNEMON_SOURCE_PAGE_SLOT, {
       sourceTypeId, sourceInstanceKey: selected.sourceInstanceKey, sourceInstances: instances, writable: writeEnabled, locale,
       ...(management === undefined ? {} : { management }),
       ...(sessionId === undefined ? {} : { sessionId }), ...(workspaceId === undefined ? {} : { workspaceId }),
