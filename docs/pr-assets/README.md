@@ -12,6 +12,7 @@ For new evaluations, commit the reusable harness, workload generator, concise bi
 
 | Record / 记录 | Scope / 范围 |
 |---|---|
+| [Component pages and one interaction rule](./component-pages-20260927/README.md) / [中文](./component-pages-20260927/README.zh-CN.md) | Settings on their components' pages, gears and names that open them, apply-at-once choices and Apply for typed values, storage location, dark and narrow / 设置位于各自组件页、打开它们的齿轮与名称、即时生效的选择与输入值的应用、存储位置，深色与窄列 |
 | [Memory composition drawn from component declarations](./composition-board-20260927/README.md) / [中文](./composition-board-20260927/README.zh-CN.md) | Board groups by role, relation chips, component pages with declared options, cascades with Undo, problem line, off layers, dark and narrow / 按角色分组的面板、关联标签、带声明选项的组件详情、带撤销的连带开关、问题提示、已关闭的层，深色与窄列 |
 | [Component switches and linked UI](./plugin-linkage-20260927/README.md) / [中文](./plugin-linkage-20260927/README.zh-CN.md) | Main Strategy states, turns without memory, component notes on layers and Providers, stopped workspace layers in light and dark / 主策略状态、无记忆时的对话、记忆层与 Provider 的组件说明、工作台未运行的层，浅色与深色 |
 | [Configuration under Plugins](./plugin-config-20260927/README.md) / [中文](./plugin-config-20260927/README.zh-CN.md) | The dsh-mnemon page under Plugins, unsaved-change bar, links with the workspace, remote pages and live refresh / 插件中的 dsh-mnemon 页面、未保存修改栏、与工作台的互相跳转、远程页面与实时刷新 |
