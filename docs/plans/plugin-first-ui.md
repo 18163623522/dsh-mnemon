@@ -14,7 +14,7 @@ Every capability of dsh-mnemon may be extended: Sources, main Strategies, enhanc
 | Region | Slot | Kind, key | Declared on | Status |
 |---|---|---|---|---|
 | Memory System page and tab | `mnemon.source.page` | list | `shell.overlay`, `conversation.view` | existing |
-| A component's own settings, on its page | `mnemon.component.settings` | keyed by package name | `plugins.bundle.config`, `plugins.row.config` | new |
+| A component's own settings, on its page | `mnemon.component.settings` | keyed by package name | `plugins.bundle.config` (DSH's row pages render what was registered there, since a child slot has one declaring entry) | new |
 | A component's card on the Status page | `mnemon.component.status` | keyed by package name | `shell.overlay`, `conversation.view` | new |
 
 `installMemoryComponentUI(ctx, { packageName, settings?, status? })` in `dsh-mnemon/client` registers a component's contributions, beside the existing `installMemorySourceUI`. Owner props carry only what the host knows about the component (its declaration view, writability, language); a registrant injects its own services through its registration, as DSH slots already allow.
@@ -24,7 +24,7 @@ Every capability of dsh-mnemon may be extended: Sources, main Strategies, enhanc
 One content, two DSH containers:
 
 - the dialog opened from the board's row, and
-- for rows of the Starter bundle, DSH's own row page through `plugins.row.config` (`dsh-mnemon#<row id>`), which gives the row in DSH's component list a configure control, and a localized `summary` where the row has no description.
+- for rows of the Starter bundle, DSH's own row page through `plugins.row.config` (`dsh-mnemon#<row id>`), which gives the row in DSH's component list a configure control. DSH heads that page with the name and description each package's `locale/*.json` gives, the same as its declaration, so the page omits its own package line; related components open over it.
 
 The page shows, in order: state and switch; origin (shipped or installed package); relations; what the switch would also move; declared options; then the component's contributed settings.
 

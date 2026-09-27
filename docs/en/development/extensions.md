@@ -102,6 +102,8 @@ The board is drawn from what each plugin declares, so a new plugin needs no Mnem
 
 The component's page says what else its switch would move, and the toast after a switch names what moved, with **Undo**. Declare `requires` and `provides` precisely: they are how users see what your plugin needs, and what it cannot run beside.
 
+DSH's own plugin list names a package from its `locale/en.json` and `locale/zh.json` (`meta.title`, `meta.description`), exported as `./locale/*.json` and listed in `files`; without them it shows the package name. Give them the same text as the declaration's `label` and `description`, as the shipped packages do, so the component reads the same on DSH's list and on the board.
+
 #### A component's own settings and Status card
 
 When declared options are not enough, a component adds its own settings to its page from its `./client` entry, the way the shipped components do: Runtime Memory's user profile scope, Memory Spaces' Providers and embedding, Default three-tier's background tasks. A Source can also say what its card on the Memory System's Status page shows while it runs.

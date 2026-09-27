@@ -188,7 +188,7 @@ The 390 × 844 captures cover [directory navigation](../../assets/webui-v0.5.4/e
 
 ## 5. Configuration: services are not Memory Space instances
 
-DSH 0.1.7 edits a plugin's configuration on its own page under **Plugins**; Settings keeps DSH's own sections and the read-only plugin inventory. Open **Plugins → dsh-mnemon**, which the Chinese interface titles 可组合记忆, or select **Configure** (the gear) in the Memory System header while the Plugins page is available. The page shows the plugin's title and description, the configuration, and then the components the Starter includes. **Open Memory System** at the head of the page leads back to the workspace.
+DSH 0.1.7 edits a plugin's configuration on its own page under **Plugins**; Settings keeps DSH's own sections and the read-only plugin inventory. Open **Plugins → dsh-mnemon**, which the Chinese interface titles 可组合记忆, or select **Configure** (the gear) in the Memory System header while the Plugins page is available. The page shows the plugin's title and description, the configuration, and then the components the Starter includes, each under the name and description it declares. A component's name in that list opens DSH's page for it, which carries the same component page as the board: its state and switch, relations, options and its own settings, with related components opening over it. **Open Memory System** at the head of the page leads back to the workspace.
 
 The configuration uses DSH preference rows: a name and description on the left, a selector, switch or button on the right. It keeps what belongs to no component; each component's own settings are on its page:
 
