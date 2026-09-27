@@ -217,10 +217,11 @@ button.readSourceCard:hover { background: var(--mn-hover); }
 [data-selected] > .choiceControl { border-color: var(--dsw-alias-brand-primary); background: var(--dsw-alias-brand-primary); }
 [data-selected] > .choiceControl[data-kind='check']::after { width: 7px; height: 4px; border-bottom: 1.5px solid var(--dsw-alias-label-primary-foreground); border-left: 1.5px solid var(--dsw-alias-label-primary-foreground); content: ''; transform: translateY(-1px) rotate(-45deg); }
 [data-selected] > .choiceControl[data-kind='radio']::after { width: 6px; height: 6px; border-radius: 50%; content: ''; background: var(--dsw-alias-label-primary-foreground); }
-.placementMode label:focus-within,
-.providerChoice label:focus-within,
-.capabilityRules label:focus-within,
-.placementCandidates label:focus-within { outline: var(--dsw-focus-ring-width, 2px) solid var(--mn-focus); outline-offset: 1px; }
+/* Keyboard focus only: a dialog that focuses its first choice on open shows no ring. */
+.placementMode label:has(input:focus-visible),
+.providerChoice label:has(input:focus-visible),
+.capabilityRules label:has(input:focus-visible),
+.placementCandidates label:has(input:focus-visible) { outline: var(--dsw-focus-ring-width, 2px) solid var(--mn-focus); outline-offset: 1px; }
 .providerFields { display: grid; gap: 10px; padding: 12px 14px; border: .5px solid var(--mn-card-line); border-radius: var(--dsw-radius-md); }
 .providerFieldHeading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .providerFieldIdentity { display: flex; min-width: 0; align-items: center; gap: 10px; }

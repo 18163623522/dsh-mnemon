@@ -65,6 +65,8 @@
   outline: var(--dsw-focus-ring-width, 2px) solid var(--mn-focus);
   outline-offset: 2px;
 }
+/* Text fields show focus on their own stroke, as the DSH Input does. */
+.shell :is(textarea, input:not([type='checkbox'], [type='radio'], [type='file'])):focus-visible { outline: none; }
 .shell code { font-family: var(--mn-code); font-size: .92em; }
 
 /* Header: title row and the tab strip below it, as in the DSH conversation header. */
@@ -122,6 +124,7 @@
   cursor: pointer;
 }
 .workspacePicker select:hover { background-color: color-mix(in srgb, var(--mn-fill), var(--mn-text) 4%); }
+.workspacePicker select:focus-visible { outline: var(--dsw-focus-ring-width, 2px) solid var(--mn-focus); outline-offset: 2px; }
 
 .alert, .inlineError { padding: 8px 12px; border-radius: var(--dsw-radius-md); color: var(--mn-danger); background: color-mix(in srgb, var(--mn-danger) 8%, transparent); font-size: 12px; line-height: 18px; }
 .alert { display: flex; flex: 0 0 auto; flex-direction: column; gap: 2px; margin: 8px 24px 0; }
@@ -359,14 +362,15 @@
 /* DSH Tag, neutral tone. */
 .phaseBadge { flex: 0 0 auto; padding: 1px 8px; border-radius: 999px; color: var(--mn-muted); background: var(--mn-fill); font-size: 11px; font-weight: 500; line-height: 17px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .statusHeaderActions { display: flex; align-items: center; gap: 8px; }
-.versionDialogBody { display: grid; gap: 12px; }
+/* Single shrinkable columns: a long install path truncates instead of widening the dialog. */
+.versionDialogBody { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .versionChecking { display: flex; min-height: 112px; align-items: center; justify-content: center; gap: 10px; color: var(--mn-muted); font-size: 13px; }
 .versionChecking span { width: 14px; height: 14px; border: 2px solid color-mix(in srgb, currentColor 25%, transparent); border-top-color: currentColor; border-radius: 50%; animation: mnemon-spin .9s linear infinite; }
 .versionError, .versionResult { padding: 10px 12px; border-radius: var(--dsw-radius-md); color: var(--mn-danger); background: color-mix(in srgb, var(--mn-danger) 8%, transparent); }
 .versionResult { color: var(--mn-success); background: color-mix(in srgb, var(--mn-success) 8%, transparent); }
 .versionError strong, .versionResult strong { font-size: 13px; font-weight: 500; }
 .versionError p, .versionResult p { margin: 2px 0 0; color: var(--mn-muted); font-size: 12px; line-height: 18px; }
-.versionList { display: grid; gap: 8px; }
+.versionList { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
 .versionList article { padding: 12px 14px; border: .5px solid var(--mn-card-line); border-radius: var(--dsw-radius-lg); }
 .versionList article > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .versionList article > header > div { display: flex; min-width: 0; align-items: center; gap: 8px; }
