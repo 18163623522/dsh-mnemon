@@ -18,6 +18,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type { MnemonKey } from './locales.ts'
 import type { MemorySourcePageProps } from './source-contracts.ts'
+import type { MemoryComponentSettingsProps } from './component-ui.tsx'
 export type { MnemonSourceManagementClient } from './source-contracts.ts'
 export type MnemonSourcePageOwnerProps = MemorySourcePageProps
 
@@ -32,6 +33,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       kind: 'list'
       scope: 'root'
       owner: MnemonSourcePageOwnerProps
+    }
+    /** A component's own settings on its page, keyed by the component's package name. */
+    'mnemon.component.settings': {
+      kind: 'keyed'
+      scope: 'root'
+      owner: MemoryComponentSettingsProps
     }
   }
 }

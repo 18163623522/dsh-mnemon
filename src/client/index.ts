@@ -8,6 +8,8 @@ import {
   type MnemonDisplayMode,
 } from "../host/protocol.ts"
 import { MnemonSettingsHost } from './MnemonSettingsHost.tsx'
+import { createComponentSettingsDirectory, MNEMON_COMPONENT_SETTINGS_SLOT } from './component-ui.tsx'
+import { installShippedComponentSettings } from './component-settings.tsx'
 import { MnemonTurnTail } from './MnemonTurnTail.tsx'
 import { MnemonPluginActions, MNEMON_PACKAGE_NAME } from './MnemonPluginActions.tsx'
 import { MnemonSaveAction } from './MnemonSaveAction.tsx'
@@ -342,11 +344,17 @@ export function apply(rawContext: unknown): void {
   // Settings keeps only the read-only plugin inventory. The whole Mnemon
   // configuration is the dsh-mnemon bundle's page, between its description
   // and its components.
+  // Components contribute their own settings to their pages there, keyed by package name.
+  const componentSettingsDirectory = createComponentSettingsDirectory(ctx)
   ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
     name: 'plugins.bundle.config',
     key: MNEMON_PACKAGE_NAME,
     locale: namespace,
+    children: {
+      [MNEMON_COMPONENT_SETTINGS_SLOT]: { kind: 'keyed', scope: 'root' },
+    },
     inject: () => ({
+      componentSettingsDirectory,
       scope: settings,
       interactionScope: interactionSettings,
       connection: ctx.connection,
@@ -358,6 +366,8 @@ export function apply(rawContext: unknown): void {
       t: translate,
     }),
   }, MnemonSettingsHost))
+  // The shipped components' own settings arrive the way an installed component's do.
+  ctx.effect(() => installShippedComponentSettings(ctx, { scope: settings, connection: ctx.connection, t: translate }), 'dsh-mnemon: shipped component settings')
   ctx.slots.inject('plugins.detail.actions', () => ctx.slots.register({
     name: 'plugins.detail.actions',
     id: 'dsh-mnemon/open-workspace',

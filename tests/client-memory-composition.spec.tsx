@@ -3,7 +3,7 @@ import { useMemo, useRef } from 'react'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MnemonClient } from '../src/client/api.ts'
-import { CompositionBoard, type LayerSettings } from '../src/client/CompositionBoard.tsx'
+import { CompositionBoard, type ComponentSettingsRenderer, type LayerSettings } from '../src/client/CompositionBoard.tsx'
 import { translateEn, translateZh, type MnemonTranslate } from '../src/client/locales.ts'
 import { useViewFeedback } from '../src/client/view-feedback.tsx'
 import { useViewStore } from '../src/client/view-store.ts'
@@ -90,13 +90,14 @@ function fixture(entries: MemoryPluginEntryView[], options: { failApply?: boolea
 const NO_LAYERS: LayerSettings = { set: async () => {} }
 
 /** The configuration page's wiring: one View store, re-read when `refreshKey` moves, the board and its feedback. */
-function Composition(props: { connection: ClientConnectionHandle; language: string; readOnly?: boolean; refreshKey?: number; system?: MemoryCompositionStatus; layers?: LayerSettings; t: MnemonTranslate }) {
+function Composition(props: { connection: ClientConnectionHandle; language: string; readOnly?: boolean; refreshKey?: number; system?: MemoryCompositionStatus; layers?: LayerSettings; componentSettings?: ComponentSettingsRenderer; t: MnemonTranslate }) {
   const client = useMemo(() => new MnemonClient(props.connection), [props.connection])
   const view = useViewStore(client, props.refreshKey ?? 0)
   const root = useRef<HTMLElement | null>(null)
   const feedback = useViewFeedback(view, root, props.t, props.language)
   return <section ref={root}>
-    <CompositionBoard view={view} system={props.system ?? null} layers={props.layers ?? NO_LAYERS} readOnly={props.readOnly ?? false} language={props.language} t={props.t} />
+    <CompositionBoard view={view} system={props.system ?? null} layers={props.layers ?? NO_LAYERS} readOnly={props.readOnly ?? false} language={props.language} t={props.t}
+      {...(props.componentSettings === undefined ? {} : { componentSettings: props.componentSettings })} />
     {feedback}
   </section>
 }
@@ -112,9 +113,9 @@ function chooseMain(strategy: string, title?: string): void {
   fireEvent.click(mainSelector(title))
   fireEvent.click(screen.getByRole('menuitem', { name: new RegExp(`^${strategy}`, 'u') }))
 }
-/** Open a component's page from its row. */
+/** Open a component's page from its name on its row, as DSH's component list opens a row. */
 function openDetails(name: string): HTMLElement {
-  fireEvent.click(within(row(name)).getByRole('button', { name: new RegExp(`^${name}`, 'u') }))
+  fireEvent.click(within(row(name)).getByRole('button', { name }))
   return screen.getByRole('dialog', { name })
 }
 
@@ -160,7 +161,8 @@ describe('memory composition board', () => {
     await waitFor(() => expect(within(row('Active capture')).getByText('Running')).toBeTruthy())
     expect(checked(screen.getByRole('switch', { name: 'Active capture' }))).toBe(true)
     expect(screen.queryByRole('alert')).toBeNull()
-    // A component without options has no gear.
+    // Its name opens its page; without settings of its own, the row has no gear.
+    expect(within(row('Active capture')).getByRole('button', { name: 'Active capture' }).getAttribute('aria-haspopup')).toBe('dialog')
     expect(within(row('Active capture')).queryByRole('button', { name: /^Options of/u })).toBeNull()
   })
 
@@ -458,25 +460,28 @@ describe('memory composition board', () => {
     const light = entry('mnemon-strategy-light-context', 'dsh-mnemon-strategy-light-context', ['strategy-extension'], 'light-context', { fields: [limit] })
     const { applied, connection } = fixture([threeTier, light])
     render(<Composition connection={connection} language="en" t={translateEn} />)
-    // The gear appears only for a component with options, and opens its page.
+    // A component with options has a gear, which opens its page.
     fireEvent.click(await within(await waitFor(() => row('Light context'))).findByRole('button', { name: 'Options of “Light context”' }))
     const page = screen.getByRole('dialog', { name: 'Light context' })
     const input = within(page).getByRole('textbox', { name: 'Projection limit' }) as HTMLInputElement
     expect(input.value).toBe('4096')
     expect(within(page).getByText('Default')).toBeTruthy()
-    const apply = within(page).getByRole('button', { name: 'Apply' }) as HTMLButtonElement
-    expect(apply.disabled).toBe(true)
+    // Apply appears once something changed, and waits while a value is refused.
+    expect(within(page).queryByRole('button', { name: 'Apply' })).toBeNull()
     fireEvent.change(input, { target: { value: '12.5' } })
     expect(within(page).getByText('Enter a whole number from 1 to 10000000')).toBeTruthy()
-    expect(apply.disabled).toBe(true)
+    expect(within(page).getByRole('alert').textContent).toBe('Fix the marked options first')
+    const apply = () => within(page).getByRole('button', { name: 'Apply' }) as HTMLButtonElement
+    expect(apply().disabled).toBe(true)
     fireEvent.change(input, { target: { value: '2048' } })
-    expect(apply.disabled).toBe(false)
-    fireEvent.click(apply)
+    expect(apply().disabled).toBe(false)
+    fireEvent.click(apply())
     await waitFor(() => expect(applied).toHaveLength(1))
     expect(applied[0]!.entries).toEqual({ 'mnemon-strategy-light-context': { enabled: false, config: { maxProjectionCharacters: 2048 } } })
-    const toast = await screen.findByRole('alert')
-    expect(toast.textContent).toContain('Updated the options of “Light context”')
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Light context' })).toBeNull())
+    const toast = await waitFor(() => screen.getAllByRole('alert').find(alert => alert.textContent?.includes('Updated the options of “Light context”'))!)
+    // The page stays open with the saved value and nothing left to apply.
+    await waitFor(() => expect(within(screen.getByRole('dialog', { name: 'Light context' })).queryByRole('button', { name: 'Apply' })).toBeNull())
+    expect((within(screen.getByRole('dialog', { name: 'Light context' })).getByRole('textbox', { name: 'Projection limit' }) as HTMLInputElement).value).toBe('2048')
     fireEvent.click(within(toast).getByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(applied).toHaveLength(2))
     expect(applied[1]!.entries).toEqual({ 'mnemon-strategy-light-context': { enabled: false, config: {} } })
@@ -490,7 +495,7 @@ describe('memory composition board', () => {
     ]
     const { applied, connection } = fixture([{ ...threeTier, ...off }, main('general', { ...on, fields: [resident], config: { residentSourceKeys: ['memory-spaces/default'] } }), source('runtime'), source('memory-spaces')], { sources, strategyTypeId: 'general' })
     render(<Composition connection={connection} language="en" t={translateEn} />)
-    // The selected main Strategy's page opens from its row.
+    // The main Strategy row's gear opens the selected Strategy's page.
     fireEvent.click(await screen.findByRole('button', { name: 'Details of “General”' }))
     const page = screen.getByRole('dialog', { name: 'General' })
     expect(within(page).getByText('Current main strategy')).toBeTruthy()
@@ -499,13 +504,47 @@ describe('memory composition board', () => {
     fireEvent.click(within(page).getByRole('button', { name: 'Apply' }))
     await waitFor(() => expect(applied).toHaveLength(1))
     expect(applied[0]).toEqual({ expectedRevision: 'view-1', strategyTypeId: 'general', entries: { 'mnemon-strategy-general': { enabled: true, config: { residentSourceKeys: ['memory-spaces/default', 'runtime/default'] } } } })
-    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'General' })).toBeNull())
-    fireEvent.click(screen.getByRole('button', { name: 'Details of “General”' }))
     const again = screen.getByRole('dialog', { name: 'General' })
+    await waitFor(() => expect(within(again).queryByRole('button', { name: 'Apply' })).toBeNull())
     fireEvent.click(within(again).getByRole('button', { name: 'Reset to default' }))
     expect(within(again).getByText('Default')).toBeTruthy()
     fireEvent.click(within(again).getByRole('button', { name: 'Apply' }))
     await waitFor(() => expect(applied).toHaveLength(2))
     expect(applied[1]!.entries).toEqual({ 'mnemon-strategy-general': { enabled: true, config: {} } })
+  })
+
+  it('shows the settings a component contributed on its page, behind a gear on its row', async () => {
+    const notes = entry('notes', 'acme-memory-notes', ['source'], 'notes', { ...on, label: { en: 'Notes', 'zh-CN': '笔记' }, provides: [{ id: 'source', exclusive: false }] })
+    const { connection } = fixture([threeTier, source('runtime'), notes])
+    const render_ = vi.fn((component: MemoryPluginEntryView, writable: boolean) => <p>Notes settings for {component.packageName}, writable {String(writable)}</p>)
+    const componentSettings: ComponentSettingsRenderer = { has: packageName => packageName === 'acme-memory-notes', render: render_ }
+    render(<Composition connection={connection} language="en" system={system({ runtime: true })} componentSettings={componentSettings} t={translateEn} />)
+    await waitFor(() => expect(within(row('Notes')).getByRole('button', { name: 'Options of “Notes”' })).toBeTruthy())
+    // A component that contributed nothing and declares no options has no gear.
+    expect(within(row('Runtime Memory')).queryByRole('button', { name: /^Options of/u })).toBeNull()
+    fireEvent.click(within(row('Notes')).getByRole('button', { name: 'Options of “Notes”' }))
+    const page = screen.getByRole('dialog', { name: 'Notes' })
+    expect(within(page).getByText('Notes settings for acme-memory-notes, writable true')).toBeTruthy()
+    expect(render_.mock.calls[0]![0].entryId).toBe('notes')
+    // A component that contributed nothing gets the page its declaration gives.
+    fireEvent.click(within(page).getByRole('button', { name: 'Close' }))
+    expect(within(openDetails('Runtime Memory')).queryByText(/^Notes settings/u)).toBeNull()
+  })
+
+  it('opens a related component\'s page from a name, and goes back', async () => {
+    const { connection } = fixture([threeTier, needy, source('runtime'), source('memory-spaces')])
+    render(<Composition connection={connection} language="en" system={system(allLayers)} t={translateEn} />)
+    await waitFor(() => row('Active capture'))
+    // A chip on the row opens the component it names.
+    fireEvent.click(within(row('Active capture')).getByRole('button', { name: 'Memory Spaces' }))
+    expect(screen.getByRole('dialog', { name: 'Memory Spaces' })).toBeTruthy()
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Close' }))
+    // On a page, a related name opens that page in place, with a way back.
+    const page = openDetails('Active capture')
+    fireEvent.click(within(page).getByRole('button', { name: 'Memory Spaces' }))
+    const related = screen.getByRole('dialog', { name: 'Memory Spaces' })
+    fireEvent.click(within(related).getByRole('button', { name: 'Back to “Active capture”' }))
+    expect(screen.getByRole('dialog', { name: 'Active capture' })).toBeTruthy()
+    expect(within(screen.getByRole('dialog')).queryByRole('button', { name: /^Back to/u })).toBeNull()
   })
 })

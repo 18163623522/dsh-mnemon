@@ -75,6 +75,8 @@ function fixture() {
     slots: {
       inject(_name: string, factory: () => (() => void)) { const dispose = factory(); disposers.push(dispose); return dispose },
       entries: () => [],
+      entriesOfSlot: () => [],
+      getVersion: () => 0,
       subscribe: () => () => {},
       register(options: unknown, component: unknown) { entries.push({ options, component } as typeof entries[number]); return () => {} },
     },

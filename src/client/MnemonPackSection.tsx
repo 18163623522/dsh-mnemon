@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type JSX } from 'react'
+import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ClientConnectionHandle, MnemonPackExport, MnemonPackPreview } from "../host/protocol.ts"
 import { MnemonClient } from './api.ts'
 import type { MnemonTranslate } from './locales.ts'
@@ -6,11 +7,31 @@ import { humanBytes, message } from './page-kit.tsx'
 import css from './MnemonSettingsCard.module.css'
 import { SettingRow } from './settings-controls.tsx'
 
+/** The data directory the running Host reads and writes now. */
+export interface PackTarget {
+  root: string
+  scope: 'global' | 'workspace' | 'custom'
+}
+
+/** Where memory lives now, read again whenever `refreshKey` moves. */
+export function usePackTarget(connection: ClientConnectionHandle | undefined, sessionId: string | undefined, workspaceId: string | undefined, refreshKey: number): { target: PackTarget | null; failed: string | null } {
+  const client = useMemo(() => connection === undefined ? null : new MnemonClient(connection, sessionId, workspaceId), [connection, sessionId, workspaceId])
+  const [state, setState] = useState<{ target: PackTarget | null; failed: string | null }>({ target: null, failed: null })
+  useEffect(() => {
+    if (client === null) return
+    let active = true
+    void client.packTarget().then(target => { if (active) setState({ target, failed: null }) }, reason => { if (active) setState({ target: null, failed: message(reason) }) })
+    return () => { active = false }
+  }, [client, refreshKey])
+  return state
+}
+
 interface MnemonPackSectionProps {
   connection?: ClientConnectionHandle
   sessionId?: string
   workspaceId?: string
-  refreshKey: number
+  /** The directory a backup exports and an import merges into. */
+  target: PackTarget | null
   t: MnemonTranslate
 }
 
@@ -53,24 +74,14 @@ function download(result: MnemonPackExport): void {
   window.setTimeout(() => URL.revokeObjectURL(url), 0)
 }
 
-export function MnemonPackSection({ connection, sessionId, workspaceId, refreshKey, t }: MnemonPackSectionProps): JSX.Element {
+/** Backup and migration of the data directory as one ZIP; the directory itself shows beside the storage choice. */
+export function MnemonPackSection({ connection, sessionId, workspaceId, target, t }: MnemonPackSectionProps): JSX.Element {
   const client = useMemo(() => connection === undefined ? null : new MnemonClient(connection, sessionId, workspaceId), [connection, sessionId, workspaceId])
   const input = useRef<HTMLInputElement | null>(null)
-  const [target, setTarget] = useState<{ root: string; scope: 'global' | 'workspace' | 'custom' } | null>(null)
   const [pending, setPending] = useState<PendingZip | null>(null)
-  const [busy, setBusy] = useState<'target' | 'export' | 'inspect' | 'import' | null>(client === null ? null : 'target')
+  const [busy, setBusy] = useState<'export' | 'inspect' | 'import' | null>(null)
   const [failed, setFailed] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
-
-  useEffect(() => {
-    let active = true
-    if (client === null) return
-    setBusy('target'); setFailed(null)
-    void client.packTarget().then(value => { if (active) setTarget(value) }).catch(reason => {
-      if (active) setFailed(message(reason))
-    }).finally(() => { if (active) setBusy(null) })
-    return () => { active = false }
-  }, [client, refreshKey])
 
   const exportZip = async (): Promise<void> => {
     if (client === null || busy !== null) return
@@ -117,17 +128,17 @@ export function MnemonPackSection({ connection, sessionId, workspaceId, refreshK
   const items = pending?.preview.manifest.summary.reduce((sum, component) => sum + component.items, 0) ?? 0
 
   return <div className={css.packRow} role="group" aria-labelledby="mnemon-pack-heading">
-    <SettingRow title={t('config.packTitle')} titleId="mnemon-pack-heading" hint={<>{t('config.packSimpleDescription')}<code className={css.activePath} title={target?.root}>{target?.root ?? t('config.packTargetLoading')}</code></>}>
+    <SettingRow title={t('config.packTitle')} titleId="mnemon-pack-heading" hint={t('config.packSimpleDescription')}>
       <div className={css.rowActions}>
-        <button type="button" className={css.pillButton} disabled={client === null || busy !== null} onClick={() => input.current?.click()}>{busy === 'inspect' ? t('config.packInspecting') : t('config.packImportZip')}</button>
-        <button type="button" className={css.pillButton} disabled={client === null || busy !== null || target === null} onClick={() => void exportZip()}>{busy === 'export' ? t('config.packExporting') : t('config.packExportZip')}</button>
+        <Button variant="outline" size="sm" disabled={client === null || busy !== null} onClick={() => input.current?.click()}>{busy === 'inspect' ? t('config.packInspecting') : t('config.packImportZip')}</Button>
+        <Button variant="outline" size="sm" disabled={client === null || busy !== null || target === null} onClick={() => void exportZip()}>{busy === 'export' ? t('config.packExporting') : t('config.packExportZip')}</Button>
       </div>
       <input ref={input} className={css.visuallyHidden} type="file" accept={ZIP_ACCEPT} aria-label={t('config.packChooseZip')} onChange={chooseFile} />
     </SettingRow>
     {pending !== null && <div className={css.importBar} role="status">
       <div><strong>{pending.preview.fileName ?? t('config.packUnnamedZip')}</strong><small>{t('config.packZipReady', { components: pending.preview.manifest.components.length, items, size: humanBytes(pending.preview.archiveBytes) })}</small></div>
-      <button type="button" className={css.textButton} disabled={busy !== null} onClick={() => setPending(null)}>{t('common.cancel')}</button>
-      <button type="button" className={css.primaryPill} disabled={busy !== null} onClick={() => void importZip()}>{busy === 'import' ? t('config.packImporting') : t('config.packImportZipAction')}</button>
+      <Button variant="ghost" size="sm" disabled={busy !== null} onClick={() => setPending(null)}>{t('common.cancel')}</Button>
+      <Button variant="primary" size="sm" disabled={busy !== null} onClick={() => void importZip()}>{busy === 'import' ? t('config.packImporting') : t('config.packImportZipAction')}</Button>
     </div>}
     <div className={css.packFeedback} aria-live="polite">
       {failed !== null && <p className={css.error} role="alert">{t('config.packFailed', { error: failed })}</p>}

@@ -152,6 +152,6 @@ describe('Memory enhancement settings', () => {
     await waitFor(() => expect(screen.queryByRole('heading', { name: '记忆组合' })).toBeNull())
     expect(screen.queryByText(/dashboard failed/u)).toBeNull()
     expect(screen.getByRole('heading', { name: '存储' })).toBeTruthy()
-    expect(screen.getByRole('heading', { name: '记忆 Provider' })).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '界面' })).toBeTruthy()
   })
 })
