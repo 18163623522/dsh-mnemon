@@ -8,8 +8,9 @@ export {
 } from './source-pages.tsx'
 export type { MnemonSourceManagementClient, MemorySourcePageInstance } from './source-contracts.ts'
 export {
-  installMemoryComponentUI, MNEMON_COMPONENT_SETTINGS_SLOT,
-  type MemoryComponentSettingsComponent, type MemoryComponentSettingsProps, type MemoryComponentUIContext, type MemoryComponentUIContribution,
+  installMemoryComponentUI, MNEMON_COMPONENT_SETTINGS_SLOT, MNEMON_COMPONENT_STATUS_SLOT,
+  type MemoryComponentSettingsComponent, type MemoryComponentSettingsProps, type MemoryComponentStatusComponent, type MemoryComponentStatusProps,
+  type MemoryComponentUIContext, type MemoryComponentUIContribution,
 } from './component-ui.tsx'
 export * from './page-kit.tsx'
 export * from './page-client.tsx'

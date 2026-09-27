@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest'
-import { createComponentSettingsDirectory, installMemoryComponentUI, MNEMON_COMPONENT_SETTINGS_SLOT, type MemoryComponentSettingsComponent } from '../src/client/component-ui.tsx'
+import { createComponentRegionDirectory, createComponentSettingsDirectory, installMemoryComponentUI, MNEMON_COMPONENT_SETTINGS_SLOT, MNEMON_COMPONENT_STATUS_SLOT, type MemoryComponentSettingsComponent } from '../src/client/component-ui.tsx'
+import { DOCUMENTS_PACKAGE, installShippedComponentStatus } from '../src/client/component-status.tsx'
 import { installShippedComponentSettings, MEMORY_SPACES_PACKAGE, RUNTIME_PACKAGE, THREE_TIER_PACKAGE } from '../src/client/component-settings.tsx'
 import { translateZh } from '../src/client/locales.ts'
 import { settingsScope } from './helpers/settings-scope.ts'
@@ -60,6 +61,30 @@ describe('component regions', () => {
     dispose()
     expect(changed).toHaveBeenCalled()
     expect(directory.getSnapshot().has('@acme/memory-notes')).toBe(false)
+  })
+
+  it('registers a component\'s Status card and settings into their own regions', () => {
+    const { context, registered, declare } = slots()
+    declare()
+    const dispose = installMemoryComponentUI(context, { packageName: '@acme/memory-notes', settings: () => null, status: () => null })
+    expect(registered.map(entry => entry.options)).toEqual([
+      { name: MNEMON_COMPONENT_SETTINGS_SLOT, key: '@acme/memory-notes' },
+      { name: MNEMON_COMPONENT_STATUS_SLOT, key: '@acme/memory-notes' },
+    ])
+    dispose()
+    expect(registered).toEqual([])
+  })
+
+  it('registers the shipped Sources\' Status cards the way an installed component does', () => {
+    const { context, registered, declare } = slots()
+    declare()
+    const dispose = installShippedComponentStatus(context)
+    expect(registered.map(entry => [entry.options.name, entry.options.key])).toEqual([
+      [MNEMON_COMPONENT_STATUS_SLOT, RUNTIME_PACKAGE], [MNEMON_COMPONENT_STATUS_SLOT, DOCUMENTS_PACKAGE], [MNEMON_COMPONENT_STATUS_SLOT, MEMORY_SPACES_PACKAGE],
+    ])
+    dispose()
+    expect(registered).toEqual([])
+    expect(createComponentRegionDirectory(context, MNEMON_COMPONENT_STATUS_SLOT).getSnapshot().size).toBe(0)
   })
 
   it('refuses a contribution without a package name or without anything to add', () => {

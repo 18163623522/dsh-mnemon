@@ -93,7 +93,7 @@ describe('Mnemon Web client composition', () => {
     expect(inject).toEqual(['slots', 'sessions', 'workspaces', 'uiSession', 'connection', 'locale', 'layout'])
     expect(context.locale.register).toHaveBeenCalledWith('mnemon', { zh, en })
     await vi.waitFor(() => expect(slots).toEqual(expect.arrayContaining([
-      expect.objectContaining({ name: 'shell.overlay', id: 'mnemon', children: { 'mnemon.source.page': { kind: 'list', scope: 'root' } } }),
+      expect.objectContaining({ name: 'shell.overlay', id: 'mnemon', children: { 'mnemon.source.page': { kind: 'list', scope: 'root' }, 'mnemon.component.status': { kind: 'keyed', scope: 'root' } } }),
       expect.objectContaining({ name: 'conversation.chat.assistant-actions', id: 'mnemon-save' }),
     ])))
     const props = (settingsEntry.inject as () => { t: (key: keyof typeof zh) => string })()

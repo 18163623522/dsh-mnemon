@@ -71,8 +71,10 @@ const relativeReadmeImages = readmeFiles.flatMap((path) => {
 // than 3 KB of headroom; components still ship only in their own packages.
 // The component settings region, the shipped components' settings on their
 // pages, the shared Apply and apply-at-once helpers and the storage section
-// bring it to 1,453,498 bytes (+11,837). Keep less than 3 KB of headroom.
-const maximumUnpackedBytes = 1_456_000
+// bring it to 1,453,498 bytes (+11,837). The Status card region and the
+// Memory System's names drawn from component declarations bring it to
+// 1,458,675 bytes (+5,177). Keep less than 3 KB of headroom.
+const maximumUnpackedBytes = 1_461_000
 
 if (missing.length > 0 || unexpected.length > 0 || hostLeaks.length > 0 || relativeReadmeImages.length > 0 || pack.unpackedSize > maximumUnpackedBytes) {
   if (missing.length > 0) console.error(`Missing package files:\n${missing.map(path => `- ${path}`).join('\n')}`)

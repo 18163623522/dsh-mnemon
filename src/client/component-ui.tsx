@@ -5,6 +5,13 @@ import { createElement, type ReactNode } from 'react'
  * name, rendered after the page's generated state, relations and options.
  */
 export const MNEMON_COMPONENT_SETTINGS_SLOT = 'mnemon.component.settings' as const
+/**
+ * What a component's card on the Memory System's Status page says while it
+ * runs, keyed by the component's package name. A card that is not running
+ * shows the page's own note instead.
+ */
+export const MNEMON_COMPONENT_STATUS_SLOT = 'mnemon.component.status' as const
+type ComponentRegion = typeof MNEMON_COMPONENT_SETTINGS_SLOT | typeof MNEMON_COMPONENT_STATUS_SLOT
 
 const PACKAGE_NAME = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/u
 
@@ -28,64 +35,90 @@ export interface MemoryComponentSettingsProps {
 
 export type MemoryComponentSettingsComponent = (props: MemoryComponentSettingsProps) => ReactNode
 
+/** What the Status page tells a component's card: the component it is about. */
+export interface MemoryComponentStatusProps {
+  component: {
+    packageName: string
+    label: string
+    enabled: boolean
+  }
+  /** The active DSH locale id. */
+  language: string
+  /** The conversation and workspace the Memory System shows, when there is one. */
+  sessionId?: string
+  workspace?: { id: string; label?: string }
+}
+
+export type MemoryComponentStatusComponent = (props: MemoryComponentStatusProps) => ReactNode
+
 /** Everything one component adds to dsh-mnemon's interface beyond its declaration. */
 export interface MemoryComponentUIContribution {
   /** The npm package name the component's plugin declaration names. */
   packageName: string
   /** Its own settings, shown on its page. Each saves on its own. */
   settings?: MemoryComponentSettingsComponent
+  /** What its card on the Status page says while it runs: a headline and one line. */
+  status?: MemoryComponentStatusComponent
 }
 
 /** The DSH Slot capability narrowed to the component regions. */
 export interface MemoryComponentUIContext {
   slots: {
-    inject(name: typeof MNEMON_COMPONENT_SETTINGS_SLOT, setup: () => () => void): () => void
+    inject(name: ComponentRegion, setup: () => () => void): () => void
     register(options: { name: typeof MNEMON_COMPONENT_SETTINGS_SLOT; key: string }, component: MemoryComponentSettingsComponent): () => void
+    register(options: { name: typeof MNEMON_COMPONENT_STATUS_SLOT; key: string }, component: MemoryComponentStatusComponent): () => void
   }
 }
 
 /**
  * Register a component's interface into the regions dsh-mnemon declares, the
- * way shipped components do. Registration waits for the regions to exist and
+ * way shipped components do. Registration waits for each region to exist and
  * is released by the returned function.
  */
 export function installMemoryComponentUI(ctx: MemoryComponentUIContext, contribution: MemoryComponentUIContribution): () => void {
-  if (!PACKAGE_NAME.test(contribution.packageName)) throw new Error('memory component UI requires the package name of the component')
-  const settings = contribution.settings
-  if (settings === undefined) throw new Error('memory component UI contributes nothing: ' + contribution.packageName)
-  return ctx.slots.inject(MNEMON_COMPONENT_SETTINGS_SLOT, () => ctx.slots.register({
-    name: MNEMON_COMPONENT_SETTINGS_SLOT,
-    key: contribution.packageName,
-  }, props => createElement(settings, props)))
+  const key = contribution.packageName
+  if (!PACKAGE_NAME.test(key)) throw new Error('memory component UI requires the package name of the component')
+  const { settings, status } = contribution
+  const disposers: Array<() => void> = []
+  if (settings !== undefined) disposers.push(ctx.slots.inject(MNEMON_COMPONENT_SETTINGS_SLOT, () => ctx.slots.register({ name: MNEMON_COMPONENT_SETTINGS_SLOT, key }, props => createElement(settings, props))))
+  if (status !== undefined) disposers.push(ctx.slots.inject(MNEMON_COMPONENT_STATUS_SLOT, () => ctx.slots.register({ name: MNEMON_COMPONENT_STATUS_SLOT, key }, props => createElement(status, props))))
+  if (disposers.length === 0) throw new Error('memory component UI contributes nothing: ' + key)
+  return () => { for (const dispose of disposers.reverse()) dispose() }
 }
 
-interface ComponentSettingsDirectoryContext {
+interface ComponentRegionDirectoryContext {
   slots: {
-    getVersion(name: typeof MNEMON_COMPONENT_SETTINGS_SLOT): number
-    entriesOfSlot(name: typeof MNEMON_COMPONENT_SETTINGS_SLOT): readonly { options: { key?: string } }[]
-    subscribe(name: typeof MNEMON_COMPONENT_SETTINGS_SLOT, listener: () => void): () => void
+    getVersion(name: ComponentRegion): number
+    entriesOfSlot(name: ComponentRegion): readonly { options: { key?: string } }[]
+    subscribe(name: ComponentRegion, listener: () => void): () => void
   }
 }
 
-/** The components that registered settings, as the pages that show them need to know. */
-export interface ComponentSettingsDirectory {
+/** The components that registered into one region, as the pages that show it need to know. */
+export interface ComponentRegionDirectory {
   getSnapshot(): ReadonlySet<string>
   subscribe(listener: () => void): () => void
 }
+/** The components that registered settings. */
+export type ComponentSettingsDirectory = ComponentRegionDirectory
 
-/** Thin adapter over the DSH child Slot: it keeps no registry of its own. */
-export function createComponentSettingsDirectory(ctx: ComponentSettingsDirectoryContext): ComponentSettingsDirectory {
+/** Thin adapter over a DSH child Slot: it keeps no registry of its own. */
+export function createComponentRegionDirectory(ctx: ComponentRegionDirectoryContext, region: ComponentRegion): ComponentRegionDirectory {
   let version = -1
   let snapshot: ReadonlySet<string> = new Set()
   const read = (): ReadonlySet<string> => {
-    const current = ctx.slots.getVersion(MNEMON_COMPONENT_SETTINGS_SLOT)
+    const current = ctx.slots.getVersion(region)
     if (current === version) return snapshot
     version = current
-    snapshot = new Set(ctx.slots.entriesOfSlot(MNEMON_COMPONENT_SETTINGS_SLOT).flatMap(entry => entry.options.key === undefined ? [] : [entry.options.key]))
+    snapshot = new Set(ctx.slots.entriesOfSlot(region).flatMap(entry => entry.options.key === undefined ? [] : [entry.options.key]))
     return snapshot
   }
   return {
     getSnapshot: read,
-    subscribe: listener => ctx.slots.subscribe(MNEMON_COMPONENT_SETTINGS_SLOT, () => { read(); listener() }),
+    subscribe: listener => ctx.slots.subscribe(region, () => { read(); listener() }),
   }
+}
+
+export function createComponentSettingsDirectory(ctx: ComponentRegionDirectoryContext): ComponentSettingsDirectory {
+  return createComponentRegionDirectory(ctx, MNEMON_COMPONENT_SETTINGS_SLOT)
 }

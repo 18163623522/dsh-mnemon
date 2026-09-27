@@ -8,8 +8,9 @@ import {
   type MnemonDisplayMode,
 } from "../host/protocol.ts"
 import { MnemonSettingsHost } from './MnemonSettingsHost.tsx'
-import { createComponentSettingsDirectory, MNEMON_COMPONENT_SETTINGS_SLOT } from './component-ui.tsx'
+import { createComponentSettingsDirectory, MNEMON_COMPONENT_SETTINGS_SLOT, MNEMON_COMPONENT_STATUS_SLOT } from './component-ui.tsx'
 import { installShippedComponentSettings } from './component-settings.tsx'
+import { installShippedComponentStatus } from './component-status.tsx'
 import { MnemonTurnTail } from './MnemonTurnTail.tsx'
 import { MnemonPluginActions, MNEMON_PACKAGE_NAME } from './MnemonPluginActions.tsx'
 import { MnemonSaveAction } from './MnemonSaveAction.tsx'
@@ -147,6 +148,7 @@ function mountSidebarMemoryView(ctx: MnemonClientContext, settings: MnemonSettin
     locale: namespace,
     children: {
       [MNEMON_SOURCE_PAGE_SLOT]: { kind: 'list', scope: 'root' },
+      [MNEMON_COMPONENT_STATUS_SLOT]: { kind: 'keyed', scope: 'root' },
     },
     inject: () => ({
       connection: ctx.connection,
@@ -211,6 +213,7 @@ function mountBuiltinMemoryView(ctx: MnemonClientContext, settings: MnemonSettin
     locale: namespace,
     children: {
       [MNEMON_SOURCE_PAGE_SLOT]: { kind: 'list', scope: 'root' },
+      [MNEMON_COMPONENT_STATUS_SLOT]: { kind: 'keyed', scope: 'root' },
     },
     inject: sessionId => ({
       connection: ctx.connection,
@@ -366,8 +369,9 @@ export function apply(rawContext: unknown): void {
       t: translate,
     }),
   }, MnemonSettingsHost))
-  // The shipped components' own settings arrive the way an installed component's do.
+  // The shipped components' own settings and Status cards arrive the way an installed component's do.
   ctx.effect(() => installShippedComponentSettings(ctx, { scope: settings, connection: ctx.connection, t: translate }), 'dsh-mnemon: shipped component settings')
+  ctx.effect(() => installShippedComponentStatus(ctx), 'dsh-mnemon: shipped component status')
   ctx.slots.inject('plugins.detail.actions', () => ctx.slots.register({
     name: 'plugins.detail.actions',
     id: 'dsh-mnemon/open-workspace',
