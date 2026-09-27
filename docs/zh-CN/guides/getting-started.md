@@ -12,7 +12,7 @@
 
 - DSH 0.1.7-rc.2 基线所需的 Node.js `^22.19.0 || >=24.0.0`；
 - 一个可以启动的 DSH Web 或 Headless profile；
-- 本地可执行的 `mnemon` CLI；
+- 仅在使用 Mnemon Native 时需要本地可执行的 `mnemon` CLI（其他 Provider 使用各自的服务）；
 - 一个能够创建独立任务 Agent 的 DSH 模型路由。
 
 普通语义任务优先使用名为 `spawn` 的 Provider，并要求 `toolFilter`、`persona` 与 `depthLimit`。Mnemon 固定注册一个 `mnemon_subagent_result` 工具，并为每个子任务签发可撤销的 `requestId`。子任务返回 `{ requestId, result }`；Host 按该操作的 schema 校验 `result`，拒绝过期或其他子任务提交的结果，不依赖 Provider 的 `outputSchema` 路径。可选后台审查默认通过受 guard 保护的 `spawn` 子 Agent 读取有界检查点；完整上下文 `fork` 需显式选择。审查提供独立开关、冷却时间与尝试预算，详见[审查兼容性和限制](../reference/configuration.md)。
@@ -29,7 +29,7 @@ npm view @deepseek-ai/dsh dist-tags
 
 ## 2. 安装 Mnemon
 
-macOS、Linux 和 Windows 均推荐使用 npm（Node.js 22+）。在运行 DSH 的宿主机器上执行：
+只有 Mnemon Native 使用 Mnemon CLI。记忆空间使用其他 Provider 时可跳过这一步，以后再安装。macOS、Linux 和 Windows 均推荐使用 npm（Node.js 22+）。在运行 DSH 的宿主机器上执行：
 
 ```sh
 npm install --global @mnemon-dev/mnemon@latest
@@ -202,7 +202,7 @@ dsh --profile headless "回答前先检查持久化的项目上下文。"
 
 1. 打开“记忆空间 → 概览”。
 2. 点击“创建记忆空间”。
-3. 人工选择已启用的 Provider。保留 **Mnemon Native** 即使用官方本地优先默认；三方服务需先在设置中启用。
+3. 选择一个已就绪的 Provider。对话框默认选中第一个：安装 CLI 后即为官方本地优先的 **Mnemon Native**。三方服务需先在设置中启用。
 4. 使用主题明确的名称，例如“项目决策”。
 5. 在说明中写清“哪些内容属于这里，以及什么任务应召回它”，然后开启读取激活开关。
 

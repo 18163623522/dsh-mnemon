@@ -75,6 +75,8 @@ export interface MemoryPersistenceStrategy {
 export interface ResolvedMemoryPersistenceStrategy {
   mode: 'manual' | 'automatic'
   providerId: MemoryProviderId
+  /** Set when no provider was chosen; manual mode then uses whichever provider is ready. */
+  providerDefaulted?: true
   prompt: string
   rules: {
     allowedProviderIds: MemoryProviderId[]

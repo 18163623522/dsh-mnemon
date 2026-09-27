@@ -37,6 +37,7 @@ for (const flag of flags) {
   if (flag === '--openviking-write') continue
   if (flag === '--idle-review') continue
   if (flag === '--general-strategy') continue
+  if (flag === '--without-mnemon-cli') continue
   if (flag.startsWith('--electron=')) {
     const value = flag.slice('--electron='.length)
     if (value === '') throw new Error('--electron requires an Electron executable')
@@ -251,6 +252,8 @@ try {
     + (runtimeArchive ? '- id: mnemon\n  config:\n    persistenceStrategy:\n      mode: manual\n    runtimeMemory:\n      memoryLimitBytes: 300\n' : '')
     + (flags.has('--idle-review') ? '- id: mnemon\n  config:\n    idleReviewMs: 5000\n    idleReview:\n      minIntervalMs: 5000\n      maxPerSession: 1\n' : '')
     + (flags.has('--runtime-routing') ? '- id: mnemon\n  config:\n    runtimeMemory:\n      memoryLimitBytes: 1600\n' : '')
+    // An explicit cliPath is authoritative, so a missing file hides any installed Mnemon CLI.
+    + (flags.has('--without-mnemon-cli') ? '- id: mnemon\n  config:\n    cliPath: ' + JSON.stringify(join(fixture, 'no-mnemon-cli', 'mnemon')) + '\n' : '')
     + (flags.has('--general-strategy') ? '- id: mnemon-strategy-general\n  disabled: false\n- id: mnemon-strategy-default-three-tier\n  disabled: true\n- id: mnemon\n  config:\n    memoryView:\n      strategyTypeId: general\n' : '')
     + (flags.has('--runtime-write-scope') ? '- id: mnemon\n  config:\n    persistenceStrategy:\n      mode: manual\n      providerId: mnemon-native\n    runtimeMemory:\n      memoryLimitBytes: 512\n' : '')
     + (reviewModel === undefined ? '' : '- insert:\n    - id: review-evidence-fixture\n      name: ' + JSON.stringify(reviewFixture) + '\n')

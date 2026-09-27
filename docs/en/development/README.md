@@ -144,6 +144,8 @@ For Runtime write-scope regression, use `MNEMON_CLI_PATH=/absolute/path/to/mnemo
 
 `pnpm e2e:serve --general-strategy` starts with the general main Strategy selected and the default three-tier Strategy disabled. Send `general-strategy-check remember`, then `general-strategy-check recall` in the next turn. The scripted model checks that the general memory protocol is in the system prompt and that the Runtime, Documents and Memory Spaces Sources are admitted, saves one fact through the named Runtime tool, and answers the second turn only if that fact is projected as resident memory. The fixture prints each check as a `General strategy:` line. Only model decisions are scripted; the Strategy, its View, the Runtime write and the browser stay real.
 
+`pnpm e2e:serve --without-mnemon-cli` points `cliPath` at a missing file, so the Host behaves as if the Mnemon CLI were not installed even when one is on PATH. Use it to check that Status shows no Mnemon Native card, the version dialog lists the CLI as optional, Settings disables the embedding test, and a new Memory Space starts on a ready Provider. Connect one first, for example a Provider Lab service under Settings → Memory System.
+
 ## Releasing
 
 Official packages use independent versions; the Starter pins a tested combination. See [Release process](./releasing.md) for changesets, frozen artifacts, Registry checks and recovery.

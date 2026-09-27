@@ -145,7 +145,7 @@ Clicking Create always asks the user to choose a Provider explicitly. Only servi
 
 Distillation strategy routes later Agent writes; it does not change manual creation:
 
-- **Manual** uses an explicitly constrained target;
+- **Manual** uses an explicitly constrained target. Until one is saved, it uses the first ready Provider: Mnemon Native while its CLI is installed, otherwise another enabled Provider;
 - **Smart selection** treats data boundary and required capabilities as hard rules, then uses local/shared preference and a prompt as soft policy. A model runs only when several candidates remain eligible.
 
 The receipt keeps decision source, confidence, and reason. Provider credentials never enter model context.

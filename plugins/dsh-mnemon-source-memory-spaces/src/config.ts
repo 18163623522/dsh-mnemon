@@ -66,6 +66,7 @@ export function resolvePersistenceStrategy(value: MemoryPersistenceStrategy | un
   return {
     mode,
     providerId,
+    ...(value?.providerId === undefined ? { providerDefaulted: true as const } : {}),
     prompt,
     rules: {
       allowedProviderIds: allowedProviderIds as MemoryProviderId[],

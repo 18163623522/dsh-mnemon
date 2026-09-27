@@ -302,6 +302,16 @@ export class MemorySpaceRegistry {
       : this.providerServiceConfigured(providerId) && this.serviceEnabled[providerId] === true
   }
 
+  /**
+   * The provider used when none is named: Mnemon Native while its CLI is
+   * available, which keeps the long-standing default, otherwise the first
+   * other provider, in catalog order, that can take writes now.
+   */
+  defaultProviderId(): MemoryProviderId | undefined {
+    const ready = this.providerCatalog.providers.filter(provider => this.providerServiceEnabled(provider.id))
+    return (ready.find(provider => this.isNative(provider.id)) ?? ready[0])?.id
+  }
+
   providerServices(options: { includeSecrets?: boolean } = {}): MemoryProviderServiceCatalog {
     this.refreshIfChanged()
     const providers = this.providerCatalog.providers.filter(provider => (provider.typeId ?? provider.id) !== 'mnemon-native')
@@ -432,7 +442,8 @@ export class MemorySpaceRegistry {
     const description = requiredText(request.description, 'description', 1000)
     if (request.placement !== undefined && placement === undefined) throw new Error('automatic provider placement must be resolved before creating a Memory Space')
     if (placement !== undefined && request.providerId !== undefined && request.providerId !== placement.providerId) throw new Error('resolved provider placement conflicts with providerId')
-    const providerId = placement?.providerId ?? request.providerId ?? 'mnemon-native'
+    const providerId = placement?.providerId ?? request.providerId ?? this.defaultProviderId()
+    if (providerId === undefined) throw new Error('No memory provider is ready: install the Mnemon CLI to use Mnemon Native, or connect another provider in Settings')
     if (!this.providerCatalog.has(providerId)) throw new Error(`unsupported memory provider: ${String(providerId)}`)
     const normalizedPlacement = placement === undefined ? undefined : normalizePlacementDecision(placement, providerId, this.providerCatalog)
     if (placement !== undefined && normalizedPlacement === undefined) throw new Error('resolved provider placement is invalid')

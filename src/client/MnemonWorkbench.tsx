@@ -275,12 +275,17 @@ function StatusPage(props: { client: MnemonClient; status: StatusView | null; lo
         <article><span className={`${css.healthIndicator} ${documents === undefined ? css.healthMuted : css.healthGood}`} /><div><small>{t('status.documents')}</small><strong>{documents === undefined ? t('status.documentsWaiting') : t('status.documentRatio', { active: documents.activeCount, archived: documents.archivedCount })}</strong><p>{documents === undefined ? t('status.documentsSession') : t('status.documentUsage', { used: humanBytes(documents.activeBytes), limit: humanBytes(documents.limitBytes) })}</p></div></article>
       </section>
 
-      <div className={css.asyncStatusBlock}>{status !== null && status.memoryBodies !== undefined && <NativeProviderHealth status={status} />}</div>
+      <div className={css.asyncStatusBlock}>{status !== null && status.memoryBodies !== undefined && nativeInUse(status) && <NativeProviderHealth status={status} />}</div>
       <div className={css.asyncStatusBlock}>{status?.providerServices !== undefined && <ProviderHealth services={status.providerServices} />}</div>
       <div className={css.asyncStatusBlock}><StorageDomains catalog={storage} selected={selectedScope} selectedKind={selectedScopeKind} /></div>
       {versionsOpen && <VersionDialog client={props.client} writeEnabled={props.writeEnabled} onClose={() => setVersionsOpen(false)} onRefreshStatus={props.onRefresh} />}
     </div>
   )
+}
+
+/** Mnemon Native is one Provider among peers: it has a health card once its CLI is installed or a space uses it. */
+function nativeInUse(status: StatusView): boolean {
+  return status.commandFound || (status.memoryBodies ?? []).some(body => body.provider.origin === 'native')
 }
 
 function NativeProviderHealth({ status }: { status: StatusView }): JSX.Element {

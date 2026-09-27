@@ -12,6 +12,7 @@ For new evaluations, commit the reusable harness, workload generator, concise bi
 
 | Record / 记录 | Scope / 范围 |
 |---|---|
+| [Optional Mnemon CLI](./optional-mnemon-cli-20260927/README.md) / [中文](./optional-mnemon-cli-20260927/README.zh-CN.md) | No-CLI WebUI and Headless persistence on Docker Mem0, eight-Provider lab with recall, content and entities / 无 CLI 的 WebUI 与 Docker Mem0 上的 Headless 沉淀、八个 Provider 的检索、内容与实体 |
 | [Main Strategy choice](./main-strategy-choice-20260927/README.md) / [中文](./main-strategy-choice-20260927/README.zh-CN.md) | Plugins page and Settings controls, general Strategy conversation, packed composition and release intent / 插件页与设置控件、通用主策略对话、打包组合与发布意图 |
 | [Memory System brain icon](./sidebar-brain-icon-20260927/README.md) / [中文](./sidebar-brain-icon-20260927/README.zh-CN.md) | Shared thin brain outline, native navigation and retained composable naming / 共用细线大脑轮廓、原生导航与可组合记忆命名保留 |
 | [Sidebar icon weight](./sidebar-icon-weight-20260927/README.md) / [中文](./sidebar-icon-weight-20260927/README.zh-CN.md) | Native icon stroke alignment, expanded/collapsed comparison and navigation / 原生图标线宽对齐、展开/折叠对比与导航验证 |

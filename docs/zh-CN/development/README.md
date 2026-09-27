@@ -144,6 +144,8 @@ Runtime 写入范围回归使用 `MNEMON_CLI_PATH=/absolute/path/to/mnemon pnpm 
 
 `pnpm e2e:serve --general-strategy` 启动时已选中通用主策略，并停用默认三层策略。先发送 `general-strategy-check remember`，下一回合再发送 `general-strategy-check recall`。脚本模型检查系统提示中包含通用记忆协议，且 Runtime、项目档案和记忆空间三个 Source 均已接入；随后通过具名 Runtime 工具保存一条事实，并且只有当这条事实以常驻记忆投影出现时，第二回合才答出它。夹具以 `General strategy:` 行输出每项检查。只有模型决策是脚本化的；策略、其 View、Runtime 写入和浏览器均为真实运行。
 
+`pnpm e2e:serve --without-mnemon-cli` 把 `cliPath` 指向不存在的文件，即使 PATH 中有 Mnemon CLI，Host 也按未安装处理。用它确认：状态页不显示 Mnemon Native 卡片，版本对话框把 CLI 列为可选，设置页停用向量测试，新建记忆空间从已就绪的 Provider 开始。先连接一个 Provider，例如在“设置 → 记忆系统”中连接 Provider Lab 的服务。
+
 ## 发布
 
 官方包采用独立版本，Starter 固定经过验证的组合。Changeset、冻结制品、Registry 验证与失败恢复见[发布流程](./releasing.md)。
