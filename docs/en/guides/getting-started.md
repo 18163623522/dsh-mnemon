@@ -148,13 +148,13 @@ With `storageScope=workspace`, Headless resolves `<invocation cwd>/.mnemon`; no 
 
 ## 4. Configure storage and the interface
 
-Open **Settings → Memory System**:
+Open **Plugins** in the DSH sidebar and select **dsh-mnemon**; its page holds the whole configuration. From the Memory System workbench, **Configure** (the gear) in its header opens the same page.
 
-The [UI guide](./ui-guide.md) shows the current settings and optional enhancements.
+The [UI guide](./ui-guide.md) shows the current configuration and optional enhancements.
 
 ### Workbench entry
 
-By default, open the dedicated workbench from Memory System in the DSH sidebar. Choose **Conversation tab** under **Interface → Entry placement** in Settings, or set `displayMode: builtin`, to show the same Source pages as a conversation tab instead. Save switches the entry live without changing stored data.
+By default, open the dedicated workbench from Memory System in the DSH sidebar. Choose **Conversation tab** under **Interface → Entry placement** on that page, or set `displayMode: builtin`, to show the same Source pages as a conversation tab instead. Save switches the entry live without changing stored data.
 
 ### Storage scope
 
@@ -165,7 +165,7 @@ By default, open the dedicated workbench from Memory System in the DSH sidebar. 
 | **Custom** | `dataDir` | A dedicated disk, mounted volume, or explicit directory |
 | **Centralized workspaces** | `<central-root>/workspaces/<workspace-path-hash>/` | Central management with project isolation |
 
-In the Settings **Storage** group, **Storage scope** selects Global, Workspace or Centralized, and one **Data directory** field completes it: under Global it is the default when empty and the custom (`custom`) directory when set; under Centralized it is the optional central root, and data is stored in `<central-root>/workspaces/<workspace-path-hash>/`. Existing roots are retained when switching modes.
+In the **Storage** group, **Storage scope** selects Global, Workspace or Centralized, and one **Data directory** field completes it: under Global it is the default when empty and the custom (`custom`) directory when set; under Centralized it is the optional central root, and data is stored in `<central-root>/workspaces/<workspace-path-hash>/`. Existing roots are retained when switching modes.
 
 Save initializes a candidate runtime graph before atomically switching the Host. The page clears stale state and reloads automatically—no browser refresh is needed. Changing scope never migrates, merges, or deletes old data.
 
@@ -186,7 +186,7 @@ Confirm that:
 - the top right says Connected;
 - Mnemon and dsh-mnemon show installed versions;
 - the storage root matches your chosen scope;
-- Runtime, Documents and Memory Spaces match the enabled layers in Settings;
+- Runtime, Documents and Memory Spaces match the enabled memory layers;
 - Runtime, Documents, and Memory Spaces report no errors.
 
 Documents also needs a DSH workspace identity in Global or Custom storage. Select a workspace for the current conversation, or select the inspected workspace in Workspace storage. “Waiting for workspace” is a missing project context, not a missing CLI.
@@ -199,7 +199,7 @@ If Mnemon is unavailable, run `command -v mnemon` and `mnemon --version` on macO
 
 1. Open **Memory Spaces → Overview**.
 2. Select **Create Memory Space**.
-3. Choose a ready Provider. The dialog starts with the first one: **Mnemon Native**, the official local-first default, once its CLI is installed. Enable third-party services in Settings first.
+3. Choose a ready Provider. The dialog starts with the first one: **Mnemon Native**, the official local-first default, once its CLI is installed. Enable third-party services on the `dsh-mnemon` page under **Plugins** first.
 4. Use a narrow name such as “Project Decisions.”
 5. Describe what belongs there and which tasks should recall it, then enable read activation.
 

@@ -4,17 +4,17 @@
 
 ## 配置位置与生效方式
 
-插件在 DSH settings 服务中注册 `mnemon` 命名空间。用户配置位于：
+配置即 DSH profile 中的 `mnemon` 条目。DSH 的 settings 服务把用户值写入 profile patch：
 
 ```text
-$DSH_HOME/settings.yaml
+$DSH_HOME/profiles/<profile>/cordis.patch.yml
 ```
 
-默认通常是 `~/.dsh/settings.yaml`。当前全部配置标记为 `live` 生效；保存后会先初始化候选运行图，再原子切换 Host 服务。
+Web profile 的 patch 通常是 `~/.dsh/profiles/web/cordis.patch.yml`。旧宿主留下的 `settings.yaml` 会被导入 profile 一次，并保留为 `settings.yaml.imported`，参见[DSH 0.1.7 设置恢复](./compatibility.md#dsh-017-设置恢复)。当前全部配置标记为 `live` 生效；保存后会先初始化候选运行图，再原子切换 Host 服务。
 
 执行中的回合保留已固定的运行图。已经派发的子 Agent 保留委托运行图直到本次 activation 销毁，即使父回合已结束；后续父回合和新委托的 activation 使用新 generation。保存设置不会静默扩大既有任务的 Recall 权限。
 
-Web 设置页编辑 `storageScope`、独立的 `runtimeUserScope`、`dataDir`、Mnemon Native 的 Ollama 嵌入覆盖、三个记忆层的总开关、后台任务 Agent 的模型路由，以及 `mnemon-ui` 下的回合记忆栏和存入记忆按钮。页面按界面、存储、记忆层、策略、记忆 Provider、后台任务分组。“存储”中的“全局 / 工作区 / 集中存储 · 按工作区隔离”是整个记忆系统的范围；同组唯一的“数据目录”在全局范围下留空即使用默认目录、填写路径即为 `custom`，在集中存储下是可选的集中根目录；USER.md 用户画像也可以显式保持全局，而项目记忆继续跟随该范围；ZIP 备份与迁移也在这一组。Mnemon Native 在“记忆 Provider”中排在第一张卡片，只包含嵌入运行配置。每个第三方 Provider 有独立的服务配置折叠栏，保存 endpoint、凭据或可执行文件等可复用服务信息。启用或保存时发现 Provider 已有的命名空间，并同步到“记忆空间 → 概览”；禁用只移除本地映射，不删除 Provider 数据。其他高级项需要直接修改 YAML。
+与 DSH 0.1.7 对所有自带配置的插件一样，Web 界面在“插件”中该插件自己的页面编辑配置，而不在“设置”中。**插件 → 可组合记忆**页面编辑 `storageScope`、独立的 `runtimeUserScope`、`dataDir`、Mnemon Native 的 Ollama 嵌入覆盖、三个记忆层的总开关、后台任务 Agent 的模型路由，以及 `mnemon-ui` 下的回合记忆栏和存入记忆按钮。页面按策略、记忆层、记忆 Provider、存储、后台任务、界面分组。“存储”中的“全局 / 工作区 / 集中存储 · 按工作区隔离”是整个记忆系统的范围；同组唯一的“数据目录”在全局范围下留空即使用默认目录、填写路径即为 `custom`，在集中存储下是可选的集中根目录；USER.md 用户画像也可以显式保持全局，而项目记忆继续跟随该范围；ZIP 备份与迁移也在这一组。Mnemon Native 在“记忆 Provider”中排在第一张卡片，只包含嵌入运行配置。每个第三方 Provider 有独立的服务配置折叠栏，保存 endpoint、凭据或可执行文件等可复用服务信息。启用或保存时发现 Provider 已有的命名空间，并同步到“记忆空间 → 概览”；禁用只移除本地映射，不删除 Provider 数据。其他高级项需要直接修改 YAML。
 
 OpenViking user key 没有 admin 权限时，可组合服务字段 `discoveryUser`、`endpoint`、`apiKey`、`account`，显式发现单个用户的记忆空间；`discoveryUser` 留空仍枚举 admin。服务字段保存在 Memory Spaces 的 Provider 注册表，不是新的 Mnemon 顶层 YAML 设置。参见 [OpenViking 配置与兼容性](../guides/memory-providers.md#运维边界)。
 
@@ -219,7 +219,7 @@ Headless 没有 `workspaceRegistry`；其新 session 的 cwd 就是启动 `dsh -
 
 ### 全局 USER.md 与工作区项目记忆同时生效
 
-若要跨仓库共享用户级协作要求，同时隔离项目事实，可在设置中把存储范围选为“工作区”、用户画像范围选为“全局共享”，或配置：
+若要跨仓库共享用户级协作要求，同时隔离项目事实，可在**插件 → 可组合记忆**页面把存储范围选为“工作区”、用户画像范围选为“全局共享”，或配置：
 
 ```yaml
 mnemon:
@@ -333,11 +333,11 @@ depthLimit   = true
 
 **Agent Teams 兼容：**现有配置默认保留 `idleReview.agentTeams: pause`。同时检测到公开 `agentTeams` 服务与父 Agent 作用域的 `spawn_teammate` 工具时，在创建子代理前暂停。仅加载 TeamService 不会暂停审查。
 
-DSH 与全部官方 Agent Teams 组件均为 **0.1.7-rc.2** 时，可在设置 → 空闲审查中选择**受限子代理审查**，或设置 `idleReview.agentTeams: scoped`。该已发布 Team 策略兼容有界 spawn 与显式 fork。此模式仍检查父子归属、本地子代理发布、`maxDepth: 1` 和单调的审查工具白名单（包括 Code Mode 子调用）。审查子代理仍不能使用 Team 工具或再次委派；父 Agent 保留 Teams。不会猜测包版本或移除其他插件的策略。缺少 guard/归属能力或策略报错时，运行失败且不通过 fallback 重放。保留 `pause` 可在安装 Team 工具时不运行审查；也可设置 `idleReview.enabled: false`，只关闭审查，保留 Teams、召回与主动写入。
+DSH 与全部官方 Agent Teams 组件均为 **0.1.7-rc.2** 时，可在**插件 → 可组合记忆**页面的空闲审查中选择**受限子代理审查**，或设置 `idleReview.agentTeams: scoped`。该已发布 Team 策略兼容有界 spawn 与显式 fork。此模式仍检查父子归属、本地子代理发布、`maxDepth: 1` 和单调的审查工具白名单（包括 Code Mode 子调用）。审查子代理仍不能使用 Team 工具或再次委派；父 Agent 保留 Teams。不会猜测包版本或移除其他插件的策略。缺少 guard/归属能力或策略报错时，运行失败且不通过 fallback 重放。保留 `pause` 可在安装 Team 工具时不运行审查；也可设置 `idleReview.enabled: false`，只关闭审查，保留 Teams、召回与主动写入。
 
 有界 spawn 按公开的扁平 `user/message` 事件读取真实用户证据，仅保留已完成检查点之前、当前可见的完整消息；注入的召回、摘要和没有真实用户来源的消息不会被提升为用户断言。配置的字符预算内，明确决策与禁止写入指令都以整条消息保留。
 
-失败的审查仍计为失败。如果失败前已有写入提交，工作区显示子运行 id 和已提交变更回执元数据，包括 Code Mode 外层失败前已提交的内部工具。不自动回滚或重放。手动重试前请核对该运行、档案 id 或 Runtime revision。后续审查仍遵守冷却和会话预算。只需停用此维护流程时，可在设置或配置中使用 `idleReview.enabled: false`。
+失败的审查仍计为失败。如果失败前已有写入提交，工作区显示子运行 id 和已提交变更回执元数据，包括 Code Mode 外层失败前已提交的内部工具。不自动回滚或重放。手动重试前请核对该运行、档案 id 或 Runtime revision。后续审查仍遵守冷却和会话预算。只需停用此维护流程时，可在**插件 → 可组合记忆**页面或配置中使用 `idleReview.enabled: false`。
 
 
 ## 只读配置
@@ -381,7 +381,7 @@ routingGuidance=false
 
 ## 入口位置：`displayMode` 与 `tabEnabled`
 
-记忆系统默认使用 Sidebar：从 DSH 左侧栏打开独立主内容区工作台，使用无 Mnemon Logo 的 DSH 官方风格极简皮肤。设置 `displayMode: builtin`，或在设置页选择 Builtin，即可把同一个工作台放进当前会话的 `conversation.view` 标签页。页面、导航、弹窗和样式全部共用，不维护另一套 builtin 界面。主题作者可在两种位置使用[受支持的表面选择器与自定义属性](../guides/ui-guide.md#theme-skin-overrides)。
+记忆系统默认使用 Sidebar：从 DSH 左侧栏打开独立主内容区工作台，使用无 Mnemon Logo 的 DSH 官方风格极简皮肤。设置 `displayMode: builtin`，或在**插件 → 可组合记忆**页面选择 Builtin，即可把同一个工作台放进当前会话的 `conversation.view` 标签页。页面、导航、弹窗和样式全部共用，不维护另一套 builtin 界面。主题作者可在两种位置使用[受支持的表面选择器与自定义属性](../guides/ui-guide.md#theme-skin-overrides)。
 
 侧栏“记忆系统”的样式、折叠图标和选中状态与 DSH 原生“插件”入口一致。重复点击仍保持打开；“返回会话”或 Escape 会回到当前会话。选择“插件”、其他原生面板或“新建会话”会切换主面板。与任务看板、SSH 切换时，同时同步面板可见性和入口状态，即使其他插件的激活通知遗漏，点击也能重新打开记忆系统。
 
@@ -394,11 +394,11 @@ Builtin 隐藏页眉中的存储模式标记、工作区选择和对齐控件。
 | `custom` | 配置的 `dataDir`，不受会话工作区影响 |
 | `workspaces` | 所属会话在 `<集中根>/workspaces/<工作区路径哈希>/` 下的子目录 |
 
-既有 `runtimeUserScope: global` 例外仍让 USER.md 保持全局。切换入口不会改变范围、迁移记忆数据或恢复旧 builtin 导航。设置 RPC 保存后实时切换入口。
+既有 `runtimeUserScope: global` 例外仍让 USER.md 保持全局。切换入口不会改变范围、迁移记忆数据或恢复旧 builtin 导航。保存后实时切换入口。
 
 规范拼写统一为 **`builtin`**。v0.4.0–v0.4.1 忽略的历史 `displayMode: buildin` 偏好会重新识别，但运行时与界面统一使用 `builtin`。Host 启动及配置外部热更新时，通过 DSH 带修订号保护的设置接口自动写回这一个字段；旧客户端 RPC 提交 `buildin` 也直接保存为 `builtin`。其他字段和配置注释保持不变，并发期间用户明确选择的 Sidebar 优先，不会被迁移覆盖。
 
-在设置页面保存后，当前界面会立即更新。直接编辑 `settings.yaml` 时，Host 会检测并规范化，但当前 Mnemon Client 的设置快照不订阅外部文件变更推送，需要刷新浏览器才能看到变化。这与 main 的 Client 行为一致，不是另一次存储或插件迁移。
+在**插件 → 可组合记忆**页面保存后，当前界面会立即更新。回环页面上，Client 还会跟随 DSH 的设置文档：在其他窗口保存，或 Host 重新加载了对 profile 的修改，都无需刷新浏览器即可看到。远程页面不接收 DSH 的设置镜像，需要刷新才能看到别处的修改。
 
 如果旧值只来自组合 profile，迁移保存一条规范的用户设置覆盖，不直接改写 profile 文件。只读设置仍识别旧拼写，但不会绕过只读限制写盘；落盘失败会记录在 Host 日志中，不会关闭已归一化的入口。
 

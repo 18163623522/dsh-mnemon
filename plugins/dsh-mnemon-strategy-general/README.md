@@ -15,9 +15,8 @@ Compared with `dsh-mnemon-strategy-default-three-tier`:
 | Reads | recall, search, inspect and related Routes with per-turn deduplication | every offered Route, bounded by Core's call and result budgets |
 | Automatic maintenance | idle review and Runtime capacity archiving | none; the model writes through offered Actions |
 
-Exactly one main Strategy composes a View. Select it in **Memory System →
-Settings** or on the `dsh-mnemon` page under **Plugins**; the Starter installs
-it disabled. The optional enhancements (scoped composition, light context and
+Exactly one main Strategy composes a View. Select it on the `dsh-mnemon` page
+under **Plugins**; the Starter installs it disabled. The optional enhancements (scoped composition, light context and
 active capture) use Core's standard `selection`, `projection` and `capture`
 slots, so they work with either main Strategy.
 
