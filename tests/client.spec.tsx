@@ -699,8 +699,8 @@ describe('MnemonWorkbench', () => {
     trigger.focus()
     fireEvent.click(trigger)
     const dialog = screen.getByRole('dialog', { name: '检查与更新版本' })
-    const close = within(dialog).getAllByRole('button', { name: '取消' })[0]!
-    const cancel = within(dialog).getAllByRole('button', { name: '取消' }).at(-1)!
+    const close = within(dialog).getByRole('button', { name: '关闭' })
+    const cancel = within(dialog).getByRole('button', { name: '取消' })
     expect(dialog.getAttribute('aria-busy')).toBe('true')
     expect(close.hasAttribute('disabled')).toBe(false)
     expect(cancel.hasAttribute('disabled')).toBe(false)
@@ -1413,7 +1413,7 @@ describe('MnemonWorkbench', () => {
     expect(dialog.textContent).toContain('全文预览窗口的打开与关闭')
     expect(dialog.getAttribute('aria-labelledby')).toBeTruthy()
     expect(dialog.getAttribute('aria-describedby')).toBeTruthy()
-    const close = within(dialog).getByRole('button', { name: '取消' })
+    const close = within(dialog).getByRole('button', { name: '关闭' })
     expect(document.activeElement).toBe(close)
     fireEvent.click(close)
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
@@ -1447,8 +1447,8 @@ describe('MnemonWorkbench', () => {
         }
       }
       const statusFrame = frame()
-      expect(statusFrame.top).toEqual(['14px'])
-      expect(statusFrame.left).toEqual([width <= 760 ? '12px' : '16px'])
+      expect(statusFrame.top).toEqual([width <= 760 ? '16px' : '20px'])
+      expect(statusFrame.left).toEqual([width <= 760 ? '16px' : '24px'])
       expect(statusFrame.minimumHeights).toEqual(['100%'])
       expect(statusFrame.innerScrollports).toBe(0)
       expect(getComputedStyle(canvas).overflow).toBe('auto')
@@ -1458,8 +1458,8 @@ describe('MnemonWorkbench', () => {
         expect(sticky).toHaveLength(1)
         expect(sticky[0]!.top).toBe('0px')
         const offset = (padding: 'paddingTop' | 'paddingLeft', margin: 'marginTop' | 'marginLeft') => styles.reduce((sum, style) => sum + (Number.parseFloat(style[padding]) || 0) + (Number.parseFloat(style[margin]) || 0), 0)
-        expect(offset('paddingTop', 'marginTop')).toBe(14)
-        expect(offset('paddingLeft', 'marginLeft')).toBe(width <= 760 ? 12 : 16)
+        expect(offset('paddingTop', 'marginTop')).toBe(width <= 760 ? 16 : 20)
+        expect(offset('paddingLeft', 'marginLeft')).toBe(width <= 760 ? 16 : 24)
       }
       checkHeader(within(canvas).getAllByRole('heading', { level: 2 })[0]!)
       for (const tab of ['运行时', '档案', '记忆空间']) {
