@@ -357,7 +357,7 @@ export class MemorySpacesService {
     const items: MemorySpaceView[] = await Promise.all(directory.items.map(async body => {
       let status: ProviderSpaceStatus
       const providerEnabled = body.providerEnabled !== false
-      if (!providerEnabled) status = { healthy: false, error: `${body.provider.label} is disabled in Settings` }
+      if (!providerEnabled) status = { healthy: false, error: `${body.provider.label} is disabled on the dsh-mnemon page under Plugins` }
       else try { status = await this.providerFor(body).status(body, signal) } catch (error) {
           status = { healthy: false, error: error instanceof Error ? error.message : String(error) }
       }
@@ -591,7 +591,7 @@ export class MemorySpacesService {
     const body = this.memorySpaces.list().find(candidate => candidate.id === id)
     if (body === undefined) throw new Error(`unknown memory space: ${id}`)
     if (!this.isNativeSpace(body)) {
-      if (!this.memorySpaces.providerServiceEnabled(body.provider.id)) throw new Error(`${body.provider.label} is disabled in Settings`)
+      if (!this.memorySpaces.providerServiceEnabled(body.provider.id)) throw new Error(`${body.provider.label} is disabled on the dsh-mnemon page under Plugins`)
     }
     // Card-level reconnect is deliberately scoped to this projected namespace.
     // Whole-service discovery only runs when its service is enabled or saved.
@@ -1157,7 +1157,7 @@ export class MemorySpacesService {
     return requested.map(id => {
       const body = this.memorySpaces.get(id)
       if (!body.active) throw new Error(`memory space is not active for reading: ${id}`)
-      if (!this.isNativeSpace(body) && !this.memorySpaces.providerServiceEnabled(body.provider.id)) throw new Error(`${body.provider.label} is disabled in Settings`)
+      if (!this.isNativeSpace(body) && !this.memorySpaces.providerServiceEnabled(body.provider.id)) throw new Error(`${body.provider.label} is disabled on the dsh-mnemon page under Plugins`)
       return body
     })
   }
@@ -1166,7 +1166,7 @@ export class MemorySpacesService {
     if (id !== undefined && id.trim() !== '') {
       const body = this.memorySpaces.get(id)
       if (!body.active) throw new Error(`memory space is not active for reading: ${body.id}`)
-      if (!this.isNativeSpace(body) && !this.memorySpaces.providerServiceEnabled(body.provider.id)) throw new Error(`${body.provider.label} is disabled in Settings`)
+      if (!this.isNativeSpace(body) && !this.memorySpaces.providerServiceEnabled(body.provider.id)) throw new Error(`${body.provider.label} is disabled on the dsh-mnemon page under Plugins`)
       return body
     }
     const active = this.memorySpaces.active()
@@ -1177,7 +1177,7 @@ export class MemorySpacesService {
   private writeSpace(id?: string): MemorySpace {
     if (id !== undefined && id.trim() !== '') {
       const body = this.memorySpaces.get(id)
-      if (!this.isNativeSpace(body) && !this.memorySpaces.providerServiceEnabled(body.provider.id)) throw new Error(`${body.provider.label} is disabled in Settings`)
+      if (!this.isNativeSpace(body) && !this.memorySpaces.providerServiceEnabled(body.provider.id)) throw new Error(`${body.provider.label} is disabled on the dsh-mnemon page under Plugins`)
       return body
     }
     const active = this.memorySpaces.active()

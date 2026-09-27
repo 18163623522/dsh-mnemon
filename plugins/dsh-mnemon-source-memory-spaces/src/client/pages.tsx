@@ -41,7 +41,7 @@ function readyProviderId(providers: readonly MemoryProviderDescriptor[], current
   return ready.find(provider => provider.id === current)?.id ?? (ready.find(provider => provider.origin === 'native') ?? ready[0])?.id
 }
 
-/** Why a provider cannot be chosen: Mnemon Native needs its CLI, the others a service configured in Settings. */
+/** Why a provider cannot be chosen: Mnemon Native needs its CLI, the others a service configured on the dsh-mnemon page under Plugins. */
 function providerUnavailableKey(provider: MemoryProviderDescriptor): 'overview.nativeCliRequired' | 'overview.providerServiceRequired' {
   return provider.origin === 'native' ? 'overview.nativeCliRequired' : 'overview.providerServiceRequired'
 }

@@ -30,7 +30,7 @@ export interface MemoryProviderConfigField {
   label: string
   /** Optional Host-provided translation key; clients fall back to label. */
   i18nKey?: string
-  /** Service fields are configured once in Settings; memory fields belong to each Memory Space. */
+  /** Service fields are configured once on the dsh-mnemon page under Plugins; memory fields belong to each Memory Space. */
   scope: 'service' | 'memory'
   /** A reusable local data location presented with the same default/custom scope UI as Mnemon Native. */
   role?: 'global-location'
