@@ -33,7 +33,7 @@ describe('MnemonWorkbench', () => {
   const settingsScope = staticSettingsScope<Config>(settingsSnapshot)
   const readOnlySettingsScope = staticSettingsScope<Config>({ status: 'unavailable', writable: false, mode: 'host' })
 
-  function createConnection(options: { reviewPartial?: boolean; reviewTeam?: boolean; reviewError?: string; isLoopback?: boolean; withInactiveBody?: boolean; withSecondActiveBody?: boolean; metadataFailureBodyId?: string; withPlacement?: boolean; withProviderSources?: boolean; listCount?: number; searchCount?: number; entityCount?: number; entityInsightCount?: number; documentCount?: number; runtimeCount?: number; runtimeBranch?: boolean; longContent?: boolean; workspaceMismatch?: boolean; nativeUnhealthy?: boolean; graphPending?: boolean; statusPending?: boolean; directoryPending?: boolean; reconnectPending?: boolean; relatedDeferred?: boolean; versionsDeferred?: boolean; layerSwitches?: Record<'runtime' | 'documents' | 'memory-spaces', boolean> } = {}) {
+  function createConnection(options: { reviewPartial?: boolean; reviewTeam?: boolean; reviewError?: string; isLoopback?: boolean; withInactiveBody?: boolean; withSecondActiveBody?: boolean; metadataFailureBodyId?: string; withPlacement?: boolean; withProviderSources?: boolean; listCount?: number; searchCount?: number; entityCount?: number; entityInsightCount?: number; documentCount?: number; runtimeCount?: number; runtimeBranch?: boolean; longContent?: boolean; workspaceMismatch?: boolean; nativeUnhealthy?: boolean; graphPending?: boolean; statusPending?: boolean; directoryPending?: boolean; reconnectPending?: boolean; relatedDeferred?: boolean; versionsDeferred?: boolean; layerSwitches?: Record<'runtime' | 'documents' | 'memory-spaces', boolean>; composition?: { serving: boolean; state: 'ready' | 'incomplete' | 'rejected'; diagnostics: Array<{ code: string; message: string }> } } = {}) {
     const body = {
       id: 'project',
       provider: MEMORY_PROVIDER_CATALOG.find(item => item.id === 'mnemon-native')!, providerId: 'mnemon-native', providerEnabled: true, providerSettings: {}, configuredSecrets: [],
@@ -135,14 +135,15 @@ describe('MnemonWorkbench', () => {
           lastAt: '2026-08-13T03:00:00.000Z',
         },
       },
-      ...(options.layerSwitches === undefined ? {} : {
+      ...(options.layerSwitches === undefined && options.composition === undefined ? {} : {
         memorySystem: {
-          evaluation: { state: 'ready', contributionRevision: 1, sourceInstanceKeys: [], diagnostics: [] },
+          serving: options.composition?.serving ?? true,
+          evaluation: { state: options.composition?.state ?? 'ready', contributionRevision: 1, sourceInstanceKeys: [], diagnostics: options.composition?.diagnostics ?? [] },
           sources: [],
           configuration: {
             id: 'default-three-tier', strategyId: 'default-three-tier',
             layers: Object.fromEntries((['runtime', 'documents', 'memory-spaces'] as const).map(id => [id, {
-              enabled: options.layerSwitches![id],
+              enabled: options.layerSwitches?.[id] ?? true,
               participation: { recall: 'automatic', write: 'automatic', projection: 'automatic', maintenance: 'automatic' }, adapterIds: [],
             }])),
           },
@@ -425,6 +426,75 @@ describe('MnemonWorkbench', () => {
     act(() => withdraw())
     expect(screen.queryByRole('button', { name: '配置' })).toBeNull()
     expect(screen.queryByRole('button', { name: '前往配置' })).toBeNull()
+  })
+
+  it('keeps the tab of a layer whose component is off and says why', async () => {
+    const { connection, call } = createConnection({ layerSwitches: { runtime: true, documents: true, 'memory-spaces': true } })
+    const configuration = new MnemonActionSeat()
+    const open = vi.fn()
+    configuration.provide(open)
+    render(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" configuration={configuration} runningSources={['runtime', 'memory-spaces']} />)
+    await screen.findByText('已连接')
+    const navigation = screen.getByRole('tablist', { name: 'Mnemon 页面' })
+    // Documents keeps its place between the other two layers.
+    expect(within(navigation).getAllByRole('tab').map(tab => tab.getAttribute('aria-label') ?? tab.textContent)).toEqual(['状态', '运行时', '档案 · 未运行', '记忆空间'])
+    const cards = screen.getByRole('region', { name: 'Mnemon 运行状态' })
+    expect(within(cards).getByText('启用这一层的组件后恢复')).toBeTruthy()
+    expect(within(cards).queryByText('等待工作区')).toBeNull()
+
+    const before = call.mock.calls.filter(([, endpoint]) => endpoint === 'documents').length
+    fireEvent.click(within(navigation).getByRole('tab', { name: '档案 · 未运行' }))
+    await screen.findByRole('heading', { name: '项目档案 未运行' })
+    expect(screen.getByText('已有数据完整保留；在“插件 → 可组合记忆”页面中启用组件后，即可恢复读取、写入与按需调用。')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '前往配置' }))
+    expect(open).toHaveBeenCalledOnce()
+    expect(call.mock.calls.filter(([, endpoint]) => endpoint === 'documents')).toHaveLength(before)
+  })
+
+  it('says memory is not in use while nothing is composed, and links to the configuration', async () => {
+    const { connection } = createConnection({ composition: { serving: false, state: 'incomplete', diagnostics: [{ code: 'missing-strategy', message: 'No Memory Strategy contribution is installed.' }] } })
+    const configuration = new MnemonActionSeat()
+    const open = vi.fn()
+    configuration.provide(open)
+    render(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" configuration={configuration} runningSources={[]} />)
+    const notice = await screen.findByRole('alert', { name: '记忆未生效' })
+    expect(within(notice).getByText('没有正在运行的主策略。对话照常进行，但不会使用记忆。')).toBeTruthy()
+    expect(screen.queryByText('Mnemon 尚未就绪')).toBeNull()
+    fireEvent.click(within(notice).getByRole('button', { name: '前往配置' }))
+    expect(open).toHaveBeenCalledOnce()
+    const navigation = screen.getByRole('tablist', { name: 'Mnemon 页面' })
+    // The Sources run; nothing composes them, so each layer is not in use rather than stopped.
+    expect(within(screen.getByRole('region', { name: 'Mnemon 运行状态' })).getAllByText('主策略恢复运行后可用')).toHaveLength(3)
+    fireEvent.click(within(navigation).getByRole('tab', { name: '记忆空间 · 未生效' }))
+    await screen.findByRole('heading', { name: '记忆空间 未生效' })
+    expect(screen.getByText('记忆当前未生效，这一层暂不可用。')).toBeTruthy()
+  })
+
+  it('warns while a rejected change leaves the previous composition serving', async () => {
+    const { connection } = createConnection({ composition: { serving: true, state: 'rejected', diagnostics: [{ code: 'composition-rejected', message: 'memory plugin dependency unavailable: dsh-mnemon-strategy-auto-capture requires source.durable-evidence' }] } })
+    render(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" t={translateEn} locale="en" />)
+    const notice = await screen.findByRole('status', { name: 'The latest component change did not take effect' })
+    expect(within(notice).getByText('dsh-mnemon-strategy-auto-capture is missing source.durable-evidence. Memory still runs as composed before.')).toBeTruthy()
+  })
+
+  it('re-reads in place after a save that keeps the storage, and remounts for another storage', async () => {
+    const { connection, call } = createConnection()
+    let snapshot: ClientSettingsSnapshot<Config> = { ...settingsSnapshot, revision: 1 }
+    const listeners = new Set<() => void>()
+    const scope = { getSnapshot: () => snapshot, subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } }, mutate: vi.fn(async () => {}) } as unknown as ClientSettingsScope<Config>
+    const publish = (next: typeof snapshot) => act(() => { snapshot = next; for (const listener of [...listeners]) listener() })
+    const statusReads = () => call.mock.calls.filter(([, endpoint]) => endpoint === 'status-summary').length
+    render(<MnemonWorkbench connection={connection} settingsScope={scope} sessionId="session-1" />)
+    await screen.findByText('已连接')
+    const canvas = screen.getByTestId('mnemon-canvas')
+    const reads = statusReads()
+
+    publish({ ...snapshot, revision: 2, value: { ...snapshot.value, idleReview: { enabled: false } } as Config })
+    await waitFor(() => expect(statusReads()).toBe(reads + 1))
+    expect(screen.getByTestId('mnemon-canvas')).toBe(canvas)
+
+    publish({ ...snapshot, revision: 3, value: { ...snapshot.value, storageScope: 'global' } })
+    await waitFor(() => expect(screen.getByTestId('mnemon-canvas')).not.toBe(canvas))
   })
 
   it('re-reads the status when a component switches elsewhere and when the Sidebar reopens it', async () => {

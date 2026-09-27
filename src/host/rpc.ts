@@ -8,7 +8,7 @@ import type { MemoryCapability, MemoryJsonValue, MemoryOperationScope, MemorySou
 import type { CreateMemoryBodyRequest as CreateMemorySpaceRequest, Insight, MemoryBodyCatalog as MemorySpaceCatalog, PreparedMemoryPlacement, RememberRequest } from 'dsh-mnemon-source-memory-spaces/contracts'
 import type { RuntimeMemoryMutation } from 'dsh-mnemon-source-runtime/contracts'
 import type { DocumentMutation } from 'dsh-mnemon-source-documents/contracts'
-import { MNEMON_ACTIVATION_CHANNEL, MNEMON_PACK_CHANNEL, MNEMON_READ_CHANNEL, MNEMON_WRITE_CHANNEL } from './protocol.ts'
+import { MNEMON_ACTIVATION_CHANNEL, MNEMON_PACK_CHANNEL, MNEMON_READ_CHANNEL, MNEMON_WRITE_CHANNEL, type MemoryCompositionStatus } from './protocol.ts'
 export { MNEMON_ACTIVATION_CHANNEL, MNEMON_PACK_CHANNEL, MNEMON_READ_CHANNEL, MNEMON_WRITE_CHANNEL } from './protocol.ts'
 
 function object(value: unknown): Record<string, unknown> {
@@ -83,8 +83,9 @@ async function catalog(runtime: ScopedRuntime, lifecycle?: MnemonLifecycle) {
     return { ...value, sources: value.sources.map(source => ({ ...source, assistance: assistance(source, lifecycle, runtime) })) }
   } finally { lease.release() }
 }
-async function compositionStatus(runtime: ScopedRuntime) {
-  return { evaluation: runtime.graph.memoryComposition.inspect().evaluation, sources: (await catalog(runtime)).sources, configuration: runtime.graph.config.memoryTopology }
+async function compositionStatus(runtime: ScopedRuntime): Promise<MemoryCompositionStatus> {
+  const composition = runtime.graph.memoryComposition.inspect()
+  return { serving: composition.servingGenerationId !== undefined, evaluation: composition.evaluation, sources: (await catalog(runtime)).sources, configuration: runtime.graph.config.memoryTopology }
 }
 
 async function assisted(runtime: ScopedRuntime, lifecycle: MnemonLifecycle, typeId: string, operation: string, input: Record<string, unknown>, signal?: AbortSignal, target?: { sourceInstanceKey: string; expectedRevision: string }): Promise<unknown> {

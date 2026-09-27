@@ -5,7 +5,10 @@
  */
 export class MnemonChangeSignal {
   private revision = 0
+  private pending: ReturnType<typeof setTimeout> | undefined
   private readonly listeners = new Set<() => void>()
+
+  constructor(private readonly settleMs = 100) {}
 
   readonly getSnapshot = (): number => this.revision
 
@@ -14,8 +17,13 @@ export class MnemonChangeSignal {
     return () => { this.listeners.delete(listener) }
   }
 
+  /** A burst of announcements, such as one per component a write switched, moves the revision once. */
   readonly bump = (): void => {
-    this.revision += 1
-    for (const listener of [...this.listeners]) listener()
+    if (this.pending !== undefined) return
+    this.pending = setTimeout(() => {
+      this.pending = undefined
+      this.revision += 1
+      for (const listener of [...this.listeners]) listener()
+    }, this.settleMs)
   }
 }

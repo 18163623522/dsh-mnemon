@@ -5,7 +5,7 @@ import { MnemonSettingsCard } from '../src/client/MnemonSettingsCard.tsx'
 import { translateEn } from '../src/client/locales.ts'
 import type { ClientConnectionHandle } from "../src/host/dsh.ts"
 import type { Config } from "../src/host/config.ts"
-import type { MemoryCompositionStatus } from "../src/host/protocol.ts"
+import type { MemoryCompositionStatus, MemoryPluginEntryView, MemoryViewConfigurationRequest, MemoryViewDashboard } from "../src/host/protocol.ts"
 import { TEST_PROVIDERS as MEMORY_PROVIDER_CATALOG } from './fixtures/providers.ts'
 import { settingsScope } from './helpers/settings-scope.ts'
 
@@ -202,6 +202,7 @@ describe('MnemonSettingsCard', () => {
     const scope = settingsScope(snapshot, mutate)
     const participation = { recall: 'automatic', write: 'automatic', projection: 'automatic', maintenance: 'automatic' } as const
     const descriptor: MemoryCompositionStatus = {
+      serving: true,
       evaluation: { state: 'ready', contributionRevision: 4, sourceInstanceKeys: [], diagnostics: [] },
       sources: [],
       configuration: {
@@ -235,6 +236,63 @@ describe('MnemonSettingsCard', () => {
       path: ['memoryTopology', 'layers', 'documents', 'enabled'],
       value: false,
     }]))
+  })
+
+  it('says which component a memory layer and the Providers wait for, and turns it on', async () => {
+    const scope = settingsScope({ status: 'ready' as const, value: { storageScope: 'global' as const }, base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const })
+    const participation = { recall: 'automatic', write: 'automatic', projection: 'automatic', maintenance: 'automatic' } as const
+    const descriptor: MemoryCompositionStatus = {
+      serving: true,
+      evaluation: { state: 'ready', contributionRevision: 4, sourceInstanceKeys: [], diagnostics: [] },
+      sources: [],
+      configuration: {
+        id: 'default-three-tier', strategyId: 'default-three-tier',
+        layers: Object.fromEntries(['runtime', 'documents', 'memory-spaces'].map(id => [id, { enabled: true, participation: { ...participation }, adapterIds: [] }])),
+      },
+    }
+    const component = (entryId: string, packageName: string, roles: MemoryPluginEntryView['roles'], values: Partial<MemoryPluginEntryView>): MemoryPluginEntryView => ({
+      entryId, packageName, roles, label: { en: entryId, 'zh-CN': entryId }, description: { en: '', 'zh-CN': '' }, fields: [], provides: [], requires: [], requiredBy: [],
+      enabled: true, active: true, writable: true, config: {}, ...values,
+    })
+    let dashboard: MemoryViewDashboard = {
+      revision: 'view-1', writable: true, strategyTypeId: 'default-three-tier', currentUnavailable: 'no-session', sources: [], diagnostics: [],
+      pluginInstallation: { supported: false, reason: 'loader-unavailable', suggestions: [] },
+      entries: [
+        component('mnemon-strategy-default-three-tier', 'dsh-mnemon-strategy-default-three-tier', ['strategy'], { typeId: 'default-three-tier', provides: [{ id: 'strategy', exclusive: false }] }),
+        component('mnemon-source-runtime', 'dsh-mnemon-source-runtime', ['source'], { typeId: 'runtime' }),
+        // A Source that is off has registered nothing, so it has no type id.
+        component('mnemon-source-documents', 'dsh-mnemon-source-documents', ['source'], { enabled: false, active: false }),
+        component('mnemon-source-memory-spaces', 'dsh-mnemon-source-memory-spaces', ['source'], { enabled: false, active: false }),
+      ],
+    }
+    const applied: MemoryViewConfigurationRequest[] = []
+    const call = vi.fn(async (channel: string, endpoint: string, payload?: unknown) => {
+      if (channel === '/dsh-mnemon-read' && endpoint === 'memory-system') return { ok: true as const, value: descriptor }
+      if (channel === '/dsh-mnemon-view' && endpoint === 'dashboard') return { ok: true as const, value: structuredClone(dashboard) }
+      if (channel === '/dsh-mnemon-view-settings' && endpoint === 'apply') {
+        const request = (payload as { configuration: MemoryViewConfigurationRequest }).configuration
+        applied.push(request)
+        dashboard = { ...dashboard, revision: 'view-2', entries: dashboard.entries.map(entry => request.entries[entry.entryId] === undefined ? entry : { ...entry, enabled: true, active: true, typeId: 'memory-spaces' }) }
+        return { ok: true as const, value: { saved: true as const } }
+      }
+      if (channel === '/dsh-mnemon-read' && endpoint === 'task-agent-models') return { ok: true as const, value: { groups: [], failures: [] } }
+      if (channel === '/dsh-mnemon-read' && endpoint === 'provider-services') return { ok: true as const, value: { providers: [], items: [], generatedAt: '2026-09-27T00:00:00.000Z' } }
+      if (channel === '/dsh-mnemon-pack' && endpoint === 'target') return { ok: true as const, value: { root: '/root/.mnemon', scope: 'global' as const } }
+      throw new Error(`unexpected ${channel} ${endpoint}`)
+    })
+
+    render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} />)
+    expect(await screen.findByText('“项目档案”组件已停用，这一层暂不读取或写入。')).toBeTruthy()
+    const providers = screen.getByRole('region', { name: '记忆 Provider' })
+    expect(within(providers).getByText('记忆 Provider 由“记忆空间”组件提供，它已停用；已保存的连接保持不变。')).toBeTruthy()
+    // The Providers are not read while their Source is off.
+    expect(call.mock.calls.some(([, endpoint]) => endpoint === 'provider-services')).toBe(false)
+
+    fireEvent.click(within(providers).getByRole('button', { name: '启用“记忆空间”' }))
+    await waitFor(() => expect(within(providers).queryByText('记忆 Provider 由“记忆空间”组件提供，它已停用；已保存的连接保持不变。')).toBeNull())
+    expect(applied).toEqual([{ expectedRevision: 'view-1', strategyTypeId: 'default-three-tier', entries: { 'mnemon-source-memory-spaces': { enabled: true, config: {} } } }])
+    await waitFor(() => expect(call.mock.calls.some(([, endpoint]) => endpoint === 'provider-services')).toBe(true))
+    expect(screen.getByText('“项目档案”组件已停用，这一层暂不读取或写入。')).toBeTruthy()
   })
 
   it('ignores a Provider catalog response from the previously selected workspace', async () => {

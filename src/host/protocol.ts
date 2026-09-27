@@ -7,6 +7,8 @@ export type MemoryParticipationChannel = 'recall' | 'write' | 'projection' | 'ma
 export type MemoryLayerParticipation = Record<MemoryParticipationChannel, MemoryParticipationMode>
 export interface MemoryTopologyDefinition { id: string; strategyId: string; layers: Array<ResolvedMemoryLayerConfig & { id: string }> }
 export interface MemoryCompositionStatus {
+  /** Whether a composition serves new turns. A rejected change can leave the previous one serving. */
+  serving: boolean
   evaluation: import('../core/contracts/index.ts').MemoryCompositionEvaluationReport
   sources: MemorySourceManagementInstance[]
   configuration: ResolvedMemoryTopologyConfig

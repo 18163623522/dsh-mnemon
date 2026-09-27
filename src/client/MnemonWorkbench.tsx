@@ -18,6 +18,7 @@ import type { MnemonActionSeat } from './action-seat.ts'
 import type { MnemonChangeSignal } from './change-signal.ts'
 import type { MnemonDisplayMode } from '../host/protocol.ts'
 import { appearanceClass } from './view-styles.ts'
+import { compositionNotice } from './composition-notice.ts'
 import { isRecord } from './is-record.ts'
 import sidebarCss from './MnemonSidebarView.module.css'
 import css from "./MnemonView.module.css"
@@ -59,7 +60,10 @@ type SourcePage = `source:${string}`
 
 type ManagedSourcePage = `source-management:${string}`
 
-type Page = 'status' | SourcePage | ManagedSourcePage
+/** A configured memory layer whose Source is not running, so it has no page of its own to show. */
+type StoppedSourcePage = `source-stopped:${string}`
+
+type Page = 'status' | SourcePage | ManagedSourcePage | StoppedSourcePage
 
 const EMPTY_SOURCE_PAGE_SNAPSHOT: readonly MemorySourcePageEntry[] = Object.freeze([])
 
@@ -85,6 +89,19 @@ function managedSourcePage(sourceTypeId: string): ManagedSourcePage {
 function managedSourceTypeId(page: Page): string | undefined {
   return page.startsWith('source-management:') ? page.slice('source-management:'.length) : undefined
 }
+
+function stoppedSourcePage(sourceTypeId: string): StoppedSourcePage {
+  return `source-stopped:${sourceTypeId}`
+}
+
+function stoppedSourceTypeId(page: Page): string | undefined {
+  return page.startsWith('source-stopped:') ? page.slice('source-stopped:'.length) : undefined
+}
+
+/** Short tab names of the shipped layers, for a layer whose Source is not running to register its own. */
+const SHIPPED_LAYER_TABS: Readonly<Record<string, MnemonKey>> = { runtime: 'status.runtime', documents: 'status.documents', 'memory-spaces': 'status.spaces' }
+/** Full names of the shipped layers, as the configuration lists them. */
+const SHIPPED_LAYER_TITLES: Readonly<Record<string, MnemonKey>> = { runtime: 'layers.runtimeLabel', documents: 'layers.documentsLabel', 'memory-spaces': 'layers.memorySpacesLabel' }
 
 function bindSourceManagementClient(client: MnemonClient, instance: MemorySourceManagementInstance, taskClient: MnemonClient): MnemonSourceManagementClient {
   return {
@@ -122,6 +139,15 @@ function SourceDisabledPage(props: { title: string; onOpenConfiguration: (() => 
   </div>
 }
 
+/** A layer that is on but whose Source is not running: its component is off, or no memory is composed at all. */
+function SourceStoppedPage(props: { title: string; memoryOff: boolean; onOpenConfiguration: (() => void) | undefined }): JSX.Element {
+  const t = useT()
+  return <div className={css.page}>
+    <PageHeader title={props.title} description={t(props.memoryOff ? 'layers.memoryOffDescription' : 'layers.stoppedDescription')} meta={t(props.memoryOff ? 'layers.memoryOffBadge' : 'layers.stoppedBadge')} {...(props.onOpenConfiguration === undefined ? {} : { action: <button type="button" className={css.secondaryButton} onClick={props.onOpenConfiguration}>{t('common.openConfiguration')}</button> })} />
+    <EmptyState glyph="⊘" title={t(props.memoryOff ? 'layers.memoryOffTitle' : 'layers.stoppedTitle', { layer: props.title })}>{t(props.memoryOff ? 'layers.memoryOffText' : 'layers.stoppedText')}</EmptyState>
+  </div>
+}
+
 interface SourceNavigationEntry {
   id: string
   page: Page
@@ -131,9 +157,11 @@ interface SourceNavigationEntry {
   group: 'system' | 'storage' | 'tools' | 'sources'
   glyph: string
   primary: boolean
+  /** The layer is on, but its Source is not running. */
+  stopped?: boolean
 }
 
-function WorkspaceNavigation(props: { page: Page; onSelect(page: Page): void; sourcePages: readonly SourceNavigationEntry[]; disabledTypes: ReadonlySet<string> }): JSX.Element {
+function WorkspaceNavigation(props: { page: Page; onSelect(page: Page): void; sourcePages: readonly SourceNavigationEntry[]; disabledTypes: ReadonlySet<string>; memoryOff: boolean }): JSX.Element {
   const t = useT()
   const entries: readonly SourceNavigationEntry[] = [
     { id: 'status', page: 'status', label: t('nav.status'), detail: '', group: 'system', glyph: '⌘', primary: true },
@@ -143,7 +171,9 @@ function WorkspaceNavigation(props: { page: Page; onSelect(page: Page): void; so
   const button = (item: SourceNavigationEntry) => {
     const active = props.page === item.page || selectedType !== undefined && selectedType === item.sourceTypeId
     const disabled = item.sourceTypeId !== undefined && props.disabledTypes.has(item.sourceTypeId)
-    return <button key={item.id} type="button" role="tab" aria-selected={active} data-active={active ? '' : undefined} aria-label={disabled ? item.label + ' · ' + t('layers.disabledBadge') : undefined} data-layer-disabled={disabled ? '' : undefined} onClick={() => props.onSelect(item.page)}><span>{item.label}</span>{disabled && <em className={css.layerDisabledBadge}>{t('layers.disabledBadge')}</em>}</button>
+    // A switched-off layer says so first; a stopped Source matters only while the layer is on.
+    const badge = disabled ? t('layers.disabledBadge') : item.stopped === true ? t(props.memoryOff ? 'layers.memoryOffBadge' : 'layers.stoppedBadge') : undefined
+    return <button key={item.id} type="button" role="tab" aria-selected={active} data-active={active ? '' : undefined} aria-label={badge === undefined ? undefined : item.label + ' · ' + badge} data-layer-disabled={badge === undefined ? undefined : ''} onClick={() => props.onSelect(item.page)}><span>{item.label}</span>{badge !== undefined && <em className={css.layerDisabledBadge}>{badge}</em>}</button>
   }
   return <div className={appearanceClass(css.topNavigation, sidebarCss.topNavigation)}>
     <div className={appearanceClass(css.nav, sidebarCss.nav)} role="tablist" aria-label={t('nav.aria')}>{entries.filter(entry => entry.primary).map(button)}</div>
@@ -258,7 +288,7 @@ function SourceManagementPage(props: {
   </div>
 }
 
-function StatusPage(props: { client: MnemonClient; status: StatusView | null; loading: boolean; writeEnabled: boolean; onRefresh: () => void }): JSX.Element {
+function StatusPage(props: { client: MnemonClient; status: StatusView | null; loading: boolean; writeEnabled: boolean; attention: boolean; layerState: (sourceTypeId: string) => 'on' | 'off' | 'stopped' | 'memory-off'; onRefresh: () => void }): JSX.Element {
   const t = useT()
   const [versionsOpen, setVersionsOpen] = useState(false)
   const status = props.status
@@ -273,15 +303,26 @@ function StatusPage(props: { client: MnemonClient; status: StatusView | null; lo
   const runtimeArea = selectedScope?.areas.find(area => area.kind === 'runtime')
   const runtimeUserEntries = runtimeArea === undefined ? 0 : Number(runtimeArea.details.userEntries ?? 0)
   const runtimeMemoryEntries = runtimeArea === undefined ? 0 : Number(runtimeArea.details.memoryEntries ?? 0)
+  // A layer that is off, or whose Source is not running, has no reading to wait for.
+  const idleLayer = (sourceTypeId: string): { title: string; detail: string } | undefined => {
+    const state = props.layerState(sourceTypeId)
+    return state === 'on' ? undefined
+      : state === 'off' ? { title: t('layers.disabledBadge'), detail: t('status.layerOffDetail') }
+        : state === 'memory-off' ? { title: t('layers.memoryOffBadge'), detail: t('status.layerMemoryOffDetail') }
+          : { title: t('layers.stoppedBadge'), detail: t('status.layerStoppedDetail') }
+  }
+  const runtimeIdle = idleLayer('runtime')
+  const spacesIdle = idleLayer('memory-spaces')
+  const documentsIdle = idleLayer('documents')
   return (
     <div className={css.page}>
-      <PageHeader title={t('status.title')} description={t('status.description')} meta={status === null && props.loading ? t('common.loading') : status === null || reviewError !== undefined ? t('status.checkRequired') : t('status.nominal')} {...(props.loading ? { loadingLabel: t('status.rechecking') } : {})} action={<div className={css.statusHeaderActions}><button type="button" className={css.ghostButton} disabled={props.loading} onClick={props.onRefresh}>{props.loading ? t('status.rechecking') : t('status.recheck')}</button><button type="button" className={css.secondaryButton} onClick={() => setVersionsOpen(true)}>{t('versions.checkAction')}</button></div>} />
+      <PageHeader title={t('status.title')} description={t('status.description')} meta={status === null && props.loading ? t('common.loading') : status === null || reviewError !== undefined || props.attention ? t('status.checkRequired') : t('status.nominal')} {...(props.loading ? { loadingLabel: t('status.rechecking') } : {})} action={<div className={css.statusHeaderActions}><button type="button" className={css.ghostButton} disabled={props.loading} onClick={props.onRefresh}>{props.loading ? t('status.rechecking') : t('status.recheck')}</button><button type="button" className={css.secondaryButton} onClick={() => setVersionsOpen(true)}>{t('versions.checkAction')}</button></div>} />
 
       <section className={css.healthStrip} aria-label={t('status.aria')}>
         <article><span className={`${css.healthIndicator} ${status === null ? css.healthMuted : css.healthGood}`} /><div><small>{t('status.engine')}</small><strong>{status?.dshMnemonVersion === undefined ? 'dsh-mnemon' : `dsh-mnemon ${status.dshMnemonVersion}`}</strong><p>{status === null ? t('status.pluginChecking') : t('status.pluginReady')}</p></div></article>
-        <article><span className={`${css.healthIndicator} ${runtimeArea === undefined ? css.healthMuted : runtimeArea.status === 'invalid' ? css.healthBad : css.healthGood}`} /><div><small>{t('status.runtime')}</small><strong>{runtimeArea === undefined ? t('status.runtimeWaiting') : t('status.runtimeRatio', { user: runtimeUserEntries, memory: runtimeMemoryEntries })}</strong><p>{runtimeArea === undefined ? t('status.runtimeWaitingDetail') : t('status.runtimeBytes', { bytes: humanBytes(runtimeArea.bytes) })}</p></div></article>
-        <article><span className={`${css.healthIndicator} ${activeSpaces > 0 ? css.healthGood : css.healthMuted}`} /><div><small>{t('status.spaces')}</small><strong>{catalogKnown ? t('status.activeRatio', { active: activeSpaces, total: memorySpaces.length }) : t('status.directoryUnsynced')}</strong><p>{t('status.activeMemories', { count: status?.stats?.totalInsights ?? 0 })}</p></div></article>
-        <article><span className={`${css.healthIndicator} ${documents === undefined ? css.healthMuted : css.healthGood}`} /><div><small>{t('status.documents')}</small><strong>{documents === undefined ? t('status.documentsWaiting') : t('status.documentRatio', { active: documents.activeCount, archived: documents.archivedCount })}</strong><p>{documents === undefined ? t('status.documentsSession') : t('status.documentUsage', { used: humanBytes(documents.activeBytes), limit: humanBytes(documents.limitBytes) })}</p></div></article>
+        <article><span className={`${css.healthIndicator} ${runtimeIdle !== undefined || runtimeArea === undefined ? css.healthMuted : runtimeArea.status === 'invalid' ? css.healthBad : css.healthGood}`} /><div><small>{t('status.runtime')}</small><strong>{runtimeIdle?.title ?? (runtimeArea === undefined ? t('status.runtimeWaiting') : t('status.runtimeRatio', { user: runtimeUserEntries, memory: runtimeMemoryEntries }))}</strong><p>{runtimeIdle?.detail ?? (runtimeArea === undefined ? t('status.runtimeWaitingDetail') : t('status.runtimeBytes', { bytes: humanBytes(runtimeArea.bytes) }))}</p></div></article>
+        <article><span className={`${css.healthIndicator} ${spacesIdle === undefined && activeSpaces > 0 ? css.healthGood : css.healthMuted}`} /><div><small>{t('status.spaces')}</small><strong>{spacesIdle?.title ?? (catalogKnown ? t('status.activeRatio', { active: activeSpaces, total: memorySpaces.length }) : t('status.directoryUnsynced'))}</strong><p>{spacesIdle?.detail ?? t('status.activeMemories', { count: status?.stats?.totalInsights ?? 0 })}</p></div></article>
+        <article><span className={`${css.healthIndicator} ${documentsIdle === undefined && documents !== undefined ? css.healthGood : css.healthMuted}`} /><div><small>{t('status.documents')}</small><strong>{documentsIdle?.title ?? (documents === undefined ? t('status.documentsWaiting') : t('status.documentRatio', { active: documents.activeCount, archived: documents.archivedCount }))}</strong><p>{documentsIdle?.detail ?? (documents === undefined ? t('status.documentsSession') : t('status.documentUsage', { used: humanBytes(documents.activeBytes), limit: humanBytes(documents.limitBytes) }))}</p></div></article>
       </section>
 
       <div className={css.asyncStatusBlock}>{status !== null && (status.providerServices !== undefined || (status.memoryBodies !== undefined && nativeInUse(status))) && <ProviderHealth status={status} services={status.providerServices ?? []} />}</div>
@@ -424,7 +465,11 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
   const client = useMemo(() => new MnemonClient(connection, sessionId, workspaceId), [connection, sessionId, workspaceId])
   const taskClient = useMemo(() => surface === 'builtin' ? client : new MnemonClient(connection, undefined, workspaceId), [client, connection, surface, workspaceId])
   const clientContextKey = `${sessionId ?? ''}\u0000${workspaceId ?? ''}`
-  const viewContextKey = `${clientContextKey}\u0000${settingsSnapshot.revision ?? 'loading'}`
+  // Pages remount only when they would show other data: another storage scope
+  // or directory. Any other save re-reads in place and keeps page drafts.
+  const storageContext = settingsSnapshot.revision === undefined ? 'loading'
+    : JSON.stringify([settingsSnapshot.value?.storageScope ?? null, settingsSnapshot.value?.dataDir ?? null, settingsSnapshot.value?.runtimeUserScope ?? null])
+  const viewContextKey = `${clientContextKey}\u0000${storageContext}`
   const [page, setPage] = useState<Page>('status')
   const canvasRef = useRef<HTMLElement | null>(null)
 
@@ -484,27 +529,63 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
     }
     return [...byType.entries()].sort(([left], [right]) => left.localeCompare(right))
   }, [sourceInstances, sourcePageEntries])
-  const sourceNavigationEntries = useMemo<SourceNavigationEntry[]>(() => [
-    ...visibleSourcePages.map(entry => ({
-      id: entry.id, page: sourcePage(entry.id), sourceTypeId: entry.sourceTypeId, label: entry.label,
-      detail: entry.navigation?.detail ?? entry.sourceTypeId, group: entry.navigation?.group ?? 'sources',
-      glyph: entry.navigation?.glyph ?? '◇', primary: entry.navigation?.primary ?? true,
-    })),
-    ...managedSourceTypes.map(([sourceTypeId, instances]) => ({
+  // Configured layers whose Source is not running: its component is off, or
+  // nothing is composed. They keep a tab that says so instead of vanishing.
+  const stoppedLayers = status?.memorySystem?.configuration.layers
+  const stoppedTypes = useMemo(() => {
+    if (sourceCatalog === null || stoppedLayers === undefined) return new Set<string>()
+    const running = new Set(sourceInstances.map(source => source.sourceTypeId))
+    return new Set(Object.keys(stoppedLayers).filter(id => !running.has(id)))
+  }, [sourceCatalog, sourceInstances, stoppedLayers])
+  const sourceNavigationEntries = useMemo<SourceNavigationEntry[]>(() => {
+    const entries: SourceNavigationEntry[] = []
+    const stopped = (sourceTypeId: string, label: string): SourceNavigationEntry => ({
+      id: 'stopped:' + sourceTypeId, page: stoppedSourcePage(sourceTypeId), sourceTypeId, label, detail: sourceTypeId, group: 'sources', glyph: '◇', primary: true, stopped: true,
+    })
+    const stoppedShown = new Set<string>()
+    // Registration order, so a layer keeps its place while its Source is stopped.
+    for (const entry of sourcePageEntries) {
+      if (visibleSourcePages.includes(entry)) {
+        entries.push({
+          id: entry.id, page: sourcePage(entry.id), sourceTypeId: entry.sourceTypeId, label: entry.label,
+          detail: entry.navigation?.detail ?? entry.sourceTypeId, group: entry.navigation?.group ?? 'sources',
+          glyph: entry.navigation?.glyph ?? '◇', primary: entry.navigation?.primary ?? true,
+        })
+      } else if (stoppedTypes.has(entry.sourceTypeId) && !stoppedShown.has(entry.sourceTypeId) && (entry.navigation?.primary ?? true)) {
+        stoppedShown.add(entry.sourceTypeId)
+        entries.push(stopped(entry.sourceTypeId, entry.label))
+      }
+    }
+    // A shipped layer whose client pages left with its component still gets its tab.
+    for (const sourceTypeId of stoppedTypes) {
+      const tab = SHIPPED_LAYER_TABS[sourceTypeId]
+      if (!stoppedShown.has(sourceTypeId) && tab !== undefined) entries.push(stopped(sourceTypeId, t(tab)))
+    }
+    entries.push(...managedSourceTypes.map(([sourceTypeId, instances]) => ({
       id: 'management:' + sourceTypeId, page: managedSourcePage(sourceTypeId), sourceTypeId,
       label: instances[0]!.management.label, detail: sourceTypeId, group: 'sources' as const, glyph: '◇', primary: true,
-    })),
-  ], [managedSourceTypes, visibleSourcePages])
+    })))
+    return entries
+  }, [managedSourceTypes, sourcePageEntries, stoppedTypes, t, visibleSourcePages])
 
+  // A page follows its layer: to the stopped page when its Source stops, and
+  // back to the layer's own page when it runs again.
   useEffect(() => {
     if (sourceCatalog === null) return
     const entryId = sourcePageEntryId(page)
     const managedTypeId = managedSourceTypeId(page)
-    if (
-      (entryId !== undefined && !visibleSourcePages.some(entry => entry.id === entryId))
-      || (managedTypeId !== undefined && !managedSourceTypes.some(([sourceTypeId]) => sourceTypeId === managedTypeId))
-    ) setPage('status')
-  }, [managedSourceTypes, page, visibleSourcePages, sourceCatalog])
+    const stoppedTypeId = stoppedSourceTypeId(page)
+    const whileStopped = (sourceTypeId: string | undefined): Page => sourceTypeId !== undefined && stoppedTypes.has(sourceTypeId) ? stoppedSourcePage(sourceTypeId) : 'status'
+    if (entryId !== undefined && !visibleSourcePages.some(entry => entry.id === entryId)) {
+      setPage(whileStopped(sourcePageEntries.find(entry => entry.id === entryId)?.sourceTypeId))
+    } else if (managedTypeId !== undefined && !managedSourceTypes.some(([sourceTypeId]) => sourceTypeId === managedTypeId)) {
+      setPage(whileStopped(managedTypeId))
+    } else if (stoppedTypeId !== undefined && !stoppedTypes.has(stoppedTypeId)) {
+      const resumed = visibleSourcePages.find(entry => entry.sourceTypeId === stoppedTypeId && (entry.navigation?.primary ?? true))
+      setPage(resumed !== undefined ? sourcePage(resumed.id)
+        : managedSourceTypes.some(([sourceTypeId]) => sourceTypeId === stoppedTypeId) ? managedSourcePage(stoppedTypeId) : 'status')
+    }
+  }, [managedSourceTypes, page, sourcePageEntries, stoppedTypes, visibleSourcePages, sourceCatalog])
 
   useLayoutEffect(() => { setNavigationInput(undefined) }, [viewContextKey])
 
@@ -555,6 +636,14 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
     seenComponents.current = componentRevision
     refreshAll()
   }, [componentRevision, refreshAll])
+  // A save that keeps the storage re-reads in place; one that changes it
+  // moves the context key, which reloads everything by itself.
+  const seenSettings = useRef({ revision: settingsSnapshot.revision, context: viewContextKey })
+  useEffect(() => {
+    const seen = seenSettings.current
+    seenSettings.current = { revision: settingsSnapshot.revision, context: viewContextKey }
+    if (seen.revision !== settingsSnapshot.revision && seen.context === viewContextKey) refreshAll()
+  }, [settingsSnapshot.revision, viewContextKey, refreshAll])
   const activationEnabled = status?.writeEnabled === true
   const writeEnabled = activationEnabled && settingsSnapshot.status === 'ready' && settingsSnapshot.writable
   const workspaceContext = status?.workspaceContext
@@ -567,12 +656,20 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
     ? ''
     : `${t('workspace.selectedRoot', { root: workspaceContext.selectedRoot })}; ${t('workspace.effectiveRoot', { root: workspaceContext.effectiveRoot })}`
   const workspacePicker = showWorkspacePicker && <label className={appearanceClass(css.workspacePicker, sidebarCss.workspacePicker)}><span>{t('workspace.viewing')}</span><select aria-label={t('workspace.selectorAria')} value={workspaceSelection.selectedWorkspaceId ?? ''} onChange={event => workspaceSelection.onSelect(event.target.value)}>{workspaceSelection.options.map(workspace => <option key={workspace.id} value={workspace.id}>{workspace.title}</option>)}</select></label>
+  // The saved settings answer at once; the status catches up after it reloads.
+  const savedLayers = settingsSnapshot.value?.memoryTopology?.layers
+  const configuredLayers = status?.memorySystem?.configuration.layers
+  const disabledTypes = new Set([...new Set([...Object.keys(configuredLayers ?? {}), ...Object.keys(savedLayers ?? {})])]
+    .filter(id => (savedLayers?.[id]?.enabled ?? configuredLayers?.[id]?.enabled) === false))
+  const notice = compositionNotice(status?.memorySystem, t)
+  const memoryOff = status?.memorySystem !== undefined && !status.memorySystem.serving
   const connectionLabel = status === null && statusLoading
     ? t('header.checking')
-    : status?.healthy !== true
-      ? t('header.unavailable')
-      : (t('header.connected'))
-  const disabledTypes = new Set(Object.entries(status?.memorySystem?.configuration.layers ?? {}).filter(([, value]) => !value.enabled).map(([id]) => id))
+    : notice?.tone === 'error'
+      ? t('status.memoryOff')
+      : status?.healthy !== true
+        ? t('header.unavailable')
+        : (t('header.connected'))
   const allInstancesFor = (sourceTypeId: string): MemorySourceManagementInstance[] => sourceInstances.filter(source => source.sourceTypeId === sourceTypeId)
   const instancesFor = (sourceTypeId: string): MemorySourceManagementInstance[] => allInstancesFor(sourceTypeId)
   const renderSourceContribution = (entryId: string): ReactNode => {
@@ -604,6 +701,13 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
       ...(preferences === undefined ? {} : { preferences }), onRefresh: mutate, onResetScroll: resetViewportScroll, onRevealElement: revealElement,
     }, { only: entryId })
   }
+  const activeStoppedType = stoppedSourceTypeId(page)
+  const stoppedTitle = (sourceTypeId: string): string => {
+    const shipped = SHIPPED_LAYER_TITLES[sourceTypeId]
+    return shipped !== undefined ? t(shipped) : sourceNavigationEntries.find(entry => entry.page === page)?.label ?? sourceTypeId
+  }
+  const layerState = (sourceTypeId: string): 'on' | 'off' | 'stopped' | 'memory-off' => disabledTypes.has(sourceTypeId) ? 'off'
+    : !stoppedTypes.has(sourceTypeId) ? 'on' : memoryOff ? 'memory-off' : 'stopped'
   const activeSourcePageId = sourcePageEntryId(page)
   const activeSourcePage = activeSourcePageId === undefined ? undefined : visibleSourcePages.find(entry => entry.id === activeSourcePageId)
   const activeSourceInstances = activeSourcePage === undefined ? [] : instancesFor(activeSourcePage.sourceTypeId)
@@ -640,7 +744,12 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
         <div className={appearanceClass(css.headerActions, sidebarCss.headerActions)}><div className={appearanceClass(css.statusCluster, sidebarCss.statusCluster)}><span className={`${css.statusDot} ${statusLoading && status === null ? css.checking : status?.healthy === true ? css.online : css.offline}`} /><span>{connectionLabel}</span><button type="button" className={css.iconButton} disabled={statusLoading} onClick={refreshAll} aria-label={t('common.refresh')} title={t('common.refresh')}><IconRefreshOutlineRegular size={16} /></button></div>{openConfiguration !== undefined && <button type="button" className={css.iconButton} onClick={openConfiguration} aria-label={t('header.configure')} title={t('header.configure')}><IconSettingsOutlineRegular size={16} /></button>}</div>
       </header>
       {sourceCatalogState.contextKey === viewContextKey && sourceCatalogState.error !== null && <div className={css.alert} role="alert">{sourceCatalogState.error}</div>}
-      {(statusError !== null || status?.healthy === false) && <div className={css.alert} role="alert"><strong>{t('header.notReady')}</strong><span>{statusError ?? status?.error}</span></div>}
+      {(statusError !== null || status?.healthy === false && notice === undefined) && <div className={css.alert} role="alert"><strong>{t('header.notReady')}</strong><span>{statusError ?? status?.error}</span></div>}
+      {statusError === null && notice !== undefined && <div className={css.alert} role={notice.tone === 'error' ? 'alert' : 'status'} aria-label={notice.title}>
+        <strong>{notice.title}</strong>
+        <span>{notice.detail}</span>
+        {openConfiguration !== undefined && <button type="button" onClick={openConfiguration}>{t('common.openConfiguration')}</button>}
+      </div>}
       {status?.lifecycle?.current?.idleReviewBlocked === 'agent-team' && <div className={css.alert} role="status">{t('status.reviewTeamPaused')}</div>}
       {status?.lifecycle?.current?.lastError !== undefined && <div className={css.alert} role="alert" aria-label={t('status.reviewFailed')}>
         <strong>{t('status.reviewFailed')}</strong>
@@ -654,11 +763,14 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
         {/CONTEXT_WINDOW_EXCEEDED|exceed(?:s|ed)? (?:the )?(?:available )?context (?:size|window)/iu.test(status.lifecycle.current.lastError) && <span>{t('status.reviewContextWindow')}</span>}
       </div>}
       <div className={css.workspace}>
-        <WorkspaceNavigation page={page} onSelect={selectPage} sourcePages={sourceNavigationEntries} disabledTypes={disabledTypes} />
+        <WorkspaceNavigation page={page} onSelect={selectPage} sourcePages={sourceNavigationEntries} disabledTypes={disabledTypes} memoryOff={memoryOff} />
         <section key={viewContextKey} className={appearanceClass(css.canvas, sidebarCss.canvas)} ref={canvasRef} data-testid="mnemon-canvas" data-lock-page-header={(activeSourcePage?.navigation?.stickyHeader !== false) ? '' : undefined}>
-          {page === 'status' && <StatusPage client={client} status={status} loading={statusLoading} writeEnabled={writeEnabled} onRefresh={() => void loadStatus()} />}
+          {page === 'status' && <StatusPage client={client} status={status} loading={statusLoading} writeEnabled={writeEnabled} attention={notice !== undefined} layerState={layerState} onRefresh={() => void loadStatus()} />}
           {activeManagedSourceInstance !== undefined && managedSourcePageContent}
           {activeSourcePage !== undefined && customSourcePage}
+          {activeStoppedType !== undefined && (disabledTypes.has(activeStoppedType)
+            ? <SourceDisabledPage title={stoppedTitle(activeStoppedType)} onOpenConfiguration={openConfiguration} />
+            : <SourceStoppedPage title={stoppedTitle(activeStoppedType)} memoryOff={memoryOff} onOpenConfiguration={openConfiguration} />)}
         </section>
 
       </div>

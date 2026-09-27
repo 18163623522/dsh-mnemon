@@ -130,6 +130,9 @@
 .alert { display: flex; flex: 0 0 auto; flex-direction: column; gap: 2px; margin: 8px 24px 0; }
 .alert ul { margin: 4px 0 0; padding-left: 18px; }
 .alert[role="status"] { color: var(--dsw-alias-state-warn-label, var(--mn-text)); background: var(--dsw-alias-state-warn-tertiary, color-mix(in srgb, var(--mn-warn) 12%, transparent)); }
+/* The action that resolves an alert, such as opening the configuration. */
+.alert > button { align-self: flex-start; margin-top: 4px; border: 0; border-radius: var(--dsw-radius-xs); padding: 2px 8px; color: inherit; background: color-mix(in srgb, currentColor 10%, transparent); font: inherit; font-weight: 500; cursor: pointer; }
+.alert > button:hover { background: color-mix(in srgb, currentColor 16%, transparent); }
 /* Warning chip, as the DSH connection indicator. */
 .workspaceMismatch { display: inline-flex; min-width: 0; min-height: 28px; flex: 0 0 auto; align-items: center; gap: 6px; padding: 0 3px 0 10px; border: .5px solid color-mix(in srgb, var(--dsw-alias-state-warn-label, var(--mn-warn)) 20%, transparent); border-radius: var(--dsw-radius-sm); color: var(--dsw-alias-state-warn-label, var(--mn-text)); background: var(--dsw-alias-state-warn-tertiary, color-mix(in srgb, var(--mn-warn) 12%, transparent)); font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; }
 .workspaceMismatch > button { min-height: 22px; padding: 0 8px; border: 0; border-radius: var(--dsw-radius-xs); color: inherit; background: color-mix(in srgb, currentColor 10%, transparent); font-size: 12px; cursor: pointer; }

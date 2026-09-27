@@ -33,6 +33,12 @@ interface ProviderSettingsSectionProps {
   t: MnemonTranslate
   /** Rendered first in the list; Settings puts Mnemon Native here as a peer of the others. */
   leading?: ReactNode
+  /** Why the other Providers cannot be listed now; they are not read while it is set. */
+  blocked?: ReactNode
+  /** Whether it is not yet known if the Providers can be listed; they are read once it is. */
+  pending?: boolean
+  /** Why the listed Providers cannot be switched; rendered above them. */
+  notice?: ReactNode
 }
 
 interface ServiceDraft {
@@ -370,12 +376,20 @@ export function ProviderSettingsSection(props: ProviderSettingsSectionProps): JS
     }
   }, [client, loadRequests, props.connection, routeKey])
 
+  const blocked = props.blocked !== undefined
+  const pending = props.pending === true
   useEffect(() => {
+    if (blocked || pending) {
+      loadRequests.begin()
+      setLoading(pending)
+      setFailed(null)
+      return
+    }
     const cached = cachedCatalog(props.connection, routeKey)
     setCatalog(cached ?? EMPTY_PROVIDER_CATALOG)
     setLoading(client !== null && cached === undefined)
     void load(cached !== undefined)
-  }, [client, load, props.connection, props.refreshKey, routeKey])
+  }, [blocked, client, load, loadRequests, pending, props.connection, props.refreshKey, routeKey])
 
   const acceptService = useCallback((service: MemoryProviderServiceView): void => {
     setCatalog(current => {
@@ -402,7 +416,9 @@ export function ProviderSettingsSection(props: ProviderSettingsSectionProps): JS
   }
 
   const disabled = props.disabled || props.scopeChanging || client === null || loading || catalog.generatedAt === ''
+  if (blocked) return <>{props.blocked}<div className={css.providerList}>{props.leading}</div></>
   return <>
+    {props.notice}
     {props.scopeChanging && <p className={css.scopeChanging} role="status">{props.t('config.saveScopeBeforeProviders')}</p>}
     {props.workspaceLabel !== undefined && <p className={css.providerTarget}>{props.t('config.providerTargetWorkspace', { workspace: props.workspaceLabel })}</p>}
     {loading && <span className={css.visuallyHidden} role="status">{props.t('config.loadingProviders')}</span>}

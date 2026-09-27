@@ -58,10 +58,21 @@ export function SelectRow<T extends string>(props: { id: string; label: string; 
   </SettingRow>
 }
 
-/** A row whose control is the DSH Switch. */
-export function ToggleRow(props: { id: string; label: string; hint: string; checked: boolean; disabled: boolean; ariaLabel?: string | undefined; onChange: (value: boolean) => void }): JSX.Element {
+/** A row whose control is the DSH Switch; a note under the hint states why the switch cannot be used and how to resolve it. */
+export function ToggleRow(props: { id: string; label: string; hint: string; checked: boolean; disabled: boolean; ariaLabel?: string | undefined; note?: ReactNode; onChange: (value: boolean) => void }): JSX.Element {
   return <div className={css.toggleRow} id={props.id}>
-    <span className={css.settingCopy}><strong>{props.label}</strong>{props.hint !== '' && <small>{props.hint}</small>}</span>
+    <span className={css.settingCopy}><strong>{props.label}</strong>{props.hint !== '' && <small>{props.hint}</small>}{props.note !== undefined && <span className={css.rowNote}>{props.note}</span>}</span>
     <Switch className={css.switch} checked={props.checked} label={props.ariaLabel ?? props.label} disabled={props.disabled} onChange={props.onChange} />
+  </div>
+}
+
+/**
+ * A state the user should act on, with the actions that resolve it: a main
+ * Strategy that is not running, a component that is switched off.
+ */
+export function StateNote(props: { tone: 'warn' | 'error'; children: ReactNode; actions?: ReactNode }): JSX.Element {
+  return <div className={css.stateNote} data-tone={props.tone} role={props.tone === 'error' ? 'alert' : 'status'}>
+    <span>{props.children}</span>
+    {props.actions !== undefined && <div className={css.stateNoteActions}>{props.actions}</div>}
   </div>
 }

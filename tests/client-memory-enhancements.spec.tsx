@@ -33,11 +33,19 @@ function featureEntry([entryId, packageName, label]: typeof FEATURES[number]): M
   }
 }
 
+/** The running main Strategy the enhancements extend. */
+const THREE_TIER: MemoryPluginEntryView = {
+  entryId: 'mnemon-strategy-default-three-tier', packageName: 'dsh-mnemon-strategy-default-three-tier', typeId: 'default-three-tier',
+  roles: ['strategy'], label: { en: 'Default three-tier', 'zh-CN': '默认三层' }, description: { en: '', 'zh-CN': '' }, fields: [],
+  provides: [{ id: 'strategy', exclusive: false }, { id: 'strategy.default-three-tier', exclusive: false }], requires: [], requiredBy: [],
+  enabled: true, active: true, writable: true, config: {},
+}
+
 function fixture(options: { writable?: boolean; failApply?: boolean; failRefreshAfterApply?: boolean; unavailable?: boolean } = {}) {
   let applied = false
   let dashboard: MemoryViewDashboard = {
     revision: 'view-1', writable: options.writable !== false, strategyTypeId: 'default-three-tier',
-    entries: FEATURES.map(featureEntry), currentUnavailable: 'no-session', sources: [], diagnostics: [],
+    entries: [THREE_TIER, ...FEATURES.map(featureEntry)], currentUnavailable: 'no-session', sources: [], diagnostics: [],
     pluginInstallation: { supported: false, reason: 'loader-unavailable', suggestions: [] },
   }
   const call = vi.fn(async (channel: string, endpoint: string, payload: unknown) => {
