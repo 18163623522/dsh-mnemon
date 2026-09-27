@@ -40,7 +40,8 @@ function fixture(entries: MemoryPluginEntryView[], options: { failApply?: boolea
     if (channel === '/dsh-mnemon-view-settings' && endpoint === 'apply') {
       if (options.failApply) return { ok: false as const, error: { code: 'internal' as const, message: 'selected memory Strategy type is unavailable', details: {} } }
       const request = (payload as { configuration: MemoryViewConfigurationRequest }).configuration
-      if (request.expectedRevision !== dashboard.revision) return { ok: false as const, error: { code: 'conflict' as const, message: 'memory View revision conflict', details: {} } }
+      // The Host's own answer to a write prepared against an older View.
+      if (request.expectedRevision !== dashboard.revision) return { ok: false as const, error: { code: 'internal' as const, message: 'Memory plugin configuration changed; refresh before saving or previewing.', details: {} } }
       applied.push(request)
       dashboard = { ...dashboard, revision: `view-${Number(dashboard.revision.slice(5)) + 1}`, strategyTypeId: request.strategyTypeId, entries: dashboard.entries.map(value => request.entries[value.entryId] === undefined
         ? value
@@ -112,14 +113,23 @@ describe('memory composition controls', () => {
     expect(applied).toEqual([])
   })
 
-  it('shows the Host state after a change meets a newer revision', async () => {
+  it('applies a switch once more over a change made elsewhere', async () => {
     const { applied, connection, external } = fixture([threeTier, general, capture])
     render(<MemoryCompositionSections connection={connection} language="en" t={translateEn} />)
     const toggle = await screen.findByRole('switch', { name: 'Active capture' })
+    // Another window, or the component list below, moves the View first.
     external('general')
     fireEvent.click(toggle)
+    await waitFor(() => expect(checked(screen.getByRole('switch', { name: 'Active capture' }))).toBe(true))
+    expect(applied).toEqual([{ expectedRevision: 'view-9', strategyTypeId: 'default-three-tier', entries: { 'mnemon-strategy-auto-capture': { enabled: true, config: {} } } }])
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('reports a write the Host still refuses after the retry', async () => {
+    const { applied, connection } = fixture([threeTier, general, capture], { failApply: true })
+    render(<MemoryCompositionSections connection={connection} language="en" t={translateEn} />)
+    fireEvent.click(await screen.findByRole('switch', { name: 'Active capture' }))
     expect(await screen.findByRole('alert')).toHaveProperty('textContent', translateEn('config.enhancementsFailed'))
-    await waitFor(() => expect(mainSelectors()[0]!.textContent).toBe('General'))
     expect(checked(screen.getByRole('switch', { name: 'Active capture' }))).toBe(false)
     expect(applied).toEqual([])
   })

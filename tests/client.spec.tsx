@@ -6,6 +6,7 @@ import type { ClientSettingsScope, ClientSettingsSnapshot } from "../src/host/ds
 import type { Config } from "../src/host/config.ts"
 import { ComposedMnemonWorkbench as MnemonWorkbench } from './fixtures/client.tsx'
 import { MnemonActionSeat } from '../src/client/action-seat.ts'
+import { MnemonChangeSignal } from '../src/client/change-signal.ts'
 import { translateEn } from '../src/client/locales.ts'
 import { TEST_PROVIDERS as MEMORY_PROVIDER_CATALOG } from './fixtures/providers.ts'
 import { memoryPageStyles } from '../src/client/page-kit.tsx'
@@ -424,6 +425,22 @@ describe('MnemonWorkbench', () => {
     act(() => withdraw())
     expect(screen.queryByRole('button', { name: '配置' })).toBeNull()
     expect(screen.queryByRole('button', { name: '前往配置' })).toBeNull()
+  })
+
+  it('re-reads the status when a component switches elsewhere and when the Sidebar reopens it', async () => {
+    const { connection, call } = createConnection()
+    const components = new MnemonChangeSignal()
+    const statusReads = () => call.mock.calls.filter(([, endpoint]) => endpoint === 'status-summary').length
+    const { rerender } = render(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" componentChanges={components} />)
+    await screen.findByText('已连接')
+    const initial = statusReads()
+
+    act(() => components.bump())
+    await waitFor(() => expect(statusReads()).toBe(initial + 1))
+
+    rerender(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" componentChanges={components} active={false} />)
+    rerender(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" componentChanges={components} active />)
+    await waitFor(() => expect(statusReads()).toBe(initial + 2))
   })
 
   it.each([true, false])('shows a background-review warning in writable=%s sessions', async writable => {

@@ -31,6 +31,7 @@ import { message } from './page-kit.tsx'
 import { MnemonPackSection } from './MnemonPackSection.tsx'
 import { ProviderIcon } from './ProviderIcon.tsx'
 import { ProviderSettingsSection } from './ProviderSettingsSection.tsx'
+import type { MnemonChangeSignal } from './change-signal.ts'
 
 export interface MnemonSettingsCardProps {
   scope: ClientSettingsScope<Config>
@@ -44,7 +45,11 @@ export interface MnemonSettingsCardProps {
   t?: MnemonTranslate
   /** Active DSH locale id for installed Strategies that bring their own text. */
   language?: string
+  /** Moves when a component is switched through DSH's plugin manager, for example on the Plugins page below. */
+  componentChanges?: Pick<MnemonChangeSignal, 'subscribe' | 'getSnapshot'>
 }
+
+const NO_CHANGE_SIGNAL: Pick<MnemonChangeSignal, 'subscribe' | 'getSnapshot'> = { subscribe: () => () => {}, getSnapshot: () => 0 }
 
 type CoreField = 'displayMode' | 'storageScope' | 'runtimeUserScope' | 'dataDir'
 type EmbeddingField = 'embeddingEnabled' | 'embeddingEndpoint' | 'embeddingModel' | 'embeddingApiKey' | 'embeddingProtocol'
@@ -187,7 +192,7 @@ function operations(fields: readonly DraftField[], dirty: ReadonlySet<Field>, dr
 }
 
 /** The dsh-mnemon configuration, shown on its bundle page under DSH Plugins. */
-export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractionScope, connection, sessionId, workspaceId, workspaceLabel, t = translateZh, language = 'zh' }: MnemonSettingsCardProps): JSX.Element | null {
+export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractionScope, connection, sessionId, workspaceId, workspaceLabel, t = translateZh, language = 'zh', componentChanges = NO_CHANGE_SIGNAL }: MnemonSettingsCardProps): JSX.Element | null {
   const interactionScope = suppliedInteractionScope ?? scope as unknown as ClientSettingsScope<InteractionConfig>
   const coreSnapshot = useScope(scope)
   const interactionSnapshot = useScope(interactionScope)
@@ -197,6 +202,15 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
   const [failed, setFailed] = useState<string | null>(null)
   const [applied, setApplied] = useState(false)
   const [targetRevision, setTargetRevision] = useState(0)
+  // A component switched below this configuration, on DSH's own list, changes
+  // what the Strategy, memory layer and Provider groups show.
+  const componentRevision = useSyncExternalStore(componentChanges.subscribe, componentChanges.getSnapshot, componentChanges.getSnapshot)
+  // Every term only grows, so the sum changes whenever any one does. The
+  // settings revision covers saves to the same Host entry from another page
+  // or window: the Strategy group's View revision includes it.
+  const dataRevision = targetRevision + componentRevision + (coreSnapshot.revision ?? 0)
+  const dirtyRef = useRef(dirty)
+  dirtyRef.current = dirty
   const [modelCatalog, setModelCatalog] = useState<TaskAgentModelCatalog | null>(null)
   const [modelCatalogState, setModelCatalogState] = useState<'unavailable' | 'loading' | 'ready' | 'error'>(connection === undefined ? 'unavailable' : 'loading')
   const [modelCatalogError, setModelCatalogError] = useState<string | null>(null)
@@ -279,7 +293,8 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
     void new MnemonClient(connection, sessionId, workspaceId).memorySystem().then(descriptor => {
       if (topologyRequest.current !== request) return
       setMemorySystem(descriptor)
-      setTopologyDraft(topologyOf(descriptor))
+      // A reload caused elsewhere keeps the layer switches the user has not saved yet.
+      setTopologyDraft(current => current !== null && [...dirtyRef.current].some(field => field.startsWith('memoryTopology.')) ? current : topologyOf(descriptor))
       setTopologyState('ready')
     }, () => {
       if (topologyRequest.current !== request) return
@@ -288,7 +303,7 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
       setTopologyState('error')
     })
     return () => { topologyRequest.current += 1 }
-  }, [connection, sessionId, workspaceId, targetRevision])
+  }, [connection, sessionId, workspaceId, dataRevision])
 
   useEffect(() => {
     embeddingStatusRequest.current += 1
@@ -306,7 +321,7 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
       () => { if (current) setNativeCliFound(undefined) },
     )
     return () => { current = false }
-  }, [connection, sessionId, workspaceId, targetRevision])
+  }, [connection, sessionId, workspaceId, dataRevision])
 
   const testEmbedding = (): void => {
     if (connection === undefined) return
@@ -420,7 +435,8 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
       ])
       setDirty(new Set())
       setApplied(true)
-      if (regularCoreChanged || embeddingChanged || topologyChanged) setTargetRevision(revision => revision + 1)
+      // Any save moves the Host entry's revision, which the Strategy group's View revision includes.
+      setTargetRevision(revision => revision + 1)
     } catch (reason) {
       setFailed(message(reason))
     } finally {
@@ -463,7 +479,7 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
           {...(connection === undefined ? {} : { connection })}
           {...(sessionId === undefined ? {} : { sessionId })}
           {...(workspaceId === undefined ? {} : { workspaceId })}
-          refreshKey={targetRevision}
+          refreshKey={dataRevision}
           language={language}
           readOnly={!coreSnapshot.writable}
           t={t}
@@ -486,7 +502,7 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
             {...(workspaceId === undefined ? {} : { workspaceId })}
             {...(activeScope !== 'workspace' || workspaceLabel === undefined ? {} : { workspaceLabel })}
             activeScope={activeScope}
-            refreshKey={targetRevision}
+            refreshKey={dataRevision}
             disabled={coreDisabled}
             scopeChanging={scopeChanging}
             t={t}

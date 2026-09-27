@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState, type JSX } fr
 import type { ClientConnectionHandle } from '../host/protocol.ts'
 import type { MemoryPluginEntryView, MemoryPluginPreference, MemoryViewDashboard } from '../host/view-protocol.ts'
 import { MnemonClient } from './api.ts'
+import { message } from './page-kit.tsx'
 import css from './MnemonSettingsCard.module.css'
 import type { MnemonKey, MnemonTranslate } from './locales.ts'
 import { SelectRow, ToggleRow } from './settings-controls.tsx'
@@ -16,6 +17,17 @@ const SHIPPED_COPY: Readonly<Record<string, { label: MnemonKey; hint: MnemonKey 
 }
 
 const domId = (prefix: string, entryId: string): string => `${prefix}-${entryId.replace(/[^a-zA-Z0-9_-]/gu, '-')}`
+
+/** The Host's answer when a View write was prepared against an older revision. */
+const STALE_VIEW = /configuration changed/u
+
+/** Keep each requested switch, over the configuration the Host holds now. */
+function rebase(entries: Record<string, MemoryPluginPreference>, dashboard: MemoryViewDashboard): Record<string, MemoryPluginPreference> {
+  return Object.fromEntries(Object.entries(entries).map(([entryId, preference]) => {
+    const current = dashboard.entries.find(entry => entry.entryId === entryId)
+    return [entryId, { enabled: preference.enabled, config: structuredClone(current?.config ?? preference.config) }]
+  }))
+}
 
 export interface MemoryCompositionProps {
   connection?: ClientConnectionHandle
@@ -98,8 +110,21 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
     setDashboard({ ...dashboard, strategyTypeId, entries: dashboard.entries.map(entry => entries[entry.entryId] === undefined
       ? entry
       : { ...entry, enabled: entries[entry.entryId]!.enabled }) })
+    let base = previous
     try {
-      await client.applyView({ expectedRevision: previous.revision, strategyTypeId, entries })
+      for (let attempt = 0; ; attempt += 1) {
+        try {
+          await client.applyView({ expectedRevision: base.revision, strategyTypeId, entries: rebase(entries, base) })
+          break
+        } catch (reason) {
+          // A save elsewhere (another group on this page, a component switch
+          // below it, another window) moves the View revision. Apply the same
+          // choice once more on top of what the Host holds now.
+          const latest = attempt === 0 && STALE_VIEW.test(message(reason)) ? await client.viewDashboard().catch(() => undefined) : undefined
+          if (latest === undefined || request.current !== ticket) throw reason
+          base = latest
+        }
+      }
       try {
         const next = await client.viewDashboard()
         if (request.current !== ticket) return

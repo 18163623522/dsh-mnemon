@@ -12,6 +12,7 @@ import { MnemonTurnTail } from './MnemonTurnTail.tsx'
 import { MnemonPluginActions, MNEMON_PACKAGE_NAME } from './MnemonPluginActions.tsx'
 import { MnemonSaveAction } from './MnemonSaveAction.tsx'
 import { MnemonActionSeat } from './action-seat.ts'
+import { MnemonChangeSignal } from './change-signal.ts'
 import { en, zh, type MnemonKey } from './locales.ts'
 import { MnemonSettingsScope } from './settings.ts'
 import type { MnemonClientContext } from "./dsh-context.ts"
@@ -93,10 +94,15 @@ function enabledOf(value: unknown, key: 'turnBar' | 'saveAction'): boolean {
   return isRecord(value) && value[key] !== false
 }
 
-/** Actions one surface offers another: the configuration page under Plugins, and the workspace in its placement. */
+/**
+ * What one surface offers or tells another: the configuration page under
+ * Plugins, the workspace in its placement, and component changes made through
+ * DSH's plugin manager, which Mnemon's own reads cannot see.
+ */
 interface MnemonSeats {
   configuration: MnemonActionSeat
   workspace: MnemonActionSeat
+  components: MnemonChangeSignal
 }
 
 /** The DSH describe revision of one Host entry, as `ctx.configForms` reports it. */
@@ -153,6 +159,7 @@ function mountSidebarMemoryView(ctx: MnemonClientContext, settings: MnemonSettin
       betterSidebarSeat,
       nativeSidebarSeat,
       configuration: seats.configuration,
+      componentChanges: seats.components,
       t: translate,
     }),
   }, MnemonSidebarWorkspaceHost))
@@ -210,6 +217,7 @@ function mountBuiltinMemoryView(ctx: MnemonClientContext, settings: MnemonSettin
       localeRuntime: ctx.locale,
       sourcePageDirectory,
       configuration: seats.configuration,
+      componentChanges: seats.components,
       t: translate,
     }),
   }, MnemonBuiltinWorkspaceHost))
@@ -249,18 +257,23 @@ function mountBuiltinMemoryView(ctx: MnemonClientContext, settings: MnemonSettin
     if (frame !== undefined) cancelAnimationFrame(frame)
     frame = requestAnimationFrame(attempt)
   }
-  // Builtin lives in a conversation, so it can open only while one is current.
+  // Builtin lives in a conversation's tabs, which exist once the current
+  // conversation is a listed session rather than an unsent draft.
   const current = ctx.uiSession.adapter.current
+  const sessions = ctx.sessions.list
   let withdrawWorkspace: (() => void) | undefined
   const followSession = (): void => {
-    const open = current.getSnapshot().key !== undefined
+    const key = current.getSnapshot().key
+    const open = key !== undefined && Object.hasOwn(sessions.getSnapshot().byId, key)
     if (open && withdrawWorkspace === undefined) withdrawWorkspace = seats.workspace.provide(openFromPanel)
     else if (!open && withdrawWorkspace !== undefined) { withdrawWorkspace(); withdrawWorkspace = undefined }
   }
   const unsubscribeSession = current.subscribe(followSession)
+  const unsubscribeSessions = sessions.subscribe(followSession)
   followSession()
   return () => {
     unsubscribeSession()
+    unsubscribeSessions()
     withdrawWorkspace?.()
     if (frame !== undefined) cancelAnimationFrame(frame)
     window.removeEventListener(MNEMON_ANCHOR_EVENT, openView)
@@ -273,7 +286,7 @@ export function apply(rawContext: unknown): void {
   const ctx = rawContext as MnemonClientContext
   const settings = new MnemonSettingsScope<Config>(ctx.connection, MNEMON_SETTINGS_NAMESPACE)
   const interactionSettings = new MnemonSettingsScope<InteractionConfig>(ctx.connection, MNEMON_UI_SETTINGS_NAMESPACE)
-  const seats: MnemonSeats = { configuration: new MnemonActionSeat(), workspace: new MnemonActionSeat() }
+  const seats: MnemonSeats = { configuration: new MnemonActionSeat(), workspace: new MnemonActionSeat(), components: new MnemonChangeSignal() }
   const namespace: MnemonNamespace = 'mnemon'
   ctx.effect(() => ctx.locale.register(namespace, { zh, en }), 'dsh-mnemon: locale dictionaries')
   const translate = ctx.locale.bind(namespace)
@@ -281,6 +294,16 @@ export function apply(rawContext: unknown): void {
   // workspace links to its configuration only then.
   ctx.inject(['pluginNavigation'], inner => {
     inner.effect(() => seats.configuration.provide(() => { inner.pluginNavigation.openBundle(MNEMON_PACKAGE_NAME) }), 'dsh-mnemon: configuration entry')
+  })
+  // DSH's plugin manager announces every component switch it applies, from its
+  // Plugins page or Mnemon's own controls; a reconnect may have missed some.
+  // This is the same signal DSH's Plugins page follows.
+  ctx.inject(['remote'], inner => {
+    inner.effect(() => {
+      const remote = inner.remote as unknown as { $on(event: 'plugin-manager/changed', listener: () => void): () => void }
+      const disposers = [remote.$on('plugin-manager/changed', seats.components.bump), inner.on('connection/reset', seats.components.bump)]
+      return () => { for (const dispose of disposers) dispose() }
+    }, 'dsh-mnemon: component changes')
   })
   // DSH mirrors the Host settings document on loopback pages; follow its
   // revision of the `mnemon` entry so edits made elsewhere show up live.
@@ -331,6 +354,7 @@ export function apply(rawContext: unknown): void {
       workspaces: ctx.workspaces,
       currentSession: ctx.uiSession.adapter.current,
       localeRuntime: ctx.locale,
+      componentChanges: seats.components,
       t: translate,
     }),
   }, MnemonSettingsHost))
