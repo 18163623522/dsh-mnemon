@@ -5,6 +5,8 @@ import { dispatchMnemonAnchor, type MnemonAnchorPage } from './anchor.ts'
 import type { MnemonKey } from './locales.ts'
 import type { MnemonClientContext } from './dsh-context.ts'
 import css from './MnemonTurnTail.module.css'
+import { IconChevronDownOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconDataOutline16 } from './ui-icons.ts'
 
 interface MnemonTurnTailProps {
   /** Engine-owned closing Turn boundary (TurnLocation on the wire). */
@@ -71,7 +73,7 @@ export const MnemonTurnTail = memo(function MnemonTurnTail({ turn, seq, sessionI
   return (
     <div className={css.root} data-open={open || undefined}>
       <button type="button" className={css.bar} aria-expanded={open} onClick={() => setOpen(value => !value)}>
-        <span className={css.mark} aria-hidden="true">◈</span>
+        <IconDataOutline16 size={14} className={css.mark} />
         <span className={css.label}>{t('turnTail.label')}</span>
         <span className={css.metrics}>
           {activity.recalls > 0 && <span>{t('turnTail.recall', { count: activity.recalls })}</span>}
@@ -80,7 +82,7 @@ export const MnemonTurnTail = memo(function MnemonTurnTail({ turn, seq, sessionI
           {activity.inspections > 0 && <span>{t('turnTail.inspect', { count: activity.inspections })}</span>}
           {activity.failures > 0 && <span className={css.failureMetric}>{t('turnTail.failed', { count: activity.failures })}</span>}
         </span>
-        <span className={`${css.chevron} ${open ? css.chevronOpen : ''}`} aria-hidden="true" />
+        <IconChevronDownOutlineRegular size={12} className={`${css.chevron} ${open ? css.chevronOpen : ''}`} />
       </button>
       {open && (
         <div className={css.details}>
