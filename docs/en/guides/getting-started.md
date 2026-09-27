@@ -154,7 +154,7 @@ The [UI guide](./ui-guide.md) shows the current configuration and optional enhan
 
 ### Workbench entry
 
-By default, open the dedicated workbench from Memory System in the DSH sidebar. Choose **Conversation tab** under **Interface → Entry placement** on that page, or set `displayMode: builtin`, to show the same Source pages as a conversation tab instead. Save switches the entry live without changing stored data.
+By default, open the dedicated workbench from Memory System in the DSH sidebar. Choose **Conversation tab** under **Interface → Memory System opens in** on that page, or set `displayMode: builtin`, to show the same Source pages as a conversation tab instead. The choice applies at once and switches the entry live without changing stored data.
 
 ### Storage scope
 
@@ -167,7 +167,7 @@ By default, open the dedicated workbench from Memory System in the DSH sidebar. 
 
 In the **Storage** group, **Storage scope** selects Global, Workspace or Centralized, and one **Data directory** field completes it: under Global it is the default when empty and the custom (`custom`) directory when set; under Centralized it is the optional central root, and data is stored in `<central-root>/workspaces/<workspace-path-hash>/`. Existing roots are retained when switching modes.
 
-Save initializes a candidate runtime graph before atomically switching the Host. The page clears stale state and reloads automatically—no browser refresh is needed. Changing scope never migrates, merges, or deletes old data.
+The **Apply** beside the storage change initializes a candidate runtime graph before atomically switching the Host. The page clears stale state and reloads automatically—no browser refresh is needed. Changing scope never migrates, merges, or deletes old data.
 
 ### Default memory layers
 

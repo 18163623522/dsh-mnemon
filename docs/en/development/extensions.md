@@ -98,9 +98,26 @@ The board is drawn from what each plugin declares, so a new plugin needs no Mnem
 | `strategyTypeId` of an extension | `'*'` or the selected main Strategy's type lists the row with the others; another type moves it to a closed group for other main Strategies |
 | `requires`, `provides` | Turning a component on also turns on the first installed provider of a capability it requires that nothing provides; turning one off also turns off what loses a capability it required. A main Strategy keeps its last Source: that switch is refused. Rows name a single provider they need, and the running component that depends on them alone, as link chips; the component's page lists every relation |
 | `provides[].exclusive`, extension `slot` | Two components claiming the same capability, where either claims it alone, or two extensions filling the same slot for overlapping main Strategies, cannot run together: turning one on turns the other off |
-| `memoryStrategyConfiguration.fields` | A gear on the row, and an options section on the component's page with one control per field, its label, description, default and limits; `source-list` offers the running Source instances whose role is in `sourceRoles` |
+| `memoryStrategyConfiguration.fields` | A gear on the row, and an options section on the component's page with one control per field, its label, description, default and limits; **Apply** appears once one changes. `source-list` offers the running Source instances whose role is in `sourceRoles`, named by the components that registered them |
 
 The component's page says what else its switch would move, and the toast after a switch names what moved, with **Undo**. Declare `requires` and `provides` precisely: they are how users see what your plugin needs, and what it cannot run beside.
+
+#### A component's own settings
+
+When declared options are not enough, a component adds its own settings to its page from its `./client` entry, the way the shipped components do: Runtime Memory's user profile scope, Memory Spaces' Providers and embedding, Default three-tier's background tasks.
+
+```tsx
+import { installMemoryComponentUI } from 'dsh-mnemon/client'
+
+export function apply(ctx) {
+  ctx.effect(() => installMemoryComponentUI(ctx, {
+    packageName: 'acme-memory-notes',
+    settings: ({ component, writable, language }) => <NotesSettings enabled={component.enabled} readOnly={!writable} language={language} />,
+  }))
+}
+```
+
+The settings render in the `mnemon.component.settings` region, keyed by the package name the plugin's declaration names, after the page's state, relations and declared options; the component's row gets a gear that opens them. They receive only what the page knows: `component` (`packageName`, `label`, `enabled`), `writable`, `language`, and the conversation's `sessionId` and `workspace` when there is one; bring your own services through your own registration. Registration waits until dsh-mnemon's configuration exists and ends with the returned function. Follow the page's interaction rules: switches and selectors apply when they change, typed values wait for your own **Apply**, and your settings never join another group's save.
 
 Third-party packages continue to use DSH's native Profile/Loader workflow. Install an exact package with `dsh plugin --profile <Profile> add <name>@<version> --save-exact`, verify its `peerDependencies` and `dsh.bundle.patch`, then activate it explicitly in Profile composition after restarting. Downloading an npm package is not activation, and Mnemon does not hot-load it into the current process. External standalone repositories following this guide are welcome; generic graphical management may be revisited after the contracts and community cases settle, but is not a v0.5 promise.
 
