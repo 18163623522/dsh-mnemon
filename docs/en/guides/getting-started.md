@@ -165,7 +165,7 @@ By default, open the dedicated workbench from Memory System in the DSH sidebar. 
 | **Custom** | `dataDir` | A dedicated disk, mounted volume, or explicit directory |
 | **Centralized workspaces** | `<central-root>/workspaces/<workspace-path-hash>/` | Central management with project isolation |
 
-In the **Storage** group, **Storage scope** selects Global, Workspace or Centralized, and one **Data directory** field completes it: under Global it is the default when empty and the custom (`custom`) directory when set; under Centralized it is the optional central root, and data is stored in `<central-root>/workspaces/<workspace-path-hash>/`. Existing roots are retained when switching modes.
+In the **Storage** group, **Storage scope** selects Global, Workspace or Centralized, and **Data directory** completes it with **Default** or **Custom**: under Global a custom path is the `custom` directory; under Centralized it is the central root, and data is stored in `<central-root>/workspaces/<workspace-path-hash>/`. Existing roots are retained when switching modes.
 
 The **Apply** beside the storage change initializes a candidate runtime graph before atomically switching the Host. The page clears stale state and reloads automatically—no browser refresh is needed. Changing scope never migrates, merges, or deletes old data.
 

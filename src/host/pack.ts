@@ -20,8 +20,8 @@ import { strFromU8, strToU8, unzipSync, zipSync, type Unzipped, type Zippable } 
 import type { ResolvedConfig } from './config.ts'
 import { DOCUMENTS_ACTIVE_LIMIT_BYTES, DOCUMENTS_VERSION, type DocumentRecord } from 'dsh-mnemon-source-documents/contracts'
 import { RUNTIME_ENTRY_DELIMITER, RUNTIME_MEMORY_LIMITS, RUNTIME_MEMORY_VERSION, type RuntimeMemoryEntry, type RuntimeMemoryLimits, type RuntimeMemoryTarget } from 'dsh-mnemon-source-runtime/contracts'
-import type { StorageRoot } from './storage-root.ts'
-import { MNEMON_PACK_COMPONENTS, type MnemonPackComponent, type MnemonPackComponentSummary, type MnemonPackExport, type MnemonPackImportMode, type MnemonPackImportResult, type MnemonPackManifest, type MnemonPackPreview, type MnemonPackScope } from "./protocol.ts"
+import { createStorageRoot, type StorageRoot } from './storage-root.ts'
+import { MNEMON_PACK_COMPONENTS, type MnemonPackComponent, type MnemonPackComponentSummary, type MnemonPackExport, type MnemonPackImportMode, type MnemonPackImportResult, type MnemonPackManifest, type MnemonPackPreview, type MnemonPackScope, type MnemonPackTarget } from "./protocol.ts"
 
 export type { MnemonPackComponent, MnemonPackComponentSummary, MnemonPackExport, MnemonPackImportMode, MnemonPackImportResult, MnemonPackManifest, MnemonPackPreview, MnemonPackScope } from "./protocol.ts"
 
@@ -677,8 +677,8 @@ export class MnemonPackManager {
     }
   }
 
-  target(): { root: string; scope: ResolvedConfig['storageScope'] } {
-    return { root: this.root, scope: this.config.storageScope }
+  target(): MnemonPackTarget {
+    return { root: this.root, scope: this.config.storageScope, defaultRoot: resolve(createStorageRoot({ storageScope: 'global' }).effectiveDataDir()) }
   }
 
   async exportPack(scope: MnemonPackScope): Promise<MnemonPackExport> {

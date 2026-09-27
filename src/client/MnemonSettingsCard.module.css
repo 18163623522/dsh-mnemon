@@ -232,7 +232,7 @@
 .selector:disabled { cursor: default; opacity: .4; }
 .selectMenu { min-width: 220px; }
 .selectOption { display: grid; min-width: 0; gap: 1px; white-space: normal; }
-.selectOption > small { color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }
+.selectOption > small { color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
 
 .directoryInput {
   width: 100%;
@@ -424,17 +424,10 @@ details[open] > summary .providerChevron { transform: rotate(180deg); }
   white-space: nowrap;
 }
 
-/* Where memory lives now: a label and the path, cut short with its whole value on hover. */
+/* Where memory lives: the path, after a label when it needs one. */
 .location { display: flex; min-width: 0; align-items: baseline; gap: 6px; }
-.location > code {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 11px;
-  line-height: 16px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* The data directory: default or custom, and the field for a custom one. */
+.locationRow { gap: 10px; padding: 14px 0; border-bottom: .5px solid var(--dsw-alias-border-l2); }
 .rowActions { display: flex; flex: none; align-items: center; gap: 8px; }
 .packRow { display: flex; min-width: 0; flex-direction: column; gap: 8px; padding-bottom: 14px; }
 .packRow > .settingRow { padding-bottom: 6px; border-bottom: 0; }

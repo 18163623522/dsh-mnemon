@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type JSX } from 'react'
 import { Button } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { ClientConnectionHandle, MnemonPackExport, MnemonPackPreview } from "../host/protocol.ts"
+import type { ClientConnectionHandle, MnemonPackExport, MnemonPackPreview, MnemonPackTarget } from "../host/protocol.ts"
 import { MnemonClient } from './api.ts'
 import type { MnemonTranslate } from './locales.ts'
 import { humanBytes, message } from './page-kit.tsx'
 import css from './MnemonSettingsCard.module.css'
 import { SettingRow } from './settings-controls.tsx'
 
-/** The data directory the running Host reads and writes now. */
-export interface PackTarget {
-  root: string
-  scope: 'global' | 'workspace' | 'custom'
-}
+/**
+ * The data directory the running Host reads and writes now, and its default
+ * one. A Host that does not report the default leaves it out.
+ */
+export type PackTarget = Omit<MnemonPackTarget, 'defaultRoot'> & { defaultRoot?: string }
 
 /** Where memory lives now, read again whenever `refreshKey` moves. */
 export function usePackTarget(connection: ClientConnectionHandle | undefined, sessionId: string | undefined, workspaceId: string | undefined, refreshKey: number): { target: PackTarget | null; failed: string | null } {

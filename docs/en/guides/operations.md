@@ -111,9 +111,9 @@ Import is governed by `writeEnabled` and is rejected in read-only deployments. A
 
 ### Recovery rehearsal
 
-1. Select an isolated `custom` directory and save.
-2. Confirm **Current directory ZIP** points to that root.
-3. Select the backup, review its preview, then import.
+1. Under **Storage**, set **Data directory** to **Custom**, enter an isolated directory and apply.
+2. Confirm the current read/write root on Status is that directory.
+3. Select the backup under **Backup and migration**, review its preview, then import.
 4. Check Runtime, Documents, Memory Spaces, and directories on Status.
 5. Run one focused direct recall and read one Document.
 6. Only after verification decide whether to switch a production scope.
