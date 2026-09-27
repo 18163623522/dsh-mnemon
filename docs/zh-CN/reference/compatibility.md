@@ -14,7 +14,7 @@ Starter 固定经过测试的官方插件组合。下表记录验证范围，不
 
 Root 的两个 DSH peer 范围均为 `^0.1.7-rc.2`；官方插件的 peer 范围不变。不再支持更早的 DSH：升级宿主前，请继续使用 dsh-mnemon `v0.5.16`，它是最后一个在 DSH `0.1.5-rc.1` 至 `0.1.7-alpha.1` 上验证的版本。较早的 Headless 和 WebUI 记录仅保留为历史证据。
 
-“本回合记忆”以稳定 ID 注册到 DSH 的 `conversation.chat.turnTail` list 插槽，并在读取或展示活动前检查回合是否已完成。Sidebar 与设置页跟随 DSH 公开的默认／主会话 binding；Builtin 和 Better Sidebar 保留显式所属会话。DSH 0.1.7 将动态设置保存在 profile Config 中；Mnemon 的设置页通过它写入，并按下述流程恢复保留的旧偏好。记忆数据和 Provider 格式不变。
+“本回合记忆”以稳定 ID 注册到 DSH 的 `conversation.chat.turnTail` list 插槽，并在读取或展示活动前检查回合是否已完成。Sidebar 与**插件 → 可组合记忆**页面跟随 DSH 公开的默认／主会话 binding；Builtin 和 Better Sidebar 保留显式所属会话。DSH 0.1.7 将动态设置保存在 profile Config 中，并在“插件”中每个插件的页面编辑其配置；Mnemon 的配置页通过它写入，并按下述流程恢复保留的旧偏好。记忆数据和 Provider 格式不变。
 
 参见[DSH 0.1.7 设置验证](../../pr-assets/issue-267-settings-migration/README.zh-CN.md)、[RC/alpha 验证与前后对比截图](../../pr-assets/issue-261-dsh-slots/README.zh-CN.md)、[DSH 0.1.5 验证](../../pr-assets/issue-223-dsh-015/README.zh-CN.md)、[宿主兼容证据](../../pr-assets/dsh-rc1-compat/README.md)、[升级证据](../../pr-assets/main-rebase-20260904/README.md)与[当前开发检查](../development/README.md)。机制测试通过不是 LLM 质量评测通过；特定 OS 与真实 CLI 检查在没有对应环境时可能跳过。
 

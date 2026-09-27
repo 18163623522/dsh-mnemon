@@ -59,7 +59,7 @@ Headless 使用同一个包：`dsh plugin --profile headless add dsh-mnemon`。
 
 打开**记忆系统 → 状态**，然后添加一条运行时记忆。创建档案前先选择 DSH 工作区，全局存储也需要工作区身份。需要长期沉淀时，人工选择 Provider 并创建记忆空间。默认以 Sidebar 展示，可选 Builtin 使用同一组页面。
 
-从 v0.4 升级保留熟悉的配置、数据与工作流。主策略与三个可选增强在**设置 → 记忆系统**或“插件”中的 `dsh-mnemon` 页面选择，不增加 View 页或通用记忆插件管理器。[升级清单](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/reference/compatibility.md)。
+从 v0.4 升级保留熟悉的配置、数据与工作流。配置位于**插件 → 可组合记忆**页面，DSH 0.1.7 把插件设置统一放在“插件”中；主策略与三个可选增强也在这里选择，不增加 View 页或通用记忆插件管理器。[升级清单](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/reference/compatibility.md)。
 
 dsh-mnemon 支持 DSH `0.1.7-rc.2`，即锁定的开发基线；更早的宿主请继续使用 `v0.5.16`。参见[兼容性矩阵](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/reference/compatibility.md)。现有会话若报 `source summary requires notice form`，需要显式执行 `dsh-mnemon-repair-session --input FILE --output NEW_FILE` 生成修复副本；替换任何文件前请阅读[旧会话恢复流程](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/operations.md#dsh-015-兼容与旧会话恢复)。
 
@@ -90,7 +90,7 @@ Starter 随附 **3 个 Source、2 个主策略（同一时间选中一个）、3
 | [dsh-mnemon-strategy-light-context](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-light-context/README.md) | 所有选中 Source 共享的常驻投影上限 | 关闭 |
 | [dsh-mnemon-strategy-scoped](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-scoped/README.md) | 有序选择 Source，并限定可写子集 | 关闭 |
 
-在“设置 → 记忆系统”或“插件”中 `dsh-mnemon` 页面选择一个主策略及任意增强。增强使用 Core 的标准 selection、projection 与 capture 槽，因此适用于任一主策略并可共存，最终仍输出一个 View。主动记录是指引，不是自主记录器；投影上限不是 token 计费或增量注入；范围组合不创建存储。
+在**插件 → 可组合记忆**页面选择一个主策略及任意增强。增强使用 Core 的标准 selection、projection 与 capture 槽，因此适用于任一主策略并可共存，最终仍输出一个 View。主动记录是指引，不是自主记录器；投影上限不是 token 计费或增量注入；范围组合不创建存储。
 
 Memory Spaces 可使用以下 Provider 插件：
 

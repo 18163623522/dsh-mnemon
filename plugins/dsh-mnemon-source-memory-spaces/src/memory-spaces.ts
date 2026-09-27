@@ -443,7 +443,7 @@ export class MemorySpaceRegistry {
     if (request.placement !== undefined && placement === undefined) throw new Error('automatic provider placement must be resolved before creating a Memory Space')
     if (placement !== undefined && request.providerId !== undefined && request.providerId !== placement.providerId) throw new Error('resolved provider placement conflicts with providerId')
     const providerId = placement?.providerId ?? request.providerId ?? this.defaultProviderId()
-    if (providerId === undefined) throw new Error('No memory provider is ready: install the Mnemon CLI to use Mnemon Native, or connect another provider in Settings')
+    if (providerId === undefined) throw new Error('No memory provider is ready: install the Mnemon CLI to use Mnemon Native, or connect another provider on the dsh-mnemon page under Plugins')
     if (!this.providerCatalog.has(providerId)) throw new Error(`unsupported memory provider: ${String(providerId)}`)
     const normalizedPlacement = placement === undefined ? undefined : normalizePlacementDecision(placement, providerId, this.providerCatalog)
     if (placement !== undefined && normalizedPlacement === undefined) throw new Error('resolved provider placement is invalid')
@@ -465,7 +465,7 @@ export class MemorySpaceRegistry {
         this.services[providerId] = this.providerCatalog.normalizeService(providerId, split.service, this.services[providerId] ?? {})
         this.serviceEnabled[providerId] = true
       }
-      if (!this.providerServiceEnabled(providerId)) throw new Error(`${this.providerCatalog.descriptor(providerId).label} service is not enabled; enable it in Settings first`)
+      if (!this.providerServiceEnabled(providerId)) throw new Error(`${this.providerCatalog.descriptor(providerId).label} service is not enabled; enable it on the dsh-mnemon page under Plugins first`)
       connection = this.providerCatalog.normalizeMemory(providerId, split.memory)
       this.providerCatalog.normalize(providerId, { ...this.services[providerId], ...connection })
     }
@@ -513,7 +513,7 @@ export class MemorySpaceRegistry {
         this.services[current.providerId] = this.providerCatalog.normalizeService(current.providerId, split.service, this.services[current.providerId] ?? {}, clearSecrets)
         this.serviceEnabled[current.providerId] = true
       }
-      if (!this.providerServiceEnabled(current.providerId)) throw new Error(`${this.providerCatalog.descriptor(current.providerId).label} service is not enabled; enable it in Settings first`)
+      if (!this.providerServiceEnabled(current.providerId)) throw new Error(`${this.providerCatalog.descriptor(current.providerId).label} service is not enabled; enable it on the dsh-mnemon page under Plugins first`)
       connection = this.providerCatalog.normalizeMemory(current.providerId, split.memory, previousConnection)
       this.providerCatalog.normalize(current.providerId, { ...this.services[current.providerId], ...connection })
     }

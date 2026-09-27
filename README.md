@@ -61,7 +61,7 @@ For Headless, add the same package to that profile with `dsh plugin --profile he
 
 Open **Memory System → Status**, then add a Runtime memory. Select a DSH workspace before creating Documents, even with global storage. To retain long-term facts, create a Memory Space with an explicitly selected Provider. Sidebar is the default; optional Builtin placement uses the same pages.
 
-Upgrading from v0.4 retains the familiar configuration, data and workflow. The main Strategy and three optional enhancements are chosen under **Settings → Memory System** or on the `dsh-mnemon` page under **Plugins**; no View tab or generic memory-plugin manager is added. [Upgrade checklist](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/reference/compatibility.md).
+Upgrading from v0.4 retains the familiar configuration, data and workflow. Configuration lives on the `dsh-mnemon` page under **Plugins**, where DSH 0.1.7 keeps plugin settings; the main Strategy and three optional enhancements are chosen there too, and no View tab or generic memory-plugin manager is added. [Upgrade checklist](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/reference/compatibility.md).
 
 ## Source + Strategy → View
 
@@ -90,7 +90,7 @@ The Starter ships **3 Sources, 2 main Strategies (one selected at a time), 3 opt
 | [dsh-mnemon-strategy-light-context](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-light-context/README.md) | A shared resident-projection ceiling | Off |
 | [dsh-mnemon-strategy-scoped](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-scoped/README.md) | Ordered Source selection and a writable subset | Off |
 
-Choose one main Strategy and any enhancements under **Settings → Memory System** or on the `dsh-mnemon` page under **Plugins**. The enhancements use Core's standard selection, projection and capture slots, so they work with either main Strategy and can coexist. They still produce one View. Capture is guidance, not an autonomous recorder; a projection ceiling is not token accounting or delta injection; scoped selection does not create storage.
+Choose one main Strategy and any enhancements on the `dsh-mnemon` page under **Plugins**. The enhancements use Core's standard selection, projection and capture slots, so they work with either main Strategy and can coexist. They still produce one View. Capture is guidance, not an autonomous recorder; a projection ceiling is not token accounting or delta injection; scoped selection does not create storage.
 
 Memory Spaces can use these Provider plugins:
 

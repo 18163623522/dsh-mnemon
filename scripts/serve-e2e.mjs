@@ -23,6 +23,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const flags = new Set(process.argv.slice(2))
 let betterSidebarRoot
 let electronExecutable
+let trustedHost
 for (const flag of flags) {
   if (flag === '--strategy-extensions') continue
   if (flag === '--document-protection') continue
@@ -38,6 +39,7 @@ for (const flag of flags) {
   if (flag === '--idle-review') continue
   if (flag === '--general-strategy') continue
   if (flag === '--without-mnemon-cli') continue
+  if (flag === '--remote-management') continue
   if (flag.startsWith('--electron=')) {
     const value = flag.slice('--electron='.length)
     if (value === '') throw new Error('--electron requires an Electron executable')
@@ -48,6 +50,12 @@ for (const flag of flags) {
     const value = flag.slice('--better-sidebar='.length)
     if (value === '') throw new Error('--better-sidebar requires a package directory')
     betterSidebarRoot = resolve(value)
+    continue
+  }
+  // A remote page: DSH's browser-trust fence accepts this extra authority.
+  if (flag.startsWith('--trusted-host=')) {
+    trustedHost = flag.slice('--trusted-host='.length)
+    if (!/^[a-z0-9.-]+(?::\d+)?$/iu.test(trustedHost)) throw new Error('--trusted-host requires a host or host:port authority')
     continue
   }
   throw new Error('Unknown option: ' + flag)
@@ -168,7 +176,8 @@ let web
 let stopping = false
 let restarting = false
 function launch() {
-  const args = [dshBin, 'web', '--no-open', '--host', '127.0.0.1', '--port', process.env.MNEMON_E2E_PORT ?? '0']
+  const args = [dshBin, 'web', '--no-open', '--host', '127.0.0.1', '--port', process.env.MNEMON_E2E_PORT ?? '0',
+    ...(trustedHost === undefined ? [] : ['--trusted-host', trustedHost])]
   const hostEnv = { ...env }
   if (electronExecutable !== undefined) {
     for (const key of Object.keys(hostEnv)) if (key.toUpperCase() === 'ELECTRON_RUN_AS_NODE') delete hostEnv[key]
@@ -254,6 +263,7 @@ try {
     + (flags.has('--runtime-routing') ? '- id: mnemon\n  config:\n    runtimeMemory:\n      memoryLimitBytes: 1600\n' : '')
     // An explicit cliPath is authoritative, so a missing file hides any installed Mnemon CLI.
     + (flags.has('--without-mnemon-cli') ? '- id: mnemon\n  config:\n    cliPath: ' + JSON.stringify(join(fixture, 'no-mnemon-cli', 'mnemon')) + '\n' : '')
+    + (flags.has('--remote-management') ? '- id: mnemon\n  config:\n    remoteAccess: trusted-host\n' : '')
     + (flags.has('--general-strategy') ? '- id: mnemon-strategy-general\n  disabled: false\n- id: mnemon-strategy-default-three-tier\n  disabled: true\n- id: mnemon\n  config:\n    memoryView:\n      strategyTypeId: general\n' : '')
     + (flags.has('--runtime-write-scope') ? '- id: mnemon\n  config:\n    persistenceStrategy:\n      mode: manual\n      providerId: mnemon-native\n    runtimeMemory:\n      memoryLimitBytes: 512\n' : '')
     + (reviewModel === undefined ? '' : '- insert:\n    - id: review-evidence-fixture\n      name: ' + JSON.stringify(reviewFixture) + '\n')

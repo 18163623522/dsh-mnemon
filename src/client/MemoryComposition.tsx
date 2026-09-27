@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type JSX } from 'react'
-import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type JSX } from 'react'
 import type { ClientConnectionHandle } from '../host/protocol.ts'
 import type { MemoryPluginEntryView, MemoryPluginPreference, MemoryViewDashboard } from '../host/view-protocol.ts'
 import { MnemonClient } from './api.ts'
@@ -18,9 +17,6 @@ const SHIPPED_COPY: Readonly<Record<string, { label: MnemonKey; hint: MnemonKey 
 
 const domId = (prefix: string, entryId: string): string => `${prefix}-${entryId.replace(/[^a-zA-Z0-9_-]/gu, '-')}`
 
-/** Settings and the Plugins page can show these controls at once; a committed change reloads the other. */
-const changes = new EventTarget()
-
 export interface MemoryCompositionProps {
   connection?: ClientConnectionHandle
   sessionId?: string
@@ -28,14 +24,15 @@ export interface MemoryCompositionProps {
   refreshKey?: number
   /** Active DSH locale id; it picks the language of a third-party descriptor. */
   language: string
+  /** The configuration around these controls cannot be saved, such as a remote page without the management grant. */
+  readOnly?: boolean
   t: MnemonTranslate
 }
 
 /**
  * The main Strategy choice (mutually exclusive) and the independent
- * enhancements. Settings and the DSH Plugins page render the same controls,
- * so both write through one View transaction. Hidden while the View dashboard
- * cannot be read.
+ * enhancements, written through one View transaction. Hidden while the View
+ * dashboard cannot be read.
  */
 export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.Element | null {
   // Per-instance ids keep each label, heading and radio group bound to its own controls.
@@ -48,7 +45,6 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
   const [working, setWorking] = useState<string | null>(null)
   const [failure, setFailure] = useState<'strategy' | 'enhancement' | 'refresh' | null>(null)
   const request = useRef(0)
-  const busy = useRef(false)
 
   const load = useCallback(async (): Promise<void> => {
     if (client === undefined) {
@@ -79,19 +75,12 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
     return () => { request.current += 1 }
   }, [load])
 
-  useEffect(() => {
-    // An apply in flight refreshes itself when it settles.
-    const reload = (event: Event): void => { if ((event as CustomEvent<string>).detail !== instance && !busy.current) void load() }
-    changes.addEventListener('change', reload)
-    return () => changes.removeEventListener('change', reload)
-  }, [instance, load])
-
   if (state !== 'ready' || dashboard === null) return null
   const mains = dashboard.entries.filter(entry => entry.roles.includes('strategy') && entry.typeId !== undefined)
   const enhancements = dashboard.entries.filter(entry => entry.roles.includes('strategy-extension'))
   if (mains.length <= 1 && enhancements.length === 0) return null
   const selected = mains.find(entry => entry.typeId === dashboard.strategyTypeId)
-  const disabled = working !== null || !dashboard.writable
+  const disabled = working !== null || !dashboard.writable || props.readOnly === true
   const copy = (entry: MemoryPluginEntryView): { label: string; hint: string } => {
     const shipped = SHIPPED_COPY[entry.packageName]
     if (shipped !== undefined) return { label: props.t(shipped.label), hint: props.t(shipped.hint) }
@@ -104,7 +93,6 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
     const previous = dashboard
     const ticket = request.current + 1
     request.current = ticket
-    busy.current = true
     setWorking(key)
     setFailure(null)
     setDashboard({ ...dashboard, strategyTypeId, entries: dashboard.entries.map(entry => entries[entry.entryId] === undefined
@@ -112,7 +100,6 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
       : { ...entry, enabled: entries[entry.entryId]!.enabled }) })
     try {
       await client.applyView({ expectedRevision: previous.revision, strategyTypeId, entries })
-      changes.dispatchEvent(new CustomEvent('change', { detail: instance }))
       try {
         const next = await client.viewDashboard()
         if (request.current !== ticket) return
@@ -131,7 +118,6 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
       const current = await client.viewDashboard().catch(() => previous)
       if (request.current === ticket) setDashboard(current)
     } finally {
-      busy.current = false
       if (request.current === ticket) setWorking(null)
     }
   }
@@ -173,24 +159,4 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
     {failure === 'strategy' && <p className={css.error} role="alert">{props.t('config.strategyFailed')}</p>}
     {(failure === 'enhancement' || failure === 'refresh') && <p className={css.error} role="alert">{props.t(failure === 'refresh' ? 'config.enhancementsRefreshFailed' : 'config.enhancementsFailed')}</p>}
   </section>
-}
-
-export interface MemoryCompositionPluginPageProps {
-  view: 'summary' | 'page'
-  connection: ClientConnectionHandle
-  localeRuntime: LocaleRuntime
-  t: MnemonTranslate
-}
-
-/** The dsh-mnemon bundle page section on the DSH Plugins page. */
-export function MemoryCompositionPluginPage(props: MemoryCompositionPluginPageProps): JSX.Element | null {
-  const subscribe = useCallback((listener: () => void) => props.localeRuntime.subscribe(listener), [props.localeRuntime])
-  // The locale id is a stable primitive, unlike a snapshot object.
-  const active = useCallback((): string => props.localeRuntime.getSnapshot().active, [props.localeRuntime])
-  const language = useSyncExternalStore(subscribe, active, active)
-  if (props.view !== 'page') return null
-  return <div className={css.pluginsComposition}>
-    <MemoryCompositionSections connection={props.connection} language={language} t={props.t} />
-    <p className={css.pluginsCompositionHint}>{props.t('config.compositionPluginsHint')}</p>
-  </div>
 }

@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
-import { MemoryCompositionPluginPage, MemoryCompositionSections } from '../src/client/MemoryComposition.tsx'
+import { MemoryCompositionSections } from '../src/client/MemoryComposition.tsx'
 import { translateEn, translateZh } from '../src/client/locales.ts'
 import type { ClientConnectionHandle, MemoryPluginEntryView, MemoryViewConfigurationRequest, MemoryViewDashboard } from '../src/host/protocol.ts'
 
@@ -102,20 +101,15 @@ describe('memory composition controls', () => {
     expect(await screen.findByRole('status')).toHaveProperty('textContent', translateEn('config.strategyInactive'))
   })
 
-  it('keeps Settings and the Plugins page controls apart and in step when both are open', async () => {
-    const { connection } = fixture([threeTier, general, capture])
-    const { container } = render(<>
-      <MemoryCompositionSections connection={connection} language="en" t={translateEn} />
-      <MemoryCompositionSections connection={connection} language="en" t={translateEn} />
-    </>)
-    await waitFor(() => expect(mainSelectors()).toHaveLength(2))
-    const ids = [...container.querySelectorAll('[id]')].map(element => element.id)
-    expect(new Set(ids).size).toBe(ids.length)
-    // Each selector names itself from its own row, so the second instance applies the change.
-    chooseMain('General', 1)
-    await waitFor(() => expect(mainSelectors().map(button => button.textContent)).toEqual(['General', 'General']))
-    fireEvent.click(screen.getAllByRole('switch', { name: 'Active capture' })[0]!)
-    await waitFor(() => expect(screen.getAllByRole('switch', { name: 'Active capture' }).map(checked)).toEqual([true, true]))
+  it('keeps the controls read-only with a configuration that cannot be saved', async () => {
+    const { applied, connection } = fixture([threeTier, general, capture])
+    render(<MemoryCompositionSections connection={connection} language="en" readOnly t={translateEn} />)
+    await waitFor(() => expect(mainSelectors()).toHaveLength(1))
+    expect((mainSelectors()[0] as HTMLButtonElement).disabled).toBe(true)
+    const toggle = screen.getByRole('switch', { name: 'Active capture' }) as HTMLButtonElement
+    expect(toggle.disabled).toBe(true)
+    fireEvent.click(toggle)
+    expect(applied).toEqual([])
   })
 
   it('shows the Host state after a change meets a newer revision', async () => {
@@ -128,15 +122,5 @@ describe('memory composition controls', () => {
     await waitFor(() => expect(mainSelectors()[0]!.textContent).toBe('General'))
     expect(checked(screen.getByRole('switch', { name: 'Active capture' }))).toBe(false)
     expect(applied).toEqual([])
-  })
-
-  it('renders the Plugins page section only for its page view', async () => {
-    const { connection } = fixture([threeTier, general, capture])
-    const locale = { getSnapshot: () => ({ active: 'en', locales: [], revision: 0 }), subscribe: () => () => {} } as unknown as LocaleRuntime
-    const { container, rerender } = render(<MemoryCompositionPluginPage view="summary" connection={connection} localeRuntime={locale} t={translateEn} />)
-    expect(container.innerHTML).toBe('')
-    rerender(<MemoryCompositionPluginPage view="page" connection={connection} localeRuntime={locale} t={translateEn} />)
-    await waitFor(() => expect(mainSelectors()).toHaveLength(1))
-    expect(screen.getByText(translateEn('config.compositionPluginsHint'))).toBeTruthy()
   })
 })

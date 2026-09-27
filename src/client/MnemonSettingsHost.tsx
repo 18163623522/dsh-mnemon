@@ -1,18 +1,21 @@
 import { useCallback, useSyncExternalStore } from 'react'
 import type { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
+import type { PluginConfigViewProps } from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { MnemonSettingsCard, type MnemonSettingsCardProps } from './MnemonSettingsCard.tsx'
 import type { MnemonClientContext } from './dsh-context.ts'
 import { useMnemonSessionId, type MnemonSessionBinding } from './session-binding.ts'
 
 interface MnemonSettingsHostProps extends Omit<MnemonSettingsCardProps, 'sessionId' | 'workspaceId' | 'workspaceLabel' | 'language'> {
+  /** The DSH Plugins page renders a bundle's configuration as its `page` view only. */
+  view: PluginConfigViewProps['view']
   currentSession: MnemonSessionBinding
   localeRuntime: LocaleRuntime
   sessions: MnemonClientContext['sessions']
   workspaces: MnemonClientContext['workspaces']
 }
 
-/** Root-slot injection is cached; keep its session and workspace context live. */
-export function MnemonSettingsHost({ currentSession, sessions, workspaces, localeRuntime, ...props }: MnemonSettingsHostProps): JSX.Element {
+/** The dsh-mnemon bundle page body; root-slot injection is cached, so session and workspace stay live here. */
+export function MnemonSettingsHost({ view, currentSession, sessions, workspaces, localeRuntime, ...props }: MnemonSettingsHostProps): JSX.Element | null {
   const sessionId = useMnemonSessionId(currentSession)
   const subscribeSessions = useCallback((listener: () => void) => sessions.list.subscribe(listener), [sessions.list])
   const getSessions = useCallback(() => sessions.list.getSnapshot(), [sessions.list])
@@ -23,6 +26,7 @@ export function MnemonSettingsHost({ currentSession, sessions, workspaces, local
   const language = useSyncExternalStore(subscribeLocale, getLanguage, getLanguage)
   const catalog = useSyncExternalStore(subscribeSessions, getSessions, getSessions)
   const workspaceList = useSyncExternalStore(subscribeWorkspaces, getWorkspaces, getWorkspaces)
+  if (view !== 'page') return null
   const cwd = sessionId === undefined ? undefined : Object.entries(catalog.byId).find(([id]) => id === sessionId)?.[1]?.cwd
   const normalizePath = (value: string): string => value.replace(/[\\/]+$/u, '')
   const workspace = sessionId === undefined

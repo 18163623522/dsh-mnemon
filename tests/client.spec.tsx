@@ -5,6 +5,7 @@ import type { ClientConnectionHandle } from "../src/host/dsh.ts"
 import type { ClientSettingsScope, ClientSettingsSnapshot } from "../src/host/dsh.ts"
 import type { Config } from "../src/host/config.ts"
 import { ComposedMnemonWorkbench as MnemonWorkbench } from './fixtures/client.tsx'
+import { MnemonActionSeat } from '../src/client/action-seat.ts'
 import { translateEn } from '../src/client/locales.ts'
 import { TEST_PROVIDERS as MEMORY_PROVIDER_CATALOG } from './fixtures/providers.ts'
 import { memoryPageStyles } from '../src/client/page-kit.tsx'
@@ -396,11 +397,33 @@ describe('MnemonWorkbench', () => {
         const before = call.mock.calls.filter(([, endpoint]) => endpoints[id].includes(endpoint)).length
         fireEvent.click(item)
         await screen.findByRole('heading', { name: disabledTitles[id] })
-        expect(screen.getByText('已有数据完整保留；在设置中重新开启后即可恢复读取、写入与按需调用。')).toBeTruthy()
+        expect(screen.getByText('已有数据完整保留；在“插件 → 可组合记忆”页面中重新开启后，即可恢复读取、写入与按需调用。')).toBeTruthy()
         expect(call.mock.calls.filter(([, endpoint]) => endpoints[id].includes(endpoint))).toHaveLength(before)
       }
       cleanup()
     }
+  })
+
+  it('links to the configuration on the Plugins page while that page offers navigation', async () => {
+    const { connection } = createConnection({ layerSwitches: { runtime: false, documents: true, 'memory-spaces': true } })
+    const configuration = new MnemonActionSeat()
+    render(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" configuration={configuration} />)
+    await screen.findByText('已连接')
+    expect(screen.queryByRole('button', { name: '配置' })).toBeNull()
+
+    const open = vi.fn()
+    let withdraw = (): void => {}
+    act(() => { withdraw = configuration.provide(open) })
+    fireEvent.click(screen.getByRole('button', { name: '配置' }))
+    expect(open).toHaveBeenCalledTimes(1)
+    fireEvent.click(within(screen.getByRole('tablist', { name: 'Mnemon 页面' })).getByRole('tab', { name: '运行时 · 已关闭' }))
+    await screen.findByRole('heading', { name: '运行时记忆 已关闭' })
+    fireEvent.click(screen.getByRole('button', { name: '前往配置' }))
+    expect(open).toHaveBeenCalledTimes(2)
+
+    act(() => withdraw())
+    expect(screen.queryByRole('button', { name: '配置' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '前往配置' })).toBeNull()
   })
 
   it.each([true, false])('shows a background-review warning in writable=%s sessions', async writable => {

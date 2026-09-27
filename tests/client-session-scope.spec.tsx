@@ -69,6 +69,9 @@ function fixture() {
     locale: Object.assign(locale, { register: () => () => {}, bind: () => (key: string) => key }),
     connection: { rpc: { call: vi.fn(async () => ({ ok: true, value: { status: 'ready', value: { displayMode: 'builtin' }, writable: true, mode: 'host' } })) }, isLoopback: true },
     effect(callback: () => unknown) { const dispose = callback(); if (typeof dispose === 'function') disposers.push(dispose as () => void) },
+    // Plugins page navigation and the DSH settings mirror are not provided here.
+    inject: () => {},
+    layout: { selectPanel: () => {} },
     slots: {
       inject(_name: string, factory: () => (() => void)) { const dispose = factory(); disposers.push(dispose); return dispose },
       entries: () => [],
@@ -89,12 +92,13 @@ function fixture() {
   }
   function renderSettings() {
     apply(ctx)
-    const entry = entries.find(candidate => candidate.options.name === 'settings.section')!
+    const entry = entries.find(candidate => candidate.options.name === 'plugins.bundle.config')!
     // A root slot caches its injected props: session updates must come from
     // subscriptions inside the mounted component, not another inject call.
     const props = entry.options.inject!()
     const Component = entry.component
-    return render(<Component {...props} />)
+    // The Plugins page renders a bundle's configuration as its `page` view.
+    return render(<Component {...props} view="page" />)
   }
   return { ctx, current, catalog, workspaces, workspaceProps, renderSettings }
 }

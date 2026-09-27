@@ -1,14 +1,14 @@
 /*
- * Mnemon Settings inside the DSH settings dialog, and the same composition
- * rows on the DSH Plugins page. Rows follow the DSH preference row, the
- * Provider list follows the DSH model provider cards, and controls are the
- * DSH Switch, the Menu-backed selector and the settings-form fields.
+ * The dsh-mnemon configuration on its DSH Plugins page, between the plugin's
+ * description and its components. Groups follow the page's own sections,
+ * rows follow the DSH preference row, the Provider list follows the DSH model
+ * provider cards, and controls are the DSH Switch, the Menu-backed selector
+ * and the settings-form fields.
  */
 .page {
   box-sizing: border-box;
   display: flex;
   width: 100%;
-  max-width: 720px;
   min-width: 0;
   flex-direction: column;
   gap: 32px;
@@ -29,12 +29,9 @@
   text-align: center;
 }
 
-.pageHeader h1 { margin: 0; font-size: 16px; font-weight: 500; line-height: 24px; }
-.pageHeader p { max-width: 64ch; margin: 4px 0 0; color: var(--dsw-alias-label-tertiary); font-size: 13px; line-height: 20px; }
-
 .section { display: flex; min-width: 0; flex-direction: column; gap: 4px; }
 .sectionHeading { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; align-items: start; column-gap: 12px; }
-.sectionHeading h2 { grid-column: 1; margin: 0; font-size: 14px; font-weight: 500; line-height: 22px; }
+.sectionHeading h2 { grid-column: 1; margin: 0; font-size: 14px; font-weight: 500; line-height: 20px; }
 .sectionHeading p { grid-column: 1; max-width: 66ch; margin: 2px 0 0; color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }
 .sectionHeading .miniSpinner { grid-column: 2; grid-row: 1; }
 
@@ -371,25 +368,28 @@ details[open] > summary .providerChevron { transform: rotate(180deg); }
 .feedback p, .packFeedback p { margin: 0; font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
 .error { color: var(--dsw-alias-state-error-primary); }
 .success { color: var(--dsw-alias-state-success-primary); }
-.readOnly { color: var(--dsw-alias-label-tertiary); }
+.readOnlyNotice { margin: 0 0 -20px; color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }
 .packSuccess { color: var(--dsw-alias-state-success-primary); }
 
-/* Unsaved changes: a bar pinned to the bottom of the settings scroll area.
-   Sticky insets respect the host scroller's 24px bottom padding, so the bar
-   sits that far lower and pads its own bottom to stay flush with the edge. */
+/* Unsaved changes: a bar that floats above the bottom of the Plugins page
+   while this configuration is in view and rests after its last group.
+   Sticky insets respect the page scroller's 48px bottom padding, so -32px
+   holds the bar 16px above the scroller's edge. */
 .actions { display: none; }
 .actionsVisible {
   position: sticky;
   z-index: 2;
-  bottom: -24px;
+  bottom: -32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin: -16px -24px -24px;
-  border-top: .5px solid var(--dsw-alias-border-l2);
-  padding: 12px 24px 36px;
+  margin-top: -16px;
+  border: .5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-lg);
+  padding: 10px 10px 10px 16px;
   background: var(--dsw-alias-bg-layer-2);
+  box-shadow: var(--dsw-elevation-prominent);
 }
 .actions > span { color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 20px; }
 .actions > div { display: flex; gap: 8px; }
@@ -425,9 +425,9 @@ details[open] > summary .providerChevron { transform: rotate(180deg); }
   .memoryConfigFooter button { flex: 1; }
 }
 
-/* The host settings navigation can leave a very narrow content column on
-   phones. Keep only the actionable enhancement label and its stable switch
-   in that constrained column; the full explanation remains at wider sizes. */
+/* A host layout can leave a very narrow content column on phones. Keep only
+   the actionable enhancement label and its stable switch in that constrained
+   column; the full explanation remains at wider sizes. */
 @container (max-width: 180px) {
   .enhancementsSection .sectionHeading p,
   .enhancementsSection .settingCopy small { display: none; }
@@ -447,9 +447,3 @@ details[open] > summary .providerChevron { transform: rotate(180deg); }
   .providerChevron, .advanced > summary > svg { transition: none; }
   .miniSpinner { animation: none; }
 }
-
-/* The dsh-mnemon bundle page under Plugins: the same composition rows. */
-.pluginsComposition { display: flex; min-width: 0; flex-direction: column; gap: 12px; color: var(--dsw-alias-label-primary); font-family: inherit; }
-.pluginsComposition *, .pluginsComposition *::before, .pluginsComposition *::after { box-sizing: border-box; }
-:where(.pluginsComposition) :where(button, input, select) { color: inherit; font: inherit; }
-.pluginsCompositionHint { margin: 0; color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }

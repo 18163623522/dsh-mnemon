@@ -669,7 +669,10 @@ describe('MnemonSettingsCard', () => {
     expect(selector('审查方式').disabled).toBe(true)
     expect(selector('展示位置').disabled).toBe(true)
     expect((screen.getByRole('button', { name: '保存' }) as HTMLButtonElement).disabled).toBe(true)
-    expect(screen.getByText('当前部署的插件设置为只读。')).toBeTruthy()
+    // The notice leads the page, above every group, as on DSH's own settings forms.
+    const notice = screen.getByText('当前部署的插件设置为只读。')
+    const configuration = screen.getByRole('region', { name: '记忆系统配置' })
+    expect(configuration.firstElementChild).toBe(notice)
   })
 
   it('does not present temporary defaults as read-only while settings load', () => {

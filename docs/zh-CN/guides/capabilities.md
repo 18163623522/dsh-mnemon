@@ -47,7 +47,7 @@ Runtime、Documents、Memory Spaces 是独立 Source 插件；Strategy 将各实
 | **ByteRover** | 本地 `brv` CLI | 代码知识目录与 curate 流程 | 默认跟随工作区，可覆盖目录 |
 | **Supermemory** | HTTP container | 文档摄取与容器级共享 | 使用 container tag |
 
-设置页只管理可复用的**服务配置**与启用开关；记忆空间页管理具体**实例配置**、激活状态和元信息。Provider 默认关闭，只有启用并保存后才会被发现、同步和参与路由。完整字段与能力差异见[长期记忆 Provider](./memory-providers.md)。
+**插件 → 可组合记忆**页面只管理可复用的**服务配置**与启用开关；记忆空间页管理具体**实例配置**、激活状态和元信息。Provider 默认关闭，只有启用并保存后才会被发现、同步和参与路由。完整字段与能力差异见[长期记忆 Provider](./memory-providers.md)。
 
 ## 点击之后，谁在工作
 
@@ -65,7 +65,7 @@ Runtime、Documents、Memory Spaces 是独立 Source 插件；Strategy 将各实
 - **档案归档**：先形成冷引用，再允许 Host 移动原文；
 - **智能选择 Provider**：只有硬规则留下多个候选时才调用模型。
 
-这些任务默认跟随 DSH 新建会话时的模型路由；也可以在**设置 → 记忆系统 → 后台任务 → 任务 Agent 模型**单独指定 Provider 与模型。在 DSH 0.1.1-rc.2 中，支持图片的目录项会标记**图片输入**，包括 `deepseek-official/deepseek-v4-flash-vision-exp`；当前 Mnemon 任务 Prompt 仍为纯文本。任务彼此隔离，单个失败只回写到对应记忆空间或操作表面，不会阻塞整页。
+这些任务默认跟随 DSH 新建会话时的模型路由；也可以在**插件 → 可组合记忆 → 后台任务 → 任务 Agent 模型**单独指定 Provider 与模型。在 DSH 0.1.1-rc.2 中，支持图片的目录项会标记**图片输入**，包括 `deepseek-official/deepseek-v4-flash-vision-exp`；当前 Mnemon 任务 Prompt 仍为纯文本。任务彼此隔离，单个失败只回写到对应记忆空间或操作表面，不会阻塞整页。
 
 内部仍可能使用受限 worker 完成结构化判断，但它属于实现细节。用户界面与产品文档统一称为“独立任务 Agent”。
 
