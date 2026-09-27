@@ -43,13 +43,23 @@ function makeCtx(initialValue: unknown, coreValue: Record<string, unknown> = {})
   let uiValue = initialValue as Record<string, unknown>
   let revision = 1
   const localeSnapshot = { active: 'zh' as const, locales: [] as const, revision: 0 }
+  // The current conversation is a listed session unless a test starts from an unsent draft.
+  let sessionList = { current: 'session-a', byId: { 'session-a': { id: 'session-a' } } as Record<string, unknown> }
+  const sessionListeners = new Set<() => void>()
+  const setSessions = (byId: Record<string, unknown>): void => {
+    sessionList = { ...sessionList, byId }
+    for (const listener of [...sessionListeners]) listener()
+  }
 
   const ctx = {
     get: vi.fn(() => undefined),
     on: vi.fn(() => () => {}),
     // Plugins page navigation and the DSH settings mirror are not provided here.
     inject: vi.fn(),
-    sessions: { list: { getSnapshot: () => ({ current: 'session-a', byId: {} }) } },
+    sessions: { list: {
+      getSnapshot: () => sessionList,
+      subscribe: (listener: () => void) => { sessionListeners.add(listener); return () => { sessionListeners.delete(listener) } },
+    } },
     uiSession: { adapter: { current: { getSnapshot: () => ({ key: 'session-a' }), subscribe: () => () => {} } } },
     layout: { selectPanel: vi.fn() },
     slots: {
@@ -117,7 +127,7 @@ function makeCtx(initialValue: unknown, coreValue: Record<string, unknown> = {})
     injectDisposers.clear()
   }
   mountedEffects.push(() => { dispose(); disposeOwner() })
-  return { ctx, core, registerSlot, dispose, injects, injectDisposers, registeredOptions, activeRegistrations, effectDisposers }
+  return { ctx, core, registerSlot, dispose, injects, injectDisposers, registeredOptions, activeRegistrations, effectDisposers, setSessions }
 }
 
 describe('interaction surfaces binding', () => {
@@ -241,6 +251,21 @@ describe('interaction surfaces binding', () => {
     dispatchMnemonAnchor({ page: 'status', sessionId: 'session-a' })
     expect(clicked).toHaveBeenCalledTimes(2)
     expect(consumeMnemonAnchor('session-a')).toMatchObject({ page: 'status' })
+  })
+
+  it('offers the Builtin workspace from the Plugins page only for a listed conversation', async () => {
+    const { ctx, injects, registeredOptions, setSessions } = makeCtx({}, { displayMode: 'builtin' })
+    setSessions({})
+    apply(ctx)
+    await waitFor(() => expect(injects).toContain('conversation.view'))
+    const actions = registeredOptions.find(options => options.id === 'dsh-mnemon/open-workspace')!
+    const workspace = actions.inject!().workspace as { getSnapshot(): (() => void) | undefined }
+    // An unsent draft has no conversation tabs to open.
+    expect(workspace.getSnapshot()).toBeUndefined()
+    setSessions({ 'session-a': { id: 'session-a' } })
+    expect(workspace.getSnapshot()).toBeTypeOf('function')
+    setSessions({})
+    expect(workspace.getSnapshot()).toBeUndefined()
   })
 
   it('keeps Builtin anchors pending without mounting or opening a hidden entry', async () => {

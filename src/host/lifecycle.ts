@@ -250,6 +250,7 @@ class MnemonAgentLifecycle {
   private lastPhase: LifecyclePhase = 'idle'
   private lastAt: string | undefined
   private lastError: string | undefined
+  private composedTurn: { turn: number; strategyTypeId: string } | undefined
 
   constructor(
     readonly agent: HostAgent,
@@ -436,10 +437,7 @@ class MnemonAgentLifecycle {
 
   private scheduleIdleReview(turn: number): void {
     this.cancelIdleReview(true)
-    if (!this.idleReviewAllowed()) return
-    // Automatic three-tier maintenance belongs to the default product, not to
-    // every third-party View Strategy. Explicit management remains available.
-    if (this.config.memoryTopology.strategyId !== 'default-three-tier') return
+    if (!this.idleReviewAllowed() || !this.composedByDefault(turn)) return
     const activity = this.ensureTurnActivity(turn)
     const tools = completedToolActivity(this.agent.session.snapshotEvents(), turn)
     activity.toolCallCount = tools.count
@@ -457,6 +455,20 @@ class MnemonAgentLifecycle {
       if (!completed || !this.reviewActivity().eligible || !this.reviewAdmitted(turn)) return
       void this.runIdleReview()
     }, Math.max(this.config.idleReviewMs, (this.lastReviewAttemptAt ?? -Infinity) + this.config.idleReview.minIntervalMs - Date.now()))
+  }
+
+  /**
+   * Automatic three-tier maintenance belongs to the default product, not to
+   * every third-party View Strategy, and only to turns that Strategy actually
+   * composed: a turn served by a fallback Strategy, or run without memory, has
+   * nothing for it to maintain. Explicit management remains available.
+   */
+  private composedByDefault(turn: number): boolean {
+    if (this.memoryTurn === undefined) return true
+    const pinned = this.memoryTurn.current
+    if (pinned?.turn === turn) this.composedTurn = { turn, strategyTypeId: pinned.context.view.strategyTypeId }
+    else if (this.composedTurn?.turn !== turn) this.composedTurn = undefined
+    return this.composedTurn?.strategyTypeId === 'default-three-tier'
   }
 
   private idleReviewAllowed(): boolean {

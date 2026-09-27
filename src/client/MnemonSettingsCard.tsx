@@ -14,23 +14,27 @@ import {
   type Config,
   type InteractionConfig,
   type MemoryCompositionStatus,
-  type MemoryTopologyDefinition,
   type MnemonEmbeddingStatus,
   type SettingsOperation,
   type TaskAgentModelCatalog,
   type ResolvedIdleReviewConfig,
 } from "../host/protocol.ts"
-import type { MemoryPluginEntryView, MemoryViewDashboard } from '../host/view-protocol.ts'
 import { MnemonClient } from './api.ts'
-import { MemoryCompositionSections } from './MemoryComposition.tsx'
+import { CompositionBoard, switchLayer, type LayerSettings } from './CompositionBoard.tsx'
+import { componentCopy } from './component-copy.ts'
+import { componentModel, sourceOf } from './component-model.ts'
+import { ActionButton, Callout, TARGET } from './feedback.tsx'
+import { useViewFeedback } from './view-feedback.tsx'
 import { SelectRow, SettingRow, ToggleRow } from './settings-controls.tsx'
+import { useViewStore } from './view-store.ts'
 import css from './MnemonSettingsCard.module.css'
 import { isRecord } from './is-record.ts'
-import { translateZh, type MnemonKey, type MnemonTranslate } from './locales.ts'
+import { translateZh, type MnemonTranslate } from './locales.ts'
 import { message } from './page-kit.tsx'
 import { MnemonPackSection } from './MnemonPackSection.tsx'
 import { ProviderIcon } from './ProviderIcon.tsx'
 import { ProviderSettingsSection } from './ProviderSettingsSection.tsx'
+import type { MnemonChangeSignal } from './change-signal.ts'
 
 export interface MnemonSettingsCardProps {
   scope: ClientSettingsScope<Config>
@@ -44,15 +48,18 @@ export interface MnemonSettingsCardProps {
   t?: MnemonTranslate
   /** Active DSH locale id for installed Strategies that bring their own text. */
   language?: string
+  /** Moves when a component is switched through DSH's plugin manager, for example on the Plugins page below. */
+  componentChanges?: Pick<MnemonChangeSignal, 'subscribe' | 'getSnapshot'>
 }
+
+const NO_CHANGE_SIGNAL: Pick<MnemonChangeSignal, 'subscribe' | 'getSnapshot'> = { subscribe: () => () => {}, getSnapshot: () => 0 }
 
 type CoreField = 'displayMode' | 'storageScope' | 'runtimeUserScope' | 'dataDir'
 type EmbeddingField = 'embeddingEnabled' | 'embeddingEndpoint' | 'embeddingModel' | 'embeddingApiKey' | 'embeddingProtocol'
 type TaskAgentField = 'taskAgentModelMode' | 'taskAgentProvider' | 'taskAgentModel'
 type InteractionField = 'turnBar' | 'saveAction'
-type TopologyField = `memoryTopology.${string}`
 type DraftField = CoreField | EmbeddingField | TaskAgentField | InteractionField | 'idleReview'
-type Field = DraftField | TopologyField
+type Field = DraftField
 interface Draft extends Record<InteractionField, boolean> {
   idleReview: ResolvedIdleReviewConfig
   displayMode: 'sidebar' | 'builtin'
@@ -134,19 +141,6 @@ function draftOf(core: Config | undefined, interaction: InteractionConfig | unde
   return { ...coreDraft(core), ...interactionDraft(interaction) }
 }
 
-function topologyOf(descriptor: MemoryCompositionStatus): MemoryTopologyDefinition {
-  return {
-    id: descriptor.configuration.id,
-    strategyId: descriptor.configuration.strategyId,
-    layers: Object.entries(descriptor.configuration.layers).map(([id, layer]) => ({
-      id,
-      enabled: layer.enabled,
-      participation: { ...layer.participation },
-      adapterIds: [...layer.adapterIds],
-    })),
-  }
-}
-
 function validation(t: MnemonTranslate, draft: Draft): string | null {
   for (const [field, min, max] of [['minIntervalMs', 5_000, 86_400_000], ['maxPerSession', 0, 200], ['maxContextChars', 1_000, 1_000_000], ['maxTokens', 128, 131_072]] as const) {
     const value = draft.idleReview[field]
@@ -187,7 +181,7 @@ function operations(fields: readonly DraftField[], dirty: ReadonlySet<Field>, dr
 }
 
 /** The dsh-mnemon configuration, shown on its bundle page under DSH Plugins. */
-export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractionScope, connection, sessionId, workspaceId, workspaceLabel, t = translateZh, language = 'zh' }: MnemonSettingsCardProps): JSX.Element | null {
+export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractionScope, connection, sessionId, workspaceId, workspaceLabel, t = translateZh, language = 'zh', componentChanges = NO_CHANGE_SIGNAL }: MnemonSettingsCardProps): JSX.Element | null {
   const interactionScope = suppliedInteractionScope ?? scope as unknown as ClientSettingsScope<InteractionConfig>
   const coreSnapshot = useScope(scope)
   const interactionSnapshot = useScope(interactionScope)
@@ -197,14 +191,36 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
   const [failed, setFailed] = useState<string | null>(null)
   const [applied, setApplied] = useState(false)
   const [targetRevision, setTargetRevision] = useState(0)
+  // A component switched below this configuration, on DSH's own list, changes
+  // what the Strategy, memory layer and Provider groups show.
+  const componentRevision = useSyncExternalStore(componentChanges.subscribe, componentChanges.getSnapshot, componentChanges.getSnapshot)
+  // Every term only grows, so the sum changes whenever any one does. The
+  // settings revision covers saves to the same Host entry from another page
+  // or window: the Strategy group's View revision includes it.
+  const dataRevision = targetRevision + componentRevision + (coreSnapshot.revision ?? 0)
+  const dirtyRef = useRef(dirty)
+  dirtyRef.current = dirty
+  // One View dashboard feeds every group that shows a component's state.
+  const viewClient = useMemo(() => connection === undefined ? undefined : new MnemonClient(connection, sessionId, workspaceId), [connection, sessionId, workspaceId])
+  const view = useViewStore(viewClient, dataRevision)
+  const components = view.state.dashboard === null ? undefined : componentModel(view.state.dashboard)
+  // A layer an earlier configuration turned off comes back on through its saved switch.
+  const layerSettings = useMemo<LayerSettings>(() => ({
+    set: async (layerId, enabled) => {
+      await scope.mutate([{ op: 'set', path: ['memoryTopology', 'layers', layerId, 'enabled'], value: enabled }])
+      setTargetRevision(revision => revision + 1)
+    },
+  }), [scope])
+  // Every change says what it did where the user is looking, and points at the rows it touched.
+  const root = useRef<HTMLElement | null>(null)
+  const feedbackToast = useViewFeedback(view, root, t, language)
   const [modelCatalog, setModelCatalog] = useState<TaskAgentModelCatalog | null>(null)
   const [modelCatalogState, setModelCatalogState] = useState<'unavailable' | 'loading' | 'ready' | 'error'>(connection === undefined ? 'unavailable' : 'loading')
   const [modelCatalogError, setModelCatalogError] = useState<string | null>(null)
   const [fullModelCatalogLoaded, setFullModelCatalogLoaded] = useState(false)
   const modelCatalogRequest = useRef(0)
   const [memorySystem, setMemorySystem] = useState<MemoryCompositionStatus | null>(null)
-  const [topologyDraft, setTopologyDraft] = useState<MemoryTopologyDefinition | null>(null)
-  const [topologyState, setTopologyState] = useState<'unavailable' | 'loading' | 'ready' | 'error'>(connection === undefined ? 'unavailable' : 'loading')
+  const [memorySystemState, setMemorySystemState] = useState<'unavailable' | 'loading' | 'ready' | 'error'>(connection === undefined ? 'unavailable' : 'loading')
   const topologyRequest = useRef(0)
   const [embeddingStatus, setEmbeddingStatus] = useState<MnemonEmbeddingStatus | null>(null)
   // Mnemon Native is one Provider among peers; unknown until the Host reports whether its CLI is installed.
@@ -269,26 +285,23 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
     if (connection === undefined) {
       topologyRequest.current += 1
       setMemorySystem(null)
-      setTopologyDraft(null)
-      setTopologyState('unavailable')
+      setMemorySystemState('unavailable')
       return
     }
     const request = topologyRequest.current + 1
     topologyRequest.current = request
-    setTopologyState('loading')
+    setMemorySystemState('loading')
     void new MnemonClient(connection, sessionId, workspaceId).memorySystem().then(descriptor => {
       if (topologyRequest.current !== request) return
       setMemorySystem(descriptor)
-      setTopologyDraft(topologyOf(descriptor))
-      setTopologyState('ready')
+      setMemorySystemState('ready')
     }, () => {
       if (topologyRequest.current !== request) return
       setMemorySystem(null)
-      setTopologyDraft(null)
-      setTopologyState('error')
+      setMemorySystemState('error')
     })
     return () => { topologyRequest.current += 1 }
-  }, [connection, sessionId, workspaceId, targetRevision])
+  }, [connection, sessionId, workspaceId, dataRevision])
 
   useEffect(() => {
     embeddingStatusRequest.current += 1
@@ -306,7 +319,7 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
       () => { if (current) setNativeCliFound(undefined) },
     )
     return () => { current = false }
-  }, [connection, sessionId, workspaceId, targetRevision])
+  }, [connection, sessionId, workspaceId, dataRevision])
 
   const testEmbedding = (): void => {
     if (connection === undefined) return
@@ -355,7 +368,6 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
 
   const discard = (): void => {
     setDraft(draftOf(coreSnapshot.value, interactionSnapshot.value))
-    setTopologyDraft(memorySystem === null ? null : topologyOf(memorySystem))
     setDirty(new Set()); setFailed(null); setApplied(false)
   }
 
@@ -368,7 +380,6 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
       coreOps.push(...operations(['idleReview'], dirty, draft))
       const embeddingChanged = EMBEDDING_FIELDS.some(field => dirty.has(field))
       const taskAgentChanged = TASK_AGENT_FIELDS.some(field => dirty.has(field))
-      const topologyChanged = [...dirty].some(field => field.startsWith('memoryTopology.'))
       if (regularCoreChanged) {
         if (Object.hasOwn(coreUser, 'customPackId')) coreOps.push({ op: 'unset', path: ['customPackId'] })
         if (Object.hasOwn(coreUser, 'customPacks')) coreOps.push({ op: 'unset', path: ['customPacks'] })
@@ -407,12 +418,6 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
               },
         })
       }
-      if (topologyChanged && topologyDraft !== null) {
-        for (const layer of topologyDraft.layers) {
-          if (!dirty.has(`memoryTopology.${layer.id}.enabled`)) continue
-          coreOps.push({ op: 'set', path: ['memoryTopology', 'layers', layer.id, 'enabled'], value: layer.enabled })
-        }
-      }
       const interactionOps = operations(INTERACTION_FIELDS, dirty, draft)
       await Promise.all([
         ...(coreOps.length === 0 ? [] : [scope.mutate(coreOps)]),
@@ -420,7 +425,8 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
       ])
       setDirty(new Set())
       setApplied(true)
-      if (regularCoreChanged || embeddingChanged || topologyChanged) setTargetRevision(revision => revision + 1)
+      // Any save moves the Host entry's revision, which the Strategy group's View revision includes.
+      setTargetRevision(revision => revision + 1)
     } catch (reason) {
       setFailed(message(reason))
     } finally {
@@ -429,18 +435,26 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
   }
 
   const coreDisabled = loading || saving || !coreSnapshot.writable
+  // Providers belong to Memory Spaces: they are listed while it is on, and
+  // switched while writes are allowed. Turning it on here is the same switch
+  // as the composition's Memory Spaces row.
+  const spacesComponent = view.state.dashboard === null ? undefined : sourceOf(view.state.dashboard, 'memory-spaces')
+  const spacesOff = memorySystem?.configuration.layers['memory-spaces']?.enabled === false || spacesComponent?.enabled === false
+  const providersReadOnly = coreSnapshot.value?.writeEnabled === false
+  const spacesSwitching = view.state.working !== null && spacesComponent !== undefined && view.state.working.key === 'component:' + spacesComponent.entryId
+  const providersBlocked: ReactNode = spacesOff
+    ? <Callout tone="idle" className={css.groupCallout} title={t('config.providersSpacesOffTitle')}
+      actions={<ActionButton label={t('config.providersSpacesOn')} pendingLabel={t('board.turningOn')} pending={spacesSwitching}
+        disabled={!coreSnapshot.writable || view.state.working !== null || view.state.dashboard?.writable === false}
+        onClick={() => { void switchLayer(view, memorySystem, layerSettings, 'memory-spaces', true) }} />}>
+      {t('config.providersSpacesOffDetail')}
+    </Callout>
+    : undefined
+  // Without the Source the Host cannot run the Native check; that is not a missing CLI.
+  const nativeCliMissing = nativeCliFound === false && providersBlocked === undefined
   const interactionDisabled = loading || saving || !interactionSnapshot.writable
   const scopeChanging = dirty.has('storageScope') || dirty.has('runtimeUserScope') || dirty.has('dataDir')
   const embeddingChanging = EMBEDDING_FIELDS.some(field => dirty.has(field))
-  const editLayerEnabled = (layerId: string, enabled: boolean): void => {
-    setTopologyDraft(current => current === null ? current : {
-      ...current,
-      layers: current.layers.map(layer => layer.id === layerId ? { ...layer, enabled } : layer),
-    })
-    setDirty(current => new Set(current).add(`memoryTopology.${layerId}.enabled`))
-    setFailed(null)
-    setApplied(false)
-  }
   // A global scope with a directory is the stored `custom` scope; the directory field alone tells them apart.
   const scopeChoice: StorageChoice = draft.storageScope === 'custom' ? 'global' : draft.storageScope === 'workspace' || draft.storageScope === 'workspaces' ? draft.storageScope : 'global'
   const chooseScope = (choice: StorageChoice): void => {
@@ -455,47 +469,33 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
   // section. Composition comes first, then where memory lives, then how the
   // background tasks and the in-conversation surfaces behave.
   return (
-    <section className={css.page} aria-label={t('config.aria')} aria-busy={saving || loading}>
+    <section ref={root} className={css.page} aria-label={t('config.aria')} aria-busy={saving || loading}>
       {loading ? <p className={css.loading} role="status">{t('common.loading')}</p> : <>
         {/* Like DSH's own settings forms, a read-only document says so above its controls. */}
         {!writable && <p className={css.readOnlyNotice}>{t('config.readOnly')}</p>}
-        <MemoryCompositionSections
-          {...(connection === undefined ? {} : { connection })}
-          {...(sessionId === undefined ? {} : { sessionId })}
-          {...(workspaceId === undefined ? {} : { workspaceId })}
-          refreshKey={targetRevision}
-          language={language}
-          readOnly={!coreSnapshot.writable}
-          t={t}
-        />
+        <CompositionBoard view={view} system={memorySystem} systemPending={memorySystemState === 'loading'} layers={layerSettings} readOnly={!coreSnapshot.writable} language={language} t={t} />
 
-        <MemoryTopologySection
-          descriptor={memorySystem}
-          topology={topologyDraft}
-          state={topologyState}
-          disabled={coreDisabled}
-          onEnabled={editLayerEnabled}
-          t={t}
-        />
-
-        <section className={css.section} aria-labelledby="mnemon-providers-heading">
-          <div className={css.sectionHeading}><h2 id="mnemon-providers-heading">{t('config.providersTitle')}</h2><p>{t('config.providersDescription')}</p></div>
+        <section className={css.section} aria-labelledby="mnemon-providers-heading" {...{ [TARGET]: 'providers' }}>
+          <div className={css.sectionHeading}><h2 id="mnemon-providers-heading">{t('config.providersTitle')}</h2><p>{t('config.providersDescription')}</p><span className={css.appliesNow}>{t('config.appliesNow')}</span></div>
           <ProviderSettingsSection
             {...(connection === undefined ? {} : { connection })}
             {...(sessionId === undefined ? {} : { sessionId })}
             {...(workspaceId === undefined ? {} : { workspaceId })}
             {...(activeScope !== 'workspace' || workspaceLabel === undefined ? {} : { workspaceLabel })}
             activeScope={activeScope}
-            refreshKey={targetRevision}
-            disabled={coreDisabled}
+            refreshKey={dataRevision}
+            disabled={coreDisabled || providersReadOnly}
             scopeChanging={scopeChanging}
+            {...(providersBlocked === undefined ? {} : { blocked: providersBlocked })}
+            pending={view.state.status === 'loading' || memorySystemState === 'loading'}
+            {...(providersReadOnly ? { notice: <Callout tone="warning" className={css.groupCallout} title={t('config.providersReadOnlyTitle')}>{t('config.providersReadOnlyDetail')}</Callout> } : {})}
             t={t}
-            leading={<NativeProviderCard activeScope={activeScope} cliMissing={nativeCliFound === false} t={t}>
+            leading={<NativeProviderCard activeScope={activeScope} cliMissing={nativeCliMissing} t={t}>
               <EmbeddingSettingsSection
                 draft={draft}
                 disabled={coreDisabled}
                 connectionAvailable={connection !== undefined}
-                cliMissing={nativeCliFound === false}
+                cliMissing={nativeCliMissing}
                 changing={embeddingChanging}
                 status={embeddingStatus}
                 state={embeddingStatusState}
@@ -550,7 +550,8 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
               onEditMany={editMany}
               t={t}
             />
-            <IdleReviewRows draft={draft} disabled={coreDisabled} onEditMany={editMany} t={t} />
+            <IdleReviewRows draft={draft} disabled={coreDisabled} onEditMany={editMany} t={t}
+              {...(components?.composing === undefined || components.composing.typeId === 'default-three-tier' ? {} : { inactive: t('config.reviewNeedsThreeTier', { strategy: componentCopy(components.composing, language).label }) })} />
           </div>
         </section>
 
@@ -566,11 +567,16 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
           </div>
         </section>
 
+        {/* DSH draws the bundle's component list right below this configuration. */}
+        <p className={css.componentListNote}>{t('config.componentListNote')}</p>
+
         <div className={css.feedback} aria-live="polite">
           {error !== null && <p className={css.error} role="alert">{error}</p>}
           {failed !== null && <p className={css.error} role="alert">{t('config.saveFailed', { error: failed })}</p>}
           {applied && <p className={css.success} role="status">{t('config.ready')}</p>}
         </div>
+
+        {feedbackToast}
 
         <footer className={`${css.actions} ${dirty.size > 0 ? css.actionsVisible : ''}`} aria-live="polite">
           <span>{t('config.unsaved')}</span>
@@ -722,44 +728,6 @@ function EmbeddingSettingsSection(props: {
   </section>
 }
 
-function MemoryTopologySection(props: {
-  descriptor: MemoryCompositionStatus | null
-  topology: MemoryTopologyDefinition | null
-  state: 'unavailable' | 'loading' | 'ready' | 'error'
-  disabled: boolean
-  onEnabled: (layerId: string, enabled: boolean) => void
-  t: MnemonTranslate
-}): JSX.Element {
-  const layerDescriptors = new Map(props.descriptor?.sources.map(source => [source.sourceTypeId, source.management]) ?? [])
-
-  const builtInCopy = (layerId: string): { label: string; description: string } | undefined => {
-    if (layerId === 'runtime') return { label: props.t('layers.runtimeLabel'), description: props.t('layers.runtimeDescription') }
-    if (layerId === 'documents') return { label: props.t('layers.documentsLabel'), description: props.t('layers.documentsDescription') }
-    if (layerId === 'memory-spaces') return { label: props.t('layers.memorySpacesLabel'), description: props.t('layers.memorySpacesDescription') }
-    return undefined
-  }
-
-  return <section className={css.section} aria-labelledby="mnemon-topology-heading">
-    <div className={css.sectionHeading}>
-      <h2 id="mnemon-topology-heading">{props.t('config.topologyTitle')}</h2>
-      <p>{props.t('config.topologyDescription')}</p>
-      {props.state === 'loading' && <span className={css.miniSpinner} aria-hidden="true" />}
-    </div>
-    {props.topology === null
-      ? <p className={css.topologyUnavailable}>{props.state === 'loading' ? props.t('config.topologyLoading') : props.t('config.topologyUnavailable')}</p>
-      : <div className={css.rows}>
-        {props.topology.layers.map(layer => {
-          const descriptor = layerDescriptors.get(layer.id)
-          const copy = builtInCopy(layer.id)
-          const label = copy?.label ?? descriptor?.label ?? layer.id
-          const description = copy?.description ?? descriptor?.description ?? layer.id
-          return <ToggleRow key={layer.id} id={`mnemon-layer-${layer.id}`} label={label} hint={description} ariaLabel={props.t('config.topologyLayerToggle', { layer: label })}
-            checked={layer.enabled} disabled={props.disabled} onChange={enabled => props.onEnabled(layer.id, enabled)} />
-        })}
-      </div>}
-  </section>
-}
-
 function TaskAgentModelRows(props: {
   draft: Draft
   catalog: TaskAgentModelCatalog | null
@@ -839,20 +807,22 @@ function TaskAgentModelRows(props: {
   </>
 }
 
-function IdleReviewRows(props: { draft: Draft; disabled: boolean; onEditMany: (values: Partial<Draft>) => void; t: MnemonTranslate }): JSX.Element {
+function IdleReviewRows(props: { draft: Draft; disabled: boolean; onEditMany: (values: Partial<Draft>) => void; t: MnemonTranslate; inactive?: string }): JSX.Element {
   const review = props.draft.idleReview
   const update = (values: Partial<ResolvedIdleReviewConfig>): void => props.onEditMany({ idleReview: { ...review, ...values } })
   return <>
-    <ToggleRow id="mnemon-idle-review" label={props.t('config.reviewTitle')} ariaLabel={props.t('config.reviewEnabled')} hint={props.t('config.reviewDescription')} checked={review.enabled} disabled={props.disabled} onChange={enabled => update({ enabled })} />
+    <ToggleRow id="mnemon-idle-review" label={props.t('config.reviewTitle')} ariaLabel={props.t('config.reviewEnabled')} hint={props.t('config.reviewDescription')} checked={review.enabled} disabled={props.disabled} onChange={enabled => update({ enabled })}
+      {...(props.inactive === undefined || !review.enabled ? {} : { note: props.inactive })} />
     {review.enabled && <>
       <SelectRow id="mnemon-review-provider" label={props.t('config.reviewProvider')} value={review.provider} disabled={props.disabled} onChange={provider => update({ provider })} options={[
         { value: 'spawn', label: props.t('config.reviewSpawn') },
         { value: 'fork', label: props.t('config.reviewFork') },
       ]} />
-      <SelectRow id="mnemon-review-fallback" label={props.t('config.reviewFallback')} value={review.fallback} disabled={props.disabled} onChange={fallback => update({ fallback })} options={[
+      {/* Only a forked review can find its context unavailable and need another way to run. */}
+      {review.provider === 'fork' && <SelectRow id="mnemon-review-fallback" label={props.t('config.reviewFallback')} value={review.fallback} disabled={props.disabled} onChange={fallback => update({ fallback })} options={[
         { value: 'spawn', label: props.t('config.reviewSpawn') },
         { value: 'skip', label: props.t('config.reviewSkip') },
-      ]} />
+      ]} />}
       <SelectRow id="mnemon-review-teams" label={props.t('config.reviewAgentTeams')} hint={props.t('config.reviewTeamHint')} value={review.agentTeams} disabled={props.disabled} onChange={agentTeams => update({ agentTeams })} options={[
         { value: 'pause', label: props.t('config.reviewTeamPause') },
         { value: 'scoped', label: props.t('config.reviewTeamScoped') },

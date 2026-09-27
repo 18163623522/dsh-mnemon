@@ -1082,6 +1082,28 @@ describe('Mnemon DSH lifecycle integration', () => {
     } finally { value.stop() }
   })
 
+  it('runs three-tier review only over turns that three-tier composed', async () => {
+    vi.useFakeTimers()
+    const value = fixture(resolveConfig({ idleReviewMs: 5_000 }))
+    const pin = value.composableTurns.beginTurn.getMockImplementation()!
+    // The selected Strategy is off, so the only installed one composes instead.
+    value.composableTurns.beginTurn.mockImplementation(async (turnId: string, scope: object) => {
+      const context = await pin(turnId, scope)
+      context.view.strategyTypeId = 'general'
+      return context
+    })
+    try {
+      await value.preStep([durableCandidate()], 1)
+      await value.turnStopping(1)
+      await value.preStep([userMessage('one more substantive turn')], 2)
+      await value.turnStopping(2)
+      expect(value.lifecycle.snapshot('session-1').current?.reviewActivity.eligible).toBe(true)
+      expect(value.lifecycle.snapshot('session-1').current?.idleReviewPending).toBe(false)
+      await vi.advanceTimersByTimeAsync(10_000)
+      expect(value.coordinator.review).not.toHaveBeenCalled()
+    } finally { value.stop() }
+  })
+
   it('delegates memory-tab candidates directly to an isolated memory subagent', async () => {
     const value = fixture()
     const result = await value.lifecycle.supervise('session-1', 'Use SQLite because deployment must remain single-file.')

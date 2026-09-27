@@ -180,7 +180,7 @@ HTTP 403 可能来自 Host/Origin 不匹配，或旧远程 Client 仍调用独�
   disabled: true
 ```
 
-该开关会同时停用 Core/Host、三个随附 Source、默认 Strategy 和三个可选 Strategy 增强，不会卸载包或删除记忆数据。删除该覆盖项，或把它改为 `false`，再重启 DSH，即可重新启用完整 Starter。
+该开关会同时停用 Core/Host、三个随附 Source、两个主策略和三个可选 Strategy 增强，不会卸载包或删除记忆数据。删除该覆盖项，或把它改为 `false`，再重启 DSH，即可重新启用完整 Starter。
 
 <a id="remote-management"></a>
 <a id="回滚到-dsh-011-rc2"></a>

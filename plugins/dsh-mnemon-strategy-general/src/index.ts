@@ -9,7 +9,7 @@ export const inject = ['mnemonMemory']
 export const memoryPlugin = defineMemoryPlugin({
   packageName: name,
   label: { en: 'General', 'zh-CN': '通用' },
-  description: { en: 'Offer every available Source and let the model decide how to use each one.', 'zh-CN': '提供全部可用 Source，由模型决定如何使用每一个。' },
+  description: { en: 'Every source available; the model decides how to use each one.', 'zh-CN': '全部来源可用，由模型决定如何使用每一个。' },
   roles: ['strategy'],
   provides: [{ id: 'strategy' }, { id: 'strategy.general' }],
   requires: ['source'],

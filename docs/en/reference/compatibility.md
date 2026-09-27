@@ -30,14 +30,14 @@ See the [original Desktop reproduction and verification](../../pr-assets/issue-2
 
 ## DSH 0.1.7 bundle component list
 
-In DSH `0.1.7-rc.2`, the **Plugins → dsh-mnemon** detail page lists the internal `cordis:group` / `mnemon-bundle` container as an off component. Even with all eight real components running, the count can read “9 total · 8 running · 1 off.” Clicking the container switch returns `unknown-plugin`; the Chinese UI reports “组件启用失败：找不到该插件”. See the [original screenshot](../../pr-assets/sidebar-native-20260926/before-bundle-toggle-error.jpg) and [upstream issue #649](https://github.com/dsh-external/issues/issues/649).
+In DSH `0.1.7-rc.2`, the **Plugins → dsh-mnemon** detail page lists the internal `cordis:group` / `mnemon-bundle` container as an off component. Even with all nine real components running, the count can read “10 total · 9 running · 1 off.” Clicking the container switch returns `unknown-plugin`; the Chinese UI reports “组件启用失败：找不到该插件”. See the [original screenshot](../../pr-assets/sidebar-native-20260926/before-bundle-toggle-error.jpg) and [upstream issue #649](https://github.com/dsh-external/issues/issues/649).
 
 The host's display and management inventories disagree: its bundle declaration list includes native groups, but its manageable plugin inventory deliberately excludes them. This container's off state does not mean the Mnemon core or its children are disabled, and does not establish whether memory reads and writes work.
 
 When this happens:
 
 1. Inspect **Memory System → Status** and the actual Source and Strategy components. If only the container is incorrectly shown as off, while the required components and reads/writes work, you can continue using Mnemon. Actual component errors or failed operations still need separate investigation.
-2. Use the top-level `dsh-mnemon` bundle switch or the core component with entry ID `mnemon` to stop and restore the composition. Do not use the `cordis:group` row's switch.
+2. Use the top-level `dsh-mnemon` bundle switch or the core component with entry ID `mnemon` to stop and restore the composition. Do not use the `cordis:group` row's switch. The `dsh-mnemon` configuration page says this right above the component list.
 3. Keep existing configuration and memory. This display issue requires neither a data reset nor configuration or memory migration.
 
 The Starter retains the stable group ID and the existing `mnemon` configuration target. Disabling the core stops its Sources, Strategies and private Provider children; re-enabling it restores their independent choices. Removing the group leaves enabled dependents waiting for the missing core, while making the group anonymous can leave old instances alive after a profile reload. Do not remove the container, its stable ID or alter the group declaration to hide the row. The [published lifecycle regression](../development/README.md#test-ownership-and-coverage) checks manager persistence, restarts and literal or expression-based legacy disable flags without changing the installed host.

@@ -12,6 +12,9 @@ For new evaluations, commit the reusable harness, workload generator, concise bi
 
 | Record / 记录 | Scope / 范围 |
 |---|---|
+| [Memory composition drawn from component declarations](./composition-board-20260927/README.md) / [中文](./composition-board-20260927/README.zh-CN.md) | Board groups by role, relation chips, component pages with declared options, cascades with Undo, problem line, off layers, dark and narrow / 按角色分组的面板、关联标签、带声明选项的组件详情、带撤销的连带开关、问题提示、已关闭的层，深色与窄列 |
+| [Component switches and linked UI](./plugin-linkage-20260927/README.md) / [中文](./plugin-linkage-20260927/README.zh-CN.md) | Main Strategy states, turns without memory, component notes on layers and Providers, stopped workspace layers in light and dark / 主策略状态、无记忆时的对话、记忆层与 Provider 的组件说明、工作台未运行的层，浅色与深色 |
+| [Configuration under Plugins](./plugin-config-20260927/README.md) / [中文](./plugin-config-20260927/README.zh-CN.md) | The dsh-mnemon page under Plugins, unsaved-change bar, links with the workspace, remote pages and live refresh / 插件中的 dsh-mnemon 页面、未保存修改栏、与工作台的互相跳转、远程页面与实时刷新 |
 | [DSH-style memory interface](./dsh-style-ui-20260927/README.md) / [中文](./dsh-style-ui-20260927/README.zh-CN.md) | Settings groups and preference rows, Status Provider list, Memory Spaces and conversation controls in light and dark / 设置分组与偏好行、状态页 Provider 列表、记忆空间与对话控件的浅色和深色对比 |
 | [Optional Mnemon CLI](./optional-mnemon-cli-20260927/README.md) / [中文](./optional-mnemon-cli-20260927/README.zh-CN.md) | No-CLI WebUI and Headless persistence on Docker Mem0, eight-Provider lab with recall, content and entities / 无 CLI 的 WebUI 与 Docker Mem0 上的 Headless 沉淀、八个 Provider 的检索、内容与实体 |
 | [Main Strategy choice](./main-strategy-choice-20260927/README.md) / [中文](./main-strategy-choice-20260927/README.zh-CN.md) | Plugins page and Settings controls, general Strategy conversation, packed composition and release intent / 插件页与设置控件、通用主策略对话、打包组合与发布意图 |

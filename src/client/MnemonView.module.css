@@ -130,6 +130,46 @@
 .alert { display: flex; flex: 0 0 auto; flex-direction: column; gap: 2px; margin: 8px 24px 0; }
 .alert ul { margin: 4px 0 0; padding-left: 18px; }
 .alert[role="status"] { color: var(--dsw-alias-state-warn-label, var(--mn-text)); background: var(--dsw-alias-state-warn-tertiary, color-mix(in srgb, var(--mn-warn) 12%, transparent)); }
+/* How memory is composed, above the pages; it slides in and out. */
+.notice { flex: 0 0 auto; margin: 8px 24px 0; }
+/* The connection, then the main Strategy composing memory; hover shows each layer. */
+.compositionStatus { display: inline-flex; min-width: 0; align-items: center; gap: 6px; border: 0; border-radius: var(--dsw-radius-sm); padding: 2px 6px; color: inherit; background: transparent; font: inherit; cursor: pointer; }
+.compositionStatus:hover:not(:disabled) { background: var(--mn-hover); }
+.compositionStatus:disabled { cursor: default; }
+.compositionStrategy { color: var(--mn-muted); }
+.compositionStrategy::before { content: '·'; margin-right: 6px; color: var(--mn-faint); }
+.compositionStatusWrap { position: relative; display: inline-flex; min-width: 0; }
+.compositionSummary {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  right: 0;
+  display: flex;
+  width: max-content;
+  max-width: min(320px, calc(100vw - 32px));
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  border: .5px solid var(--dsw-alias-border-l2);
+  border-radius: var(--dsw-radius-md);
+  padding: 12px;
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: var(--dsw-elevation-prominent);
+  color: var(--mn-muted);
+  font-size: 12px;
+  line-height: 18px;
+  white-space: normal;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 140ms ease-out, transform 140ms ease-out;
+}
+.compositionStatusWrap:hover .compositionSummary,
+.compositionStatusWrap:focus-within .compositionSummary { opacity: 1; transform: none; transition-delay: 200ms; }
+.compositionSummary > strong { color: var(--mn-text); font-size: 13px; font-weight: 500; line-height: 20px; }
+.compositionLayers { display: flex; flex-wrap: wrap; gap: 6px; }
+.compositionHint { color: var(--mn-faint); }
+@media (prefers-reduced-motion: reduce) { .compositionSummary { transition: none; } }
 /* Warning chip, as the DSH connection indicator. */
 .workspaceMismatch { display: inline-flex; min-width: 0; min-height: 28px; flex: 0 0 auto; align-items: center; gap: 6px; padding: 0 3px 0 10px; border: .5px solid color-mix(in srgb, var(--dsw-alias-state-warn-label, var(--mn-warn)) 20%, transparent); border-radius: var(--dsw-radius-sm); color: var(--dsw-alias-state-warn-label, var(--mn-text)); background: var(--dsw-alias-state-warn-tertiary, color-mix(in srgb, var(--mn-warn) 12%, transparent)); font-size: 12px; font-weight: 500; line-height: 18px; white-space: nowrap; }
 .workspaceMismatch > button { min-height: 22px; padding: 0 8px; border: 0; border-radius: var(--dsw-radius-xs); color: inherit; background: color-mix(in srgb, currentColor 10%, transparent); font-size: 12px; cursor: pointer; }
@@ -433,7 +473,7 @@
   .sourceManagementSummary { grid-template-columns: 1fr; }
   .sourceManagementSummary dl, .sourceManagementCapabilities { grid-column: auto; }
   .masthead { padding: 8px 16px 2px; }
-  .alert { margin-inline: 16px; }
+  .alert, .notice { margin-inline: 16px; }
   .topNavigation { padding: 0 16px; }
   .workspacePicker > span { display: none; }
   .workspacePicker select { width: min(170px, 32vw); }

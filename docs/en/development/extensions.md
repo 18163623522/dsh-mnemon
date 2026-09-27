@@ -85,7 +85,22 @@ A dedicated Strategy Entry can additionally export `memoryStrategyConfiguration`
 
 The helper validates and freezes a copy of the metadata without running the factory. Its returned `create(config)` validates supplied fields and the declared contribution before returning it; omitted defaults remain the factory's responsibility. `number` values are finite integers, lists contain at most 32 unique nonempty strings of at most 500 characters, and text defaults to a 4,000-character limit. Host discovery uses the same validation for modules without the helper, while retaining Loader identity checks and local error isolation.
 
-Ordinary users see no generic memory-plugin discovery, dependency graph, or installation dialog. The main Strategies and enhancements appear as behavior controls on the `dsh-mnemon` page under **Plugins**, above DSH's own component list; package names, Entries, dependencies, and conflicts stay below that surface. Where DSH's plugin manager is available, their enablement is saved in the DSH profile patch, so the native component switches on the Plugins page and Mnemon's controls always agree; Mnemon saves only the selected main Strategy and each Entry's configuration.
+Ordinary users see no generic memory-plugin discovery, dependency graph, or installation dialog. Every installed memory component appears on the **Memory composition** board of the `dsh-mnemon` page under **Plugins**, above DSH's own component list. Where DSH's plugin manager is available, their enablement is saved in the DSH profile patch, so the native component switches on the Plugins page and Mnemon's controls always agree; Mnemon saves only the selected main Strategy and each Entry's configuration.
+
+#### How a plugin appears on the board
+
+The board is drawn from what each plugin declares, so a new plugin needs no Mnemon change to be listed, switched and configured:
+
+| Declaration | On the board |
+|---|---|
+| `roles` | `strategy` is one choice of **Main strategy**; `source` has a row under **Memory sources**, even while off; `strategy-extension` has a row under **Enhancements**; any other role gets a group of its own |
+| `label`, `description` (`en`, `zh-CN`) | The row's name and description, in the page's language. Shipped components declare theirs the same way; the component's page also shows its package and whether it ships with dsh-mnemon |
+| `strategyTypeId` of an extension | `'*'` or the selected main Strategy's type lists the row with the others; another type moves it to a closed group for other main Strategies |
+| `requires`, `provides` | Turning a component on also turns on the first installed provider of a capability it requires that nothing provides; turning one off also turns off what loses a capability it required. A main Strategy keeps its last Source: that switch is refused. Rows name a single provider they need, and the running component that depends on them alone, as link chips; the component's page lists every relation |
+| `provides[].exclusive`, extension `slot` | Two components claiming the same capability, where either claims it alone, or two extensions filling the same slot for overlapping main Strategies, cannot run together: turning one on turns the other off |
+| `memoryStrategyConfiguration.fields` | A gear on the row, and an options section on the component's page with one control per field, its label, description, default and limits; `source-list` offers the running Source instances whose role is in `sourceRoles` |
+
+The component's page says what else its switch would move, and the toast after a switch names what moved, with **Undo**. Declare `requires` and `provides` precisely: they are how users see what your plugin needs, and what it cannot run beside.
 
 Third-party packages continue to use DSH's native Profile/Loader workflow. Install an exact package with `dsh plugin --profile <Profile> add <name>@<version> --save-exact`, verify its `peerDependencies` and `dsh.bundle.patch`, then activate it explicitly in Profile composition after restarting. Downloading an npm package is not activation, and Mnemon does not hot-load it into the current process. External standalone repositories following this guide are welcome; generic graphical management may be revisited after the contracts and community cases settle, but is not a v0.5 promise.
 
@@ -103,7 +118,7 @@ Third-party packages continue to use DSH's native Profile/Loader workflow. Insta
 
 The Starter installs all three packages and registers their DSH Entries disabled. The switches are therefore always available, while the default composition, allocation and guidance preserve v0.4 behavior. Enabling one contributes to the selected main Strategy without changing it; disabling it removes only that contribution and never deletes Source data. The general main Strategy (`dsh-mnemon-strategy-general`) accepts the same three slots. Runtime currently has no expansion route: an aggressively small resident cap can hide hot context and needs workload-level evaluation.
 
-Source keys in `scoped` must retain any Loader include prefix. Omitting its configuration deterministically selects existing instances by role/key and creates no storage. The built-in UI intentionally exposes only the stable switches; advanced fields remain Profile configuration.
+Source keys in `scoped` must retain any Loader include prefix. Omitting its configuration deterministically selects existing instances by role/key and creates no storage. The board's **Options** panel edits the fields the package declares; Profile configuration remains available for automation.
 
 `scoped.sourceKeys` expresses priority and `writableSourceKeys` narrows the writable subset. Automatic capacity maintenance also checks the current View's write scope; a denied operation preserves the original data and fails instead of migrating around the restriction. Explicit operator management remains separately authorized.
 
@@ -120,7 +135,7 @@ export function apply(ctx: Context): void {
 }
 ```
 
-In-turn writes still use Host tools, authorization and Source receipts. A capture contributor must name actual recording Actions, not infer them from generic write capability. Retrieval limits remain shared across the executing turn; Source-qualified replay and Related admission prevent cross-instance aliasing. If removal cannot produce a replacement generation, new turns fail closed rather than revive the disabled policy. Existing pinned turns retain their leases.
+In-turn writes still use Host tools, authorization and Source receipts. A capture contributor must name actual recording Actions, not infer them from generic write capability. Retrieval limits remain shared across the executing turn; Source-qualified replay and Related admission prevent cross-instance aliasing. If removal cannot produce a replacement generation, new turns fail closed rather than revive the disabled policy: they run without a memory View, and the conversation itself continues. Existing pinned turns retain their leases.
 
 Optional `createTurn(view)` supplies an execution-local `query(request, read)` policy. The only supplied I/O is `read(input, narrowerLimits?)`, bound to the selected Route and its private grant. Core still validates inputs, ceilings, dispatched calls and lifetime. A policy may admit/replay results and supply a compact `Evidence.output` for the model; it does not obtain a Source object, write continuation or authority. Separate executions get separate policy state even when they inherit the same immutable View. Without this hook, reads go directly to the Source through the same Core fences.
 

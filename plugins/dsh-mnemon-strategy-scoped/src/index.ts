@@ -7,7 +7,7 @@ export const inject = ['mnemonMemory']
 export const memoryPlugin = defineMemoryPlugin({
   packageName: name,
   label: { en: 'Scoped composition', 'zh-CN': '范围组合' },
-  description: { en: 'Select and order the Sources admitted to the current View.', 'zh-CN': '选择并排序允许进入当前 View 的 Source。' },
+  description: { en: 'Compose the available memory sources in a stable order.', 'zh-CN': '按稳定顺序组合当前可用的记忆来源。' },
   roles: ['strategy-extension'],
   provides: [{ id: 'strategy.selection', exclusive: true }],
   requires: ['strategy'],

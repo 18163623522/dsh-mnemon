@@ -1,0 +1,7 @@
+---
+"dsh-mnemon": patch
+---
+
+Switching memory components no longer breaks conversations or leaves the interface stale. With no main Strategy running, a turn now runs without memory instead of failing with "no Serving memory generation is available"; automatic review and Runtime maintenance follow the Strategy that actually composed the memory. The configuration and the Memory System follow component switches made on DSH's component list, and a save in another group no longer makes the next Strategy switch fail. Providers are no longer read, with a raw Host error, while their Source is off. The Memory System states when memory is not in use or a component change did not take effect, keeps the tab of a layer whose Source is not running, and no longer remounts its pages on unrelated saves. A layer that is off is refused by Source management. In Builtin placement the Plugins page offers the workspace only for a listed conversation. Configuration keys, stored values and data are unchanged.
+
+切换记忆组件不再导致对话失败或界面过期。没有主策略运行时，本轮对话不带记忆继续进行，不再报“no Serving memory generation is available”；自动审查与运行时维护改为跟随实际组合记忆的策略。配置页与记忆系统会跟随 DSH 组件列表中的开关变化；在其他分组保存后，下一次切换主策略不再失败。“记忆空间”组件停用时不再读取 Provider，也不再显示 Host 原始报错。记忆系统会说明记忆未生效或组件变更没有生效，保留 Source 未运行的层的标签页，且无关的保存不再重新挂载页面。已关闭的记忆层不再接受 Source 管理操作。Builtin 模式下，只有当前会话已在会话列表中时插件页才提供打开记忆系统。配置键、已保存的值与数据不变。

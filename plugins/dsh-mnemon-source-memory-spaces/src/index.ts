@@ -15,7 +15,7 @@ export const inject = ['mnemonMemory']
 export const memoryPlugin = defineMemoryPlugin({
   packageName: name,
   label: { en: 'Memory Spaces', 'zh-CN': '记忆空间' },
-  description: { en: 'Durable evidence backed by explicitly configured Provider children.', 'zh-CN': '由显式配置的 Provider 子插件承载的长期证据。' },
+  description: { en: 'Provider-backed durable evidence recalled on demand across tasks and sessions.', 'zh-CN': '由 Provider 支撑的持久证据，按需跨任务与会话召回。' },
   roles: ['source'],
   provides: [{ id: 'source' }, { id: 'source.durable-evidence' }],
 })

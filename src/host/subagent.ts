@@ -1005,7 +1005,7 @@ export class MnemonSubagentCoordinator {
       const runtime = graph.source('runtime', scope).forGeneration(lease.generation)
       const context: RuntimeWriteContext = {
         runtime, inspectRuntime: runtime,
-        maintain: threeTierActionWorkflow(graph.config.memoryTopology.strategyId, 'runtime', 'mutate') !== undefined,
+        maintain: threeTierActionWorkflow(lease.generation.strategy.definition.manifest.typeId, 'runtime', 'mutate') !== undefined,
         commit: () => runtime.mutate('mutate', request, signal),
         memorySpaces: async () => {
           if (!graph.config.writeEnabled || !this.runtimeSource.config.writeEnabled) throw new Error('dsh-mnemon is configured read-only')
