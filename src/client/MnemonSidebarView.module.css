@@ -67,12 +67,12 @@
 }
 .shell .itemEditAction:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
 .shell .itemDangerAction {
-  border: .5px solid color-mix(in srgb, var(--dsw-alias-state-error-primary) 30%, transparent);
+  border: 0;
   color: var(--dsw-alias-state-error-primary);
   background: transparent;
 }
 .shell .itemDangerAction:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--dsw-alias-state-error-primary) 8%, transparent);
+  background: var(--dsw-alias-interactive-bg-hover-danger, color-mix(in srgb, var(--dsw-alias-state-error-primary) 8%, transparent));
   text-decoration: none;
 }
 

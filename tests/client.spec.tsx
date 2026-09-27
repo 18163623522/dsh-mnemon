@@ -523,11 +523,12 @@ describe('MnemonWorkbench', () => {
     expect(screen.queryByText('记忆子 Agent 可用')).toBeNull()
     expect(screen.queryByRole('heading', { name: '子 Agent 生命周期' })).toBeNull()
     expect(screen.queryByRole('heading', { name: '记忆系统流转' })).toBeNull()
-    expect(screen.getByRole('heading', { name: '三方 Provider' })).toBeTruthy()
-    const nativeProviderStatus = screen.getByRole('region', { name: 'mnemon Provider 状态' })
-    const providerStatus = screen.getByRole('region', { name: '三方 Provider 状态' })
-    expect(within(nativeProviderStatus).getByText('mnemon')).toBeTruthy()
-    expect(nativeProviderStatus.compareDocumentPosition(providerStatus) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('heading', { name: '记忆 Provider' })).toBeTruthy()
+    const providerStatus = screen.getByRole('region', { name: '记忆 Provider 状态' })
+    const nativeProviderStatus = within(providerStatus).getByRole('article', { name: 'Mnemon Native 状态' })
+    expect(within(nativeProviderStatus).getByText('Mnemon Native')).toBeTruthy()
+    // Native leads the one Provider list as a peer of the third-party Providers.
+    expect(within(providerStatus).getAllByRole('article')[0]).toBe(nativeProviderStatus)
     expect(within(providerStatus).getByText('OpenViking')).toBeTruthy()
     expect(within(providerStatus).getByText('连接正常')).toBeTruthy()
     expect(within(providerStatus).getByText('Mem0')).toBeTruthy()
@@ -548,8 +549,8 @@ describe('MnemonWorkbench', () => {
     expect(screen.getByText('系统正常')).toBeTruthy()
     expect(screen.queryByText('Mnemon 不可用')).toBeNull()
 
-    const nativeStatus = screen.getByRole('region', { name: 'mnemon Provider 状态' })
-    expect(within(nativeStatus).getByText('连接需要检查')).toBeTruthy()
+    const nativeStatus = screen.getByRole('article', { name: 'Mnemon Native 状态' })
+    expect(within(nativeStatus).getByText(/^连接需要检查/u)).toBeTruthy()
     expect(within(nativeStatus).getByText('项目记忆空间: Mnemon Store 无法打开')).toBeTruthy()
   })
 

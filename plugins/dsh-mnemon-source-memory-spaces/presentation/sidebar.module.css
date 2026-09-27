@@ -9,6 +9,10 @@
   background: var(--mn-surface);
 }
 .shell .memoryWorkspace > [class*='pageHeader'] { margin-bottom: 12px; }
+/* A page under the Memory Spaces tabs titles its section rather than the page: the DSH group heading scale. */
+.shell .memoryWorkspace ~ [class*='page'] > [class*='pageHeader'] { margin-bottom: 12px; }
+.shell .memoryWorkspace ~ [class*='page'] > [class*='pageHeader'] h2 { font-size: 14px; line-height: 22px; }
+.shell .memoryWorkspace ~ [class*='page'] > [class*='pageHeader'] p { color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }
 /* Keep secondary controls in flow beneath the one pinned Source header. */
 .shell [class*='relatedPane'], .shell [class*='entityRail'] { position: static; }
 

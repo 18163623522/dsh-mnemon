@@ -182,8 +182,9 @@
 .secondaryButton { border: .5px solid var(--mn-line-strong); }
 .secondaryButton:hover:not(:disabled), .ghostButton:hover:not(:disabled) { background: var(--mn-hover); }
 .secondaryButton:active:not(:disabled), .ghostButton:active:not(:disabled) { background: var(--mn-pressed); }
-.dangerButton { border: .5px solid color-mix(in srgb, var(--mn-danger) 30%, transparent); color: var(--mn-danger); }
-.dangerButton:hover:not(:disabled) { background: color-mix(in srgb, var(--mn-danger) 8%, transparent); }
+/* Destructive row action, as the DSH model card delete: error text without a stroke. */
+.dangerButton { color: var(--mn-danger); }
+.dangerButton:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover-danger, color-mix(in srgb, var(--mn-danger) 8%, transparent)); }
 .dangerSolidButton { color: var(--dsw-static-neutral-00, #fff); background: var(--mn-danger); }
 .dangerSolidButton:hover:not(:disabled) { background: color-mix(in srgb, var(--mn-danger), black 8%); }
 .shell :where(button:disabled) { cursor: not-allowed; opacity: .4; }
@@ -308,20 +309,7 @@
 .healthGood { background: var(--mn-success); }
 .healthBad { background: var(--mn-danger); }
 .healthMuted { background: var(--mn-idle); }
-/* Provider rows follow the DSH plugin list: 40px mark, 14px title, tertiary detail. */
-.nativeProviderHealth { display: flex; min-width: 0; min-height: 64px; align-items: center; gap: 12px; margin-bottom: 12px; padding: 12px 16px; border: .5px solid var(--mn-card-line); border-radius: var(--dsw-radius-lg); }
-.nativeProviderCopy { display: grid; min-width: 0; flex: 1; gap: 0; }
-.nativeProviderCopy > small { color: var(--mn-faint); font-size: 12px; line-height: 18px; }
-.nativeProviderCopy > strong { font-size: 14px; font-weight: 500; line-height: 20px; }
-.nativeProviderCopy > p { margin: 2px 0 0; overflow: hidden; color: var(--mn-danger); font-size: 12px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
-.nativeProviderMeta { display: grid; flex: 0 0 auto; gap: 2px; justify-items: end; text-align: right; }
-.nativeProviderMeta > span { display: flex; align-items: center; gap: 6px; color: var(--mn-muted); font-size: 12px; line-height: 18px; }
-.nativeProviderMeta > span i { width: 6px; height: 6px; border-radius: 50%; background: var(--mn-idle); }
-.nativeProviderHealth[data-status='healthy'] .nativeProviderMeta > span i { background: var(--mn-success); }
-.nativeProviderHealth[data-status='idle'] .nativeProviderMeta > span i { background: var(--mn-idle); }
-.nativeProviderHealth[data-status='unhealthy'] .nativeProviderMeta > span { color: var(--mn-danger); }
-.nativeProviderHealth[data-status='unhealthy'] .nativeProviderMeta > span i { background: var(--mn-danger); }
-.nativeProviderMeta > small { color: var(--mn-faint); font-size: 12px; line-height: 18px; }
+/* Provider rows follow the DSH plugin list: 36px mark, 14px title, tertiary detail. */
 .providerHealth { margin-bottom: 16px; padding: 16px; border: .5px solid var(--mn-card-line); border-radius: var(--dsw-radius-lg); }
 .providerHealthList { margin-top: 8px; }
 .providerHealthList article { display: flex; min-width: 0; min-height: 56px; align-items: center; gap: 12px; padding: 8px 0; }
@@ -466,8 +454,6 @@
   .pageHeader { display: grid; gap: 10px; }
   .pageHeaderMeta { justify-content: flex-start; }
   .healthStrip { grid-template-columns: 1fr; }
-  .nativeProviderHealth { align-items: flex-start; }
-  .nativeProviderMeta { justify-items: end; }
   .providerHealthMeta { align-items: flex-end; flex-direction: column; gap: 4px; }
   .storageRoot { align-items: flex-start; flex-direction: column; }
   .storageRoot > div:last-child { justify-items: start; }

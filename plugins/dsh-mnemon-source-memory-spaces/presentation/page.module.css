@@ -18,7 +18,7 @@
 .readSources > header > button { min-height: 28px; flex: 0 0 auto; border: .5px solid var(--mn-line-strong); border-radius: var(--dsw-radius-sm); padding: 0 10px; color: var(--mn-text); background: transparent; font-size: 12px; line-height: 18px; cursor: pointer; }
 .readSources > header > button:hover { background: var(--mn-hover); }
 .readSources > header > button[data-selected] { border-color: transparent; background: var(--mn-fill); }
-.readSources > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.readSources > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr)); gap: 8px; }
 .readSourceCard,
 .bodyCard,
 .metadataList > label { border: .5px solid var(--mn-card-line); border-radius: var(--dsw-radius-md); color: var(--mn-text); background: transparent; }
@@ -48,7 +48,7 @@ button.readSourceCard:hover { background: var(--mn-hover); }
 .bodyDirectory { position: relative; margin-bottom: 12px; padding: 16px; border: .5px solid var(--mn-card-line); border-radius: var(--dsw-radius-lg); }
 .bodyDirectoryHeader { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 .bodyDirectoryHeader > div:first-child { min-width: 0; flex: 1 1 260px; }
-.bodyDirectoryHeader h3 { margin: 0; font-size: 14px; font-weight: 500; line-height: 22px; }
+.bodyDirectoryHeader h3 { margin: 0; font-size: 13px; font-weight: 500; line-height: 20px; }
 .bodyDirectoryHeader p { margin: 2px 0 0; color: var(--mn-faint); font-size: 12px; line-height: 18px; }
 .bodyDirectoryPath { display: block; max-width: 100%; margin-top: 4px; overflow: hidden; color: var(--mn-faint); font-size: 11px; line-height: 16px; text-overflow: ellipsis; white-space: nowrap; }
 .bodyDirectoryControls { display: flex; flex: 0 0 auto; align-items: center; justify-content: flex-end; gap: 8px; padding-right: 28px; }
