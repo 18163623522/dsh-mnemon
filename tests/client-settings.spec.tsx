@@ -220,17 +220,19 @@ describe('MnemonSettingsCard', () => {
 
     const view = render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} />)
 
-    await screen.findByRole('switch', { name: '启用 项目档案' })
-    expect(screen.getByText('可版本化的叙事文档，先检索，再按需阅读全文。')).toBeTruthy()
+    // The components cannot be read here, but the saved layers still switch,
+    // named by their ids since no component can name them.
+    await screen.findByRole('switch', { name: 'documents' })
+    expect(screen.getByText('暂时无法读取记忆组件；这里只能开关记忆层。')).toBeTruthy()
     expect(screen.queryByText('Narrative records')).toBeNull()
 
     view.rerender(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} t={translateEn} />)
-    const enabled = await screen.findByRole('switch', { name: 'Enable Project Documents' })
-    expect(screen.getByText('Versioned narrative documents searched first and read in full on demand.')).toBeTruthy()
+    const enabled = await screen.findByRole('switch', { name: 'documents' })
+    expect(screen.getByText('Memory components cannot be read right now; only the memory layers can be switched here.')).toBeTruthy()
     expect(screen.queryByText('Narrative records')).toBeNull()
-    expect(screen.queryByRole('combobox', { name: /Project Documents/ })).toBeNull()
+    expect(screen.queryByRole('combobox', { name: /documents/ })).toBeNull()
+    // A layer switch applies at once, without the Save the staged groups use.
     fireEvent.click(enabled)
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }))
     await waitFor(() => expect(mutate).toHaveBeenCalledWith([{
       op: 'set',
       path: ['memoryTopology', 'layers', 'documents', 'enabled'],
@@ -238,7 +240,7 @@ describe('MnemonSettingsCard', () => {
     }]))
   })
 
-  it('says which component a memory layer and the Providers wait for, and turns it on', async () => {
+  it('shows a layer whose component is off as off, and turns the Providers\' Source on from their section', async () => {
     const scope = settingsScope({ status: 'ready' as const, value: { storageScope: 'global' as const }, base: {}, user: {}, revision: 0, writable: true, mode: 'host' as const })
     const participation = { recall: 'automatic', write: 'automatic', projection: 'automatic', maintenance: 'automatic' } as const
     const descriptor: MemoryCompositionStatus = {
@@ -250,8 +252,10 @@ describe('MnemonSettingsCard', () => {
         layers: Object.fromEntries(['runtime', 'documents', 'memory-spaces'].map(id => [id, { enabled: true, participation: { ...participation }, adapterIds: [] }])),
       },
     }
+    // Each component names itself, as the shipped packages do.
+    const names: Record<string, string> = { 'mnemon-source-runtime': '运行时记忆', 'mnemon-source-documents': '项目档案', 'mnemon-source-memory-spaces': '记忆空间', 'mnemon-strategy-default-three-tier': '默认三层' }
     const component = (entryId: string, packageName: string, roles: MemoryPluginEntryView['roles'], values: Partial<MemoryPluginEntryView>): MemoryPluginEntryView => ({
-      entryId, packageName, roles, label: { en: entryId, 'zh-CN': entryId }, description: { en: '', 'zh-CN': '' }, fields: [], provides: [], requires: [], requiredBy: [],
+      entryId, packageName, roles, label: { en: entryId, 'zh-CN': names[entryId] ?? entryId }, description: { en: '', 'zh-CN': '' }, fields: [], provides: [], requires: [], requiredBy: [],
       enabled: true, active: true, writable: true, config: {}, ...values,
     })
     let dashboard: MemoryViewDashboard = {
@@ -282,17 +286,20 @@ describe('MnemonSettingsCard', () => {
     })
 
     render(<MnemonSettingsCard scope={scope} connection={{ rpc: { call }, isLoopback: true } as ClientConnectionHandle} />)
-    expect(await screen.findByText('“项目档案”组件已停用，这一层暂不读取或写入。')).toBeTruthy()
+    // A layer whose Source component is off reads as off: the component is the layer's switch.
+    const documents = (await screen.findByRole('switch', { name: '项目档案' })).closest('[data-mnemon-target]') as HTMLElement
+    expect(within(documents).getByText('已关闭')).toBeTruthy()
     const providers = screen.getByRole('region', { name: '记忆 Provider' })
-    expect(within(providers).getByText('记忆 Provider 由“记忆空间”组件提供，它已停用；已保存的连接保持不变。')).toBeTruthy()
+    expect(within(providers).getByText('“记忆空间”已关闭')).toBeTruthy()
+    expect(within(providers).getByText('已保存的连接会保留')).toBeTruthy()
     // The Providers are not read while their Source is off.
     expect(call.mock.calls.some(([, endpoint]) => endpoint === 'provider-services')).toBe(false)
 
-    fireEvent.click(within(providers).getByRole('button', { name: '启用“记忆空间”' }))
-    await waitFor(() => expect(within(providers).queryByText('记忆 Provider 由“记忆空间”组件提供，它已停用；已保存的连接保持不变。')).toBeNull())
+    fireEvent.click(within(providers).getByRole('button', { name: '开启“记忆空间”' }))
+    await waitFor(() => expect(within(providers).queryByText('“记忆空间”已关闭')).toBeNull())
     expect(applied).toEqual([{ expectedRevision: 'view-1', strategyTypeId: 'default-three-tier', entries: { 'mnemon-source-memory-spaces': { enabled: true, config: {} } } }])
     await waitFor(() => expect(call.mock.calls.some(([, endpoint]) => endpoint === 'provider-services')).toBe(true))
-    expect(screen.getByText('“项目档案”组件已停用，这一层暂不读取或写入。')).toBeTruthy()
+    expect(within(documents).getByText('已关闭')).toBeTruthy()
   })
 
   it('ignores a Provider catalog response from the previously selected workspace', async () => {
@@ -822,7 +829,7 @@ describe('MnemonSettingsCard', () => {
 
     expect(screen.queryAllByRole('group', { name: /服务配置/ })).toHaveLength(0)
     expect(screen.queryAllByRole('switch', { name: /^启用 / })).toHaveLength(0)
-    expect(screen.getByRole('status').textContent).toBe('正在读取 Provider 配置…')
+    expect(screen.getByText('正在读取 Provider 配置…').getAttribute('role')).toBe('status')
   })
 
   it('uses the native default/custom location pattern for a scope-aware local provider', async () => {

@@ -39,6 +39,7 @@ function protocolFixture(options: Config = {}) {
     })) })),
     executeManagement: vi.fn(async (_request: unknown) => ({ revision: 'r2', value: {} })),
     sourceInstances: () => ['runtime', 'documents', 'memory-spaces'].map(type => ({ sourceInstanceKey: 'source:mnemon-source-' + type, sourceTypeId: type })),
+    strategy: { definition: { manifest: { typeId: 'default-three-tier' } } },
   }
   const release = vi.fn()
   const graph = {
@@ -317,7 +318,7 @@ describe('Host assistance and channels', () => {
     f.route.aligned = false
     f.route.effectiveRoot = '/fixture/other'
     expect(await createReadHandler(f.runtime, lifecycle())('status-summary', { sessionId: 's1' })).toMatchObject({ ok: true, value: {
-      healthy: true, lifecycle: { enabled: true }, memorySystem: { evaluation: { state: 'ready' } },
+      healthy: true, lifecycle: { enabled: true }, memorySystem: { strategyTypeId: 'default-three-tier', evaluation: { state: 'ready' } },
       workspaceContext: { aligned: false, selectedRoot: '/fixture/data', effectiveRoot: '/fixture/other' },
     } })
   })

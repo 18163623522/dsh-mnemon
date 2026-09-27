@@ -94,7 +94,12 @@ async function catalog(runtime: ScopedRuntime, lifecycle?: MnemonLifecycle) {
 }
 async function compositionStatus(runtime: ScopedRuntime): Promise<MemoryCompositionStatus> {
   const composition = runtime.graph.memoryComposition.inspect()
-  return { serving: composition.servingGenerationId !== undefined, evaluation: composition.evaluation, sources: (await catalog(runtime)).sources, configuration: runtime.graph.config.memoryTopology }
+  const strategyTypeId = runtime.graph.memoryComposition.current()?.strategy.definition.manifest.typeId
+  return {
+    serving: composition.servingGenerationId !== undefined,
+    ...(strategyTypeId === undefined ? {} : { strategyTypeId }),
+    evaluation: composition.evaluation, sources: (await catalog(runtime)).sources, configuration: runtime.graph.config.memoryTopology,
+  }
 }
 
 async function assisted(runtime: ScopedRuntime, lifecycle: MnemonLifecycle, typeId: string, operation: string, input: Record<string, unknown>, signal?: AbortSignal, target?: { sourceInstanceKey: string; expectedRevision: string }): Promise<unknown> {

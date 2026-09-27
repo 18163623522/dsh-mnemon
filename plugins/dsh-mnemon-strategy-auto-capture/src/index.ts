@@ -7,7 +7,7 @@ export const inject = ['mnemonMemory']
 export const memoryPlugin = defineMemoryPlugin({
   packageName: name,
   label: { en: 'Active capture', 'zh-CN': '主动记录' },
-  description: { en: 'Guide the current LLM to retain qualified durable facts.', 'zh-CN': '引导当前 LLM 保留符合条件的长期事实。' },
+  description: { en: 'Identify and retain durable facts from the current conversation.', 'zh-CN': '在当前对话中识别并保存值得长期保留的事实。' },
   roles: ['strategy-extension'],
   provides: [{ id: 'strategy.capture', exclusive: true }],
   requires: ['strategy', 'source.durable-evidence'],

@@ -107,6 +107,7 @@
   .shell [class*='backButton'] > span { display: none; }
   .shell .workspacePicker select { width: min(118px, 30vw); }
   .shell .statusCluster [class*='iconButton'] { display: none; }
+  .shell [class*='compositionStrategy'] { display: none; }
 }
 
 @media (max-height: 420px) {

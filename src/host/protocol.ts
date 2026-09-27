@@ -9,6 +9,8 @@ export interface MemoryTopologyDefinition { id: string; strategyId: string; laye
 export interface MemoryCompositionStatus {
   /** Whether a composition serves new turns. A rejected change can leave the previous one serving. */
   serving: boolean
+  /** The main Strategy composing the serving composition, which a fallback can make differ from the selected one. */
+  strategyTypeId?: string
   evaluation: import('../core/contracts/index.ts').MemoryCompositionEvaluationReport
   sources: MemorySourceManagementInstance[]
   configuration: ResolvedMemoryTopologyConfig

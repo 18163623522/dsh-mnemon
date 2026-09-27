@@ -8,7 +8,7 @@ export const inject = ['mnemonMemory']
 export const memoryPlugin = defineMemoryPlugin({
   packageName: name,
   label: { en: 'Default three-tier', 'zh-CN': '默认三层' },
-  description: { en: 'Compile available runtime, document and durable Sources into one View.', 'zh-CN': '将可用的运行时、档案与长期 Source 编译为一个 View。' },
+  description: { en: 'Resident runtime memory, on-demand documents and durable memory.', 'zh-CN': '运行时记忆常驻，档案与长期记忆按需读取。' },
   roles: ['strategy'],
   provides: [{ id: 'strategy' }, { id: 'strategy.default-three-tier' }],
   requires: ['source'],

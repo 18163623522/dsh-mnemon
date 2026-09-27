@@ -14,6 +14,7 @@ import css from './MnemonSettingsCard.module.css'
 import { useRequestVersion } from './use-request-version.ts'
 import type { MnemonKey, MnemonTranslate } from './locales.ts'
 import { message } from './page-kit.tsx'
+import { Reveal } from './feedback.tsx'
 import { ProviderIcon } from './ProviderIcon.tsx'
 import {
   providerFieldLabel,
@@ -416,9 +417,10 @@ export function ProviderSettingsSection(props: ProviderSettingsSectionProps): JS
   }
 
   const disabled = props.disabled || props.scopeChanging || client === null || loading || catalog.generatedAt === ''
-  if (blocked) return <>{props.blocked}<div className={css.providerList}>{props.leading}</div></>
+  // Explanations slide in and out, so the list does not jump when a dependency changes.
+  if (blocked) return <><Reveal>{props.blocked}</Reveal><div className={css.providerList}>{props.leading}</div></>
   return <>
-    {props.notice}
+    <Reveal>{props.notice ?? null}</Reveal>
     {props.scopeChanging && <p className={css.scopeChanging} role="status">{props.t('config.saveScopeBeforeProviders')}</p>}
     {props.workspaceLabel !== undefined && <p className={css.providerTarget}>{props.t('config.providerTargetWorkspace', { workspace: props.workspaceLabel })}</p>}
     {loading && <span className={css.visuallyHidden} role="status">{props.t('config.loadingProviders')}</span>}

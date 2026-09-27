@@ -7,7 +7,7 @@ export const inject = ['mnemonMemory']
 export const memoryPlugin = defineMemoryPlugin({
   packageName: name,
   label: { en: 'Light context', 'zh-CN': '轻量上下文' },
-  description: { en: 'Narrow resident context while keeping on-demand reads.', 'zh-CN': '收窄常驻内容预算，保留按需读取。' },
+  description: { en: 'Reduce resident content while keeping on-demand reads available.', 'zh-CN': '减少常驻内容，同时保留按需读取能力。' },
   roles: ['strategy-extension'],
   provides: [{ id: 'strategy.projection', exclusive: true }],
   requires: ['strategy'],
