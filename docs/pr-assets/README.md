@@ -12,6 +12,7 @@ For new evaluations, commit the reusable harness, workload generator, concise bi
 
 | Record / 记录 | Scope / 范围 |
 |---|---|
+| [Main Strategy choice](./main-strategy-choice-20260927/README.md) / [中文](./main-strategy-choice-20260927/README.zh-CN.md) | Plugins page and Settings controls, general Strategy conversation, packed composition and release intent / 插件页与设置控件、通用主策略对话、打包组合与发布意图 |
 | [Memory System brain icon](./sidebar-brain-icon-20260927/README.md) / [中文](./sidebar-brain-icon-20260927/README.zh-CN.md) | Shared thin brain outline, native navigation and retained composable naming / 共用细线大脑轮廓、原生导航与可组合记忆命名保留 |
 | [Sidebar icon weight](./sidebar-icon-weight-20260927/README.md) / [中文](./sidebar-icon-weight-20260927/README.zh-CN.md) | Native icon stroke alignment, expanded/collapsed comparison and navigation / 原生图标线宽对齐、展开/折叠对比与导航验证 |
 | [Composable memory naming](./composable-naming-20260927/README.md) / [中文](./composable-naming-20260927/README.zh-CN.md) | Packed Chinese/English metadata and real plugin-page display / 制品中英文元数据与真实插件页面展示 |

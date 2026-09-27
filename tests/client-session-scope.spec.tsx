@@ -65,7 +65,8 @@ function fixture() {
     uiSession: { adapter: { current } },
     sessions: { list: catalog },
     workspaces: { list: workspaces },
-    locale: { ...locale, register: () => () => {}, bind: () => (key: string) => key },
+    // One runtime object, as in DSH: its store methods must keep their receiver.
+    locale: Object.assign(locale, { register: () => () => {}, bind: () => (key: string) => key }),
     connection: { rpc: { call: vi.fn(async () => ({ ok: true, value: { status: 'ready', value: { displayMode: 'builtin' }, writable: true, mode: 'host' } })) }, isLoopback: true },
     effect(callback: () => unknown) { const dispose = callback(); if (typeof dispose === 'function') disposers.push(dispose as () => void) },
     slots: {

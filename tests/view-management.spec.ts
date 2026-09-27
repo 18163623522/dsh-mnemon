@@ -38,7 +38,7 @@ describe('View configuration with the real pinned DSH Cordis Loader', () => {
     ])
     expect(catalog.entries.find(entry => entry.typeId === 'light-context')).toMatchObject({
       label: { en: 'Light context', 'zh-CN': '轻量上下文' }, slot: 'projection', writable: true,
-      roles: ['strategy-extension'], requires: ['strategy.default-three-tier'],
+      roles: ['strategy-extension'], requires: ['strategy'],
     })
     expect(catalog.entries.find(entry => entry.typeId === 'memory-spaces')).toMatchObject({ roles: ['source'], provides: expect.arrayContaining([{ id: 'source.durable-evidence', exclusive: false }]) })
     expect(f.engine.contributionSnapshot().revision).toBe(before)

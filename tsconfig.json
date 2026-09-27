@@ -80,6 +80,9 @@
       "dsh-mnemon-strategy-default-three-tier": [
         "./plugins/dsh-mnemon-strategy-default-three-tier/src/index.ts"
       ],
+      "dsh-mnemon-strategy-general": [
+        "./plugins/dsh-mnemon-strategy-general/src/index.ts"
+      ],
       "dsh-mnemon-provider-mnemon-native": [
         "./plugins/dsh-mnemon-provider-mnemon-native/src/index.ts"
       ],

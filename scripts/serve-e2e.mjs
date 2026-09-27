@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Real DSH WebUI with disposable state and a loopback-only model stub.
 // Run after pnpm build && pnpm --workspace-concurrency=4 -r build; stop with Ctrl-C to remove the fixture.
+// Set MNEMON_E2E_PORT to keep one WebUI address across SIGUSR2 restarts.
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -16,6 +17,7 @@ import { legacySessionReplayModel } from './fixtures/legacy-session-replay-model
 import { reviewEvidenceModel, scopedOverviewPlugin } from './fixtures/review-evidence-model.mjs'
 import { openVikingWriteModel } from './fixtures/openviking-write-model.mjs'
 import { idleReviewModel } from './fixtures/idle-review-model.mjs'
+import { generalStrategyModel } from './fixtures/general-strategy-model.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const flags = new Set(process.argv.slice(2))
@@ -34,6 +36,7 @@ for (const flag of flags) {
   if (flag === '--review-evidence') continue
   if (flag === '--openviking-write') continue
   if (flag === '--idle-review') continue
+  if (flag === '--general-strategy') continue
   if (flag.startsWith('--electron=')) {
     const value = flag.slice('--electron='.length)
     if (value === '') throw new Error('--electron requires an Electron executable')
@@ -49,7 +52,8 @@ for (const flag of flags) {
   throw new Error('Unknown option: ' + flag)
 }
 const extensionNames = ['dsh-mnemon-strategy-scoped', 'dsh-mnemon-strategy-light-context', 'dsh-mnemon-strategy-auto-capture']
-const extensionNameSet = new Set(extensionNames)
+// Strategy packages that also register themselves as bundles; the Starter row owns them.
+const selfRegistering = new Set([...extensionNames, 'dsh-mnemon-strategy-general'])
 const extensionsEnabled = flags.has('--strategy-extensions')
 const runtimeArchive = flags.has('--runtime-archive')
 const fixture = await mkdtemp(join(tmpdir(), 'mnemon-web-e2e-'))
@@ -81,6 +85,7 @@ const reviewModel = flags.has('--review-evidence') ? reviewEvidenceModel(event =
 const scriptedModel = flags.has('--runtime-routing') ? runtimeRoutingModel(event => console.log('Runtime routing: ' + JSON.stringify(event)))
   : flags.has('--openviking-write') ? openVikingWriteModel(event => console.log('OpenViking write: ' + JSON.stringify(event)))
   : flags.has('--idle-review') ? idleReviewModel(event => console.log('Idle review: ' + JSON.stringify(event)))
+  : flags.has('--general-strategy') ? generalStrategyModel(event => console.log('General strategy: ' + JSON.stringify(event)))
   : flags.has('--runtime-write-scope') ? runtimeWriteScopeModel(event => console.log('Runtime write scope: ' + JSON.stringify(event)))
   : flags.has('--result-tool-cache') ? resultToolCacheModel(event => console.log('Result tool cache: ' + JSON.stringify(event)))
   : flags.has('--legacy-session-replay') ? legacySessionReplayModel(event => console.log('Legacy replay: ' + JSON.stringify(event)))
@@ -162,7 +167,7 @@ let web
 let stopping = false
 let restarting = false
 function launch() {
-  const args = [dshBin, 'web', '--no-open', '--host', '127.0.0.1', '--port', '0']
+  const args = [dshBin, 'web', '--no-open', '--host', '127.0.0.1', '--port', process.env.MNEMON_E2E_PORT ?? '0']
   const hostEnv = { ...env }
   if (electronExecutable !== undefined) {
     for (const key of Object.keys(hostEnv)) if (key.toUpperCase() === 'ELECTRON_RUN_AS_NODE') delete hostEnv[key]
@@ -204,7 +209,7 @@ try {
   const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
   // Root owns the disabled enhancement Entries. Adding their self-registering
   // bundles as separate Profile layers would intentionally duplicate ids.
-  const plugins = Object.keys(manifest.dependencies).filter(name => name.startsWith('dsh-mnemon-') && !extensionNameSet.has(name))
+  const plugins = Object.keys(manifest.dependencies).filter(name => name.startsWith('dsh-mnemon-') && !selfRegistering.has(name))
   const installer = spawn(process.execPath, [dshBin, 'plugin', '--profile', 'web', 'add',
     `link:${root}`, ...plugins.map(name => `link:${join(root, 'plugins', name)}`),
     ...(betterSidebarRoot === undefined ? [] : [`link:${betterSidebarRoot}`]),
@@ -246,6 +251,7 @@ try {
     + (runtimeArchive ? '- id: mnemon\n  config:\n    persistenceStrategy:\n      mode: manual\n    runtimeMemory:\n      memoryLimitBytes: 300\n' : '')
     + (flags.has('--idle-review') ? '- id: mnemon\n  config:\n    idleReviewMs: 5000\n    idleReview:\n      minIntervalMs: 5000\n      maxPerSession: 1\n' : '')
     + (flags.has('--runtime-routing') ? '- id: mnemon\n  config:\n    runtimeMemory:\n      memoryLimitBytes: 1600\n' : '')
+    + (flags.has('--general-strategy') ? '- id: mnemon-strategy-general\n  disabled: false\n- id: mnemon-strategy-default-three-tier\n  disabled: true\n- id: mnemon\n  config:\n    memoryView:\n      strategyTypeId: general\n' : '')
     + (flags.has('--runtime-write-scope') ? '- id: mnemon\n  config:\n    persistenceStrategy:\n      mode: manual\n      providerId: mnemon-native\n    runtimeMemory:\n      memoryLimitBytes: 512\n' : '')
     + (reviewModel === undefined ? '' : '- insert:\n    - id: review-evidence-fixture\n      name: ' + JSON.stringify(reviewFixture) + '\n')
     + (extensionsEnabled ? extensionNames.map(name => `- id: ${name.slice(4)}\n  disabled: false\n`).join('') : ''))

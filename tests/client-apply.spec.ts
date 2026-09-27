@@ -97,6 +97,16 @@ describe('Mnemon Web client composition', () => {
     expect(slots.some(options => options.name === 'conversation.view')).toBe(false)
   })
 
+  it('offers the memory composition on the dsh-mnemon page under Plugins', () => {
+    const { context, slots } = workspaceContext({})
+    const entry = slots.find(options => options.name === 'plugins.bundle.config')!
+    expect(entry).toMatchObject({ key: 'dsh-mnemon', locale: 'mnemon' })
+    const props = (entry.inject as () => { connection: unknown; localeRuntime: unknown; t: (key: keyof typeof zh) => string })()
+    expect(props.connection).toBe(context.connection)
+    expect(props.localeRuntime).toBe(context.locale)
+    expect(props.t('config.strategyTitle')).toBe('主策略')
+  })
+
   it.each([undefined, 'sidebar'])('keeps one complete Sidebar for displayMode=%s with live visibility', async displayMode => {
     const { slots, scope, workspaceStops } = workspaceContext({ displayMode })
     await vi.waitFor(() => expect(workspaceStops).toHaveLength(1))

@@ -9,6 +9,7 @@ import {
 } from "../host/protocol.ts"
 import { MnemonSettingsHost } from './MnemonSettingsHost.tsx'
 import { MnemonTurnTail } from './MnemonTurnTail.tsx'
+import { MemoryCompositionPluginPage } from './MemoryComposition.tsx'
 import { MnemonSaveAction } from './MnemonSaveAction.tsx'
 import { en, zh, type MnemonKey } from './locales.ts'
 import { MnemonSettingsScope } from './settings.ts'
@@ -251,9 +252,18 @@ export function apply(rawContext: unknown): void {
       sessions: ctx.sessions,
       workspaces: ctx.workspaces,
       currentSession: ctx.uiSession.adapter.current,
+      localeRuntime: ctx.locale,
       t: translate,
     }),
   }, MnemonSettingsHost))
+  // The dsh-mnemon page under Plugins offers the same main Strategy and
+  // enhancement controls, so both surfaces write one View transaction.
+  ctx.slots.inject('plugins.bundle.config', () => ctx.slots.register({
+    name: 'plugins.bundle.config',
+    key: 'dsh-mnemon',
+    locale: namespace,
+    inject: () => ({ connection: ctx.connection, localeRuntime: ctx.locale, t: translate }),
+  }, MemoryCompositionPluginPage))
 
   // In-conversation interaction surfaces default on and are bound live: each
   // settings change registers or disposes the slot contributions without a

@@ -75,6 +75,11 @@
                 instanceId: supermemory
         - id: mnemon-strategy-default-three-tier
           name: dsh-mnemon-strategy-default-three-tier
+        # A second main Strategy; memoryView.strategyTypeId selects which one
+        # composes the View. It stays off until selected.
+        - id: mnemon-strategy-general
+          name: dsh-mnemon-strategy-general
+          disabled: true
         # v0.5 ships these narrowly scoped enhancements with the Starter so the
         # Settings switches are always available. They remain opt-in.
         - id: mnemon-strategy-auto-capture

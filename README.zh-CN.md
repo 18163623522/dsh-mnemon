@@ -76,7 +76,7 @@ View 不仅包含上下文，也包含 LLM 接下来可以使用的限定范围�
 
 ## 官方插件
 
-Starter 随附 **3 个 Source、1 个默认 Strategy、3 个可选策略贡献、9 个 Provider**。各包独立版本、独立发布；Starter 固定经过测试的精确组合。
+Starter 随附 **3 个 Source、2 个主策略（同一时间选中一个）、3 个可选增强、9 个 Provider**。各包独立版本、独立发布；Starter 固定经过测试的精确组合。
 
 | 包 | 职责 | 默认状态 |
 |---|---|---|
@@ -84,11 +84,12 @@ Starter 随附 **3 个 Source、1 个默认 Strategy、3 个可选策略贡献�
 | [dsh-mnemon-source-documents](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-source-documents/README.md) | Markdown、搜索、修订与归档 | 启用 |
 | [dsh-mnemon-source-memory-spaces](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-source-memory-spaces/README.md) | 长期证据及 Source 自有 Provider 子模块 | 启用 |
 | [dsh-mnemon-strategy-default-three-tier](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-default-three-tier/README.md) | 默认三层 View 与回合检索策略 | 选中 |
+| [dsh-mnemon-strategy-general](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-general/README.md) | 全部可用 Source 共享一份预算，由模型决定如何使用 | 关闭 |
 | [dsh-mnemon-strategy-auto-capture](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-auto-capture/README.md) | 当前回合中主动记录有用事实的指引 | 关闭 |
 | [dsh-mnemon-strategy-light-context](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-light-context/README.md) | 所有选中 Source 共享的常驻投影上限 | 关闭 |
 | [dsh-mnemon-strategy-scoped](https://github.com/omdsh-dev/dsh-mnemon/blob/main/plugins/dsh-mnemon-strategy-scoped/README.md) | 有序选择 Source，并限定可写子集 | 关闭 |
 
-三个增强使用默认 Strategy 的不同槽，可以共存，最终仍输出一个 View。主动记录是指引，不是自主记录器；投影上限不是 token 计费或增量注入；范围组合不创建存储。
+在“设置 → 记忆系统”或“插件”中 `dsh-mnemon` 页面选择一个主策略及任意增强。增强使用 Core 的标准 selection、projection 与 capture 槽，因此适用于任一主策略并可共存，最终仍输出一个 View。主动记录是指引，不是自主记录器；投影上限不是 token 计费或增量注入；范围组合不创建存储。
 
 Memory Spaces 可使用以下 Provider 插件：
 

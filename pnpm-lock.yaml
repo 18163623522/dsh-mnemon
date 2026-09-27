@@ -56,6 +56,9 @@ importers:
       dsh-mnemon-strategy-default-three-tier:
         specifier: 0.5.6
         version: link:plugins/dsh-mnemon-strategy-default-three-tier
+      dsh-mnemon-strategy-general:
+        specifier: 0.5.0
+        version: link:plugins/dsh-mnemon-strategy-general
       dsh-mnemon-strategy-light-context:
         specifier: 0.5.4
         version: link:plugins/dsh-mnemon-strategy-light-context
@@ -109,6 +112,9 @@ importers:
         specifier: 0.1.7-rc.2
         version: 0.1.7-rc.2(@deepseek-ai/cordis@4.0.4)
       '@deepseek-ai/dsh-client-ui-layout':
+        specifier: 0.1.7-rc.2
+        version: 0.1.7-rc.2(@deepseek-ai/cordis@4.0.4)
+      '@deepseek-ai/dsh-client-ui-plugin-manager':
         specifier: 0.1.7-rc.2
         version: 0.1.7-rc.2(@deepseek-ai/cordis@4.0.4)
       '@deepseek-ai/dsh-client-ui-primitives':
@@ -895,6 +901,28 @@ importers:
         version: 22.20.1
       dsh-mnemon:
         specifier: ^0.5.15
+        version: link:../..
+      tsdown:
+        specifier: ^0.22.0
+        version: 0.22.14(@arethetypeswrong/core@0.18.5)(publint@0.3.23)(typescript@5.9.3)
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+      vitest:
+        specifier: ^3.2.0
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(jsdom@26.1.0(supports-color@7.2.0))(lightningcss@1.33.0)(supports-color@7.2.0)(yaml@2.9.0)
+
+  plugins/dsh-mnemon-strategy-general:
+    dependencies:
+      '@deepseek-ai/cordis':
+        specifier: ^4.0.1
+        version: 4.0.4(@deepseek-ai/cordis-plugin-include@1.0.9)(@deepseek-ai/cordis-plugin-loader@1.0.5)
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.1
+      dsh-mnemon:
+        specifier: ^0.5.4
         version: link:../..
       tsdown:
         specifier: ^0.22.0

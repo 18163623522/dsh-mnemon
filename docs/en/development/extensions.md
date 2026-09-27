@@ -73,11 +73,11 @@ An Entry id identifies an instance; type id identifies its implementation. Never
 
 ## Complete Strategies and additive contributions
 
-Use `defineMemoryStrategy` and install with `{ strategies: [definition] }`. Declare deterministic composition, supported roles and maxima. Pure `compose` returns a `MemoryViewSpec` selecting exact Source keys, eager/routed projection budgets and Source-local route/action ids. It performs no network, storage or secret access.
+Use `defineMemoryStrategy` and install with `{ strategies: [definition] }`. Declare deterministic composition, supported roles and maxima; a role-agnostic Strategy lists `ANY_MEMORY_SOURCE_ROLE` (`'*'`) alone. Pure `compose` returns a `MemoryViewSpec` selecting exact Source keys, eager/routed projection budgets and Source-local route/action ids. It performs no network, storage or secret access.
 
-A Strategy may declare exclusive `extensionSlots`. A small plugin uses `defineMemoryStrategyExtension`, installed through `{ strategyExtensions: [definition] }`. Enabling contributes bounded JSON to one target slot; disabling removes only that contribution. Different slots compose into one View. Duplicate slots for the same target reject registration instead of using installation order. Contributions targeting an unselected Strategy are observable but do not execute. Unsupported slots reject the candidate generation and preserve existing Serving; invalid dynamic results reject the affected turn rather than silently ignoring the plugin.
+Several main Strategies can be installed; exactly one composes each View. `memoryView.strategyTypeId` selects it, and when the selected Strategy is switched off while exactly one other remains, the Host composes with that one and reports a `strategy-fallback` diagnostic. A Strategy may declare exclusive `extensionSlots`. A small plugin uses `defineMemoryStrategyExtension`, installed through `{ strategyExtensions: [definition] }`. Enabling contributes bounded JSON to one target slot; disabling removes only that contribution. Different slots compose into one View. Duplicate slots for the same target reject registration instead of using installation order. Contributions targeting an unselected Strategy are observable but do not execute. Unsupported slots reject the candidate generation and preserve existing Serving; invalid dynamic results reject the affected turn rather than silently ignoring the plugin.
 
-Core validates identities, JSON and the 64,000-character bound, deterministic replay, lifecycle, and the final View's existing budgets and permissions. It does not interpret business slot names. Callbacks see only the request and permission-filtered Source facts, never Source handles, grants, or write callbacks. The owning Strategy's public SDK defines slot semantics.
+Core validates identities, JSON and the 64,000-character bound, deterministic replay, lifecycle, and the final View's existing budgets and permissions. It defines only the standard `selection`, `projection` and `capture` value contracts below; other slot names belong to the owning Strategy. Callbacks see only the request and permission-filtered Source facts, never Source handles, grants, or write callbacks. The owning Strategy's public SDK defines slot semantics.
 
 ### Optional configuration descriptor
 
@@ -85,13 +85,15 @@ A dedicated Strategy Entry can additionally export `memoryStrategyConfiguration`
 
 The helper validates and freezes a copy of the metadata without running the factory. Its returned `create(config)` validates supplied fields and the declared contribution before returning it; omitted defaults remain the factory's responsibility. `number` values are finite integers, lists contain at most 32 unique nonempty strings of at most 500 characters, and text defaults to a 4,000-character limit. Host discovery uses the same validation for modules without the helper, while retaining Loader identity checks and local error isolation.
 
-v0.5 does not expose generic memory-plugin discovery, a dependency graph, or an installation dialog to ordinary users. This release stabilizes the Source/Strategy contract and the single-View compiler boundary without adding the plugin mental model to the v0.4 workflow. The three enhancements shipped with the Starter appear only as behavior switches under **Settings → Memory System → Memory enhancements**; package names, Entries, dependencies, and conflicts stay below that surface.
+Ordinary users see no generic memory-plugin discovery, dependency graph, or installation dialog. The main Strategies and enhancements appear as behavior controls under **Settings → Memory System** and on the `dsh-mnemon` page under **Plugins**; package names, Entries, dependencies, and conflicts stay below that surface. Where DSH's plugin manager is available, their enablement is saved in the DSH profile patch, so the native component switches on the Plugins page and Mnemon's controls always agree; Mnemon saves only the selected main Strategy and each Entry's configuration.
 
 Third-party packages continue to use DSH's native Profile/Loader workflow. Install an exact package with `dsh plugin --profile <Profile> add <name>@<version> --save-exact`, verify its `peerDependencies` and `dsh.bundle.patch`, then activate it explicitly in Profile composition after restarting. Downloading an npm package is not activation, and Mnemon does not hot-load it into the current process. External standalone repositories following this guide are welcome; generic graphical management may be revisited after the contracts and community cases settle, but is not a v0.5 promise.
 
-### Default three-tier extensions
+<a id="default-three-tier-extensions"></a>
 
-The default Strategy exposes `defineThreeTierExtension` at `dsh-mnemon-strategy-default-three-tier/extension-sdk`:
+### Standard View extensions
+
+`defineMemoryViewExtension` from `dsh-mnemon/extension-sdk` targets `ANY_MEMORY_STRATEGY` (`'*'`): the extension follows whichever selected Strategy declares its slot, and stays inactive with a diagnostic otherwise. A slot has one owner: registering a second extension for it is rejected when both target the same Strategy or either targets `'*'`, because the pair would meet after a main Strategy switch. `validateMemoryViewExtension` and `memoryViewExtensionValues` give a Strategy the same validated values. `dsh-mnemon-strategy-default-three-tier/extension-sdk` keeps `defineThreeTierExtension` for an extension that should apply only to that Strategy. The shipped enhancements use the standard slots:
 
 | Optional plugin | Slot | Contribution |
 |---|---|---|
@@ -99,7 +101,7 @@ The default Strategy exposes `defineThreeTierExtension` at `dsh-mnemon-strategy-
 | `dsh-mnemon-strategy-light-context` | `projection` | One shared projection cap; not incremental injection or summarization |
 | `dsh-mnemon-strategy-auto-capture` | `capture` | Current-turn instructions, targets and explicit recording Action ids; no background Agent or direct writes |
 
-The Starter installs all three packages and registers their DSH Entries disabled. The three v0.5 switches are therefore always available, while the default composition, allocation and guidance preserve v0.4 behavior. Enabling one contributes to `default-three-tier` without changing `strategyId`; disabling it removes only that contribution and never deletes Source data. Runtime currently has no expansion route: an aggressively small resident cap can hide hot context and needs workload-level evaluation.
+The Starter installs all three packages and registers their DSH Entries disabled. The switches are therefore always available, while the default composition, allocation and guidance preserve v0.4 behavior. Enabling one contributes to the selected main Strategy without changing it; disabling it removes only that contribution and never deletes Source data. The general main Strategy (`dsh-mnemon-strategy-general`) accepts the same three slots. Runtime currently has no expansion route: an aggressively small resident cap can hide hot context and needs workload-level evaluation.
 
 Source keys in `scoped` must retain any Loader include prefix. Omitting its configuration deterministically selects existing instances by role/key and creates no storage. The built-in UI intentionally exposes only the stable switches; advanced fields remain Profile configuration.
 
@@ -107,12 +109,11 @@ Source keys in `scoped` must retain any Loader include prefix. Omitting its conf
 
 ```ts
 import type { Context } from '@deepseek-ai/cordis'
-import { installMemory } from 'dsh-mnemon/extension-sdk'
-import { defineThreeTierExtension } from 'dsh-mnemon-strategy-default-three-tier/extension-sdk'
+import { defineMemoryViewExtension, installMemory } from 'dsh-mnemon/extension-sdk'
 
 export const inject = ['mnemonMemory']
 export function apply(ctx: Context): void {
-  installMemory(ctx, { strategyExtensions: [defineThreeTierExtension({
+  installMemory(ctx, { strategyExtensions: [defineMemoryViewExtension({
     typeId: 'my-light-context', packageName: 'dsh-mnemon-strategy-my-light-context',
     slot: 'projection', contribute: () => ({ maxProjectionCharacters: 4096 }),
   })] })
