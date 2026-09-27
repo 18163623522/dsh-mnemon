@@ -41,7 +41,10 @@ type RecallInsight = Insight & { revision?: string }
 function evidenceInsights(evidence: MemoryEvidence): RecallInsight[] {
   return evidence.items.map(item => {
     const metadata = optionalObject(item.provenance) ?? {}
-    return { ...metadata, id: item.id, content: item.text, score: item.score, revision: item.revision } as RecallInsight
+    return { ...metadata, id: item.id, content: item.text,
+      ...(item.score === undefined ? {} : { score: item.score }),
+      ...(item.revision === undefined ? {} : { revision: item.revision }),
+    } as RecallInsight
   })
 }
 
