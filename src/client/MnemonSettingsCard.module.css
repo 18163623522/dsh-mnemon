@@ -34,6 +34,8 @@
 .sectionHeading h2 { grid-column: 1; margin: 0; font-size: 14px; font-weight: 500; line-height: 20px; }
 .sectionHeading p { grid-column: 1; max-width: 66ch; margin: 2px 0 0; color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }
 .sectionHeading .miniSpinner { grid-column: 2; grid-row: 1; }
+/* About DSH's component list below the configuration, where the Starter's group row cannot be switched. */
+.componentListNote { max-width: 72ch; margin: 0; color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }
 /* Groups whose controls write at once, unlike the staged groups saved from the bar below. */
 .appliesNow { grid-column: 2; grid-row: 1; align-self: center; border: .5px solid var(--dsw-alias-border-l3); border-radius: var(--dsw-radius-xs); padding: 1px 6px; color: var(--dsw-alias-label-secondary); font-size: 11px; line-height: 16px; white-space: nowrap; }
 

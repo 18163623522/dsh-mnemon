@@ -598,6 +598,9 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
           </div>
         </section>
 
+        {/* DSH draws the bundle's component list right below this configuration. */}
+        <p className={css.componentListNote}>{t('config.componentListNote')}</p>
+
         <div className={css.feedback} aria-live="polite">
           {error !== null && <p className={css.error} role="alert">{error}</p>}
           {failed !== null && <p className={css.error} role="alert">{t('config.saveFailed', { error: failed })}</p>}

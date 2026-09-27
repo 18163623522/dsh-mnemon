@@ -180,7 +180,7 @@ The legacy `mnemon` Entry remains the lifecycle switch for the complete Starter.
   disabled: true
 ```
 
-This disables the Core/Host, all three bundled Sources, the default Strategy, and all three optional Strategy enhancements together. It does not remove installed packages or delete memory data. Remove the override, or change it to `false`, and restart DSH to enable the Starter again.
+This disables the Core/Host, all three bundled Sources, both main Strategies, and all three optional Strategy enhancements together. It does not remove installed packages or delete memory data. Remove the override, or change it to `false`, and restart DSH to enable the Starter again.
 
 <a id="remote-management"></a>
 <a id="dsh-011-rc2-rollback"></a>
