@@ -154,9 +154,9 @@ The [UI guide](./ui-guide.md) shows the current settings and optional enhancemen
 
 ### Workbench entry
 
-By default, open the dedicated workbench from Memory System in the DSH sidebar. Choose Builtin in Settings, or set `displayMode: builtin`, to show the same Source pages as a conversation tab instead. Save switches the entry live without changing stored data.
+By default, open the dedicated workbench from Memory System in the DSH sidebar. Choose **Conversation tab** under **Interface → Entry placement** in Settings, or set `displayMode: builtin`, to show the same Source pages as a conversation tab instead. Save switches the entry live without changing stored data.
 
-### Storage location
+### Storage scope
 
 | Scope | Root | Best suited for |
 |---|---|---|
@@ -165,7 +165,7 @@ By default, open the dedicated workbench from Memory System in the DSH sidebar. 
 | **Custom** | `dataDir` | A dedicated disk, mounted volume, or explicit directory |
 | **Centralized workspaces** | `<central-root>/workspaces/<workspace-path-hash>/` | Central management with project isolation |
 
-For centralized project isolation, select `storageScope: workspaces` and optionally set `dataDir`; data is stored in `<central-root>/workspaces/<workspace-path-hash>/`. The directory setting appears alongside the scope selector. Existing roots are retained when switching modes.
+In the Settings **Storage** group, **Storage scope** selects Global, Workspace or Centralized, and one **Data directory** field completes it: under Global it is the default when empty and the custom (`custom`) directory when set; under Centralized it is the optional central root, and data is stored in `<central-root>/workspaces/<workspace-path-hash>/`. Existing roots are retained when switching modes.
 
 Save initializes a candidate runtime graph before atomically switching the Host. The page clears stale state and reloads automatically—no browser refresh is needed. Changing scope never migrates, merges, or deletes old data.
 
