@@ -17,6 +17,7 @@
       "default": "./lib/provider-sdk.js"
     },
     "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
     "./testing": {
       "types": "./lib/testing.d.ts",
       "default": "./lib/testing.js"
@@ -39,6 +40,7 @@
   },
   "files": [
     "lib",
+    "locale",
     "README.md",
     "presentation"
   ],

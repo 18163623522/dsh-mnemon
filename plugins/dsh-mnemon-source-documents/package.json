@@ -13,6 +13,7 @@
       "default": "./lib/index.js"
     },
     "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json",
     "./client": {
       "types": "./lib/types/client.d.ts",
       "default": "./lib/client.js"
@@ -27,6 +28,7 @@
   },
   "files": [
     "lib",
+    "locale",
     "README.md",
     "presentation"
   ],

@@ -532,6 +532,8 @@ export interface StatusView {
 }
 
 export type MnemonPackComponent = 'runtime' | 'documents' | 'memory-spaces'
+/** The Sources that keep their data in Mnemon's data directory, in the order a backup lists them. */
+export const MNEMON_PACK_COMPONENTS = ['runtime', 'documents', 'memory-spaces'] as const satisfies readonly MnemonPackComponent[]
 export type MnemonPackScope = 'full' | MnemonPackComponent
 export type MnemonPackImportMode = 'merge' | 'replace'
 

@@ -98,9 +98,31 @@ helper 校验并冻结元信息副本，不执行 factory；返回的 `create(co
 | 扩展的 `strategyTypeId` | `'*'` 或所选主策略的类型与其他增强并列；其他类型收入“适用于其他主策略”的折叠分组 |
 | `requires`、`provides` | 开启组件时，若它需要的能力没有组件提供，会一同开启第一个已安装的提供者；关闭组件时，会一同关闭因此失去所需能力的组件。主策略的最后一个来源不能关闭，该开关会被拒绝。行内以关联标签点名它需要的唯一提供者、以及只依赖它的运行中组件；组件详情列出全部关系 |
 | `provides[].exclusive`、扩展的 `slot` | 两个组件声明同一能力且任一方独占，或两个扩展为有交集的主策略填充同一槽位时，不能同时运行：开启一个会关闭另一个 |
-| `memoryStrategyConfiguration.fields` | 行内的齿轮，以及组件详情中的选项，每个字段一个控件，带名称、说明、默认值与限制；`source-list` 提供角色属于 `sourceRoles` 的运行中 Source 实例 |
+| `memoryStrategyConfiguration.fields` | 行内的齿轮，以及组件页中的选项，每个字段一个控件，带名称、说明、默认值与限制；改动后才出现**应用**。`source-list` 提供角色属于 `sourceRoles` 的运行中 Source 实例，以注册它们的组件命名 |
 
 组件详情说明开关还会带动哪些组件，开关后的提示条会点名实际变化并提供**撤销**。请准确声明 `requires` 与 `provides`：用户正是通过它们看到插件需要什么、不能与什么同时运行。
+
+DSH 自己的插件列表从包内的 `locale/en.json` 与 `locale/zh.json`（`meta.title`、`meta.description`）读取名称与说明，需以 `./locale/*.json` 导出并列入 `files`；缺少时显示包名。请与声明中的 `label`、`description` 保持相同文字，与随附包一致，让组件在 DSH 列表与面板中名称相同。
+
+#### 组件自己的设置与状态卡片
+
+声明的选项不够用时，组件可以在 `./client` 入口把自己的设置加入它的组件页，与随附组件的做法相同：运行时记忆的用户画像范围、记忆空间的 Provider 与嵌入、默认三层的后台任务。Source 还可以提供它运行时在记忆系统“状态”页卡片上显示的内容。
+
+```tsx
+import { installMemoryComponentUI } from 'dsh-mnemon/client'
+
+export function apply(ctx) {
+  ctx.effect(() => installMemoryComponentUI(ctx, {
+    packageName: 'acme-memory-notes',
+    settings: ({ component, writable, language }) => <NotesSettings enabled={component.enabled} readOnly={!writable} language={language} />,
+    status: ({ language }) => <><strong>{notesHeadline(language)}</strong><p>{notesDetail(language)}</p></>,
+  }))
+}
+```
+
+设置渲染在 `mnemon.component.settings` 区域，以插件声明中的包名为键，位于组件页的状态、关系与声明的选项之后；该组件的行会出现打开它们的齿轮。它只接收页面知道的信息：`component`（`packageName`、`label`、`enabled`）、`writable`、`language`，以及存在时对话的 `sessionId` 与 `workspace`；所需的服务请通过自己的注册注入。注册会等待 dsh-mnemon 的配置出现，调用返回的函数即结束。请遵循页面的交互规则：开关与下拉选择改动即生效，需要输入的值等待你自己的**应用**，且不并入其他分组的保存。
+
+状态卡片渲染在 `mnemon.component.status` 区域，同样以包名为键，在组件声明的名称下方显示 `<strong>` 中的一行要点与 `<p>` 中的一行说明。它接收 `component`、`language`，以及存在时记忆系统的 `sessionId` 与 `workspace`，并自行读取自己的 Source。无论是否提供内容，每个 Source 组件都有一张卡片：组件已关闭或其 Source 未运行时显示页面自己的说明，未提供内容时显示正在运行。标签页、卡片与页头都使用组件声明的名称。
 
 第三方插件仍走 DSH 原生 Profile/Loader 流程：用准确包名执行 `dsh plugin --profile <Profile> add <包名>@<版本> --save-exact`，检查其 `peerDependencies` 与 `dsh.bundle.patch`，重启后在 Profile 装配中明确激活。下载 npm 包本身不等于激活，Mnemon 也不会在当前进程热加载新代码。欢迎外部作者按本页契约贡献独立仓库；通用图形化管理会在接口和社区用例稳定后再评估，不是 v0.5 承诺。
 

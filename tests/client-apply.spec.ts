@@ -13,10 +13,11 @@ import { apply, inject } from '../src/client/index.ts'
 import { en, zh } from '../src/client/locales.ts'
 import type { MnemonActionSeat } from '../src/client/action-seat.ts'
 import { MnemonPluginActions } from '../src/client/MnemonPluginActions.tsx'
-import { MnemonSettingsHost } from '../src/client/MnemonSettingsHost.tsx'
+import { MnemonComponentRowHost, MnemonSettingsHost } from '../src/client/MnemonSettingsHost.tsx'
 import { MnemonSettingsScope } from '../src/client/settings.ts'
 import { MnemonBuiltinWorkspaceHost } from '../src/client/workspace-mount.tsx'
 import type { Config } from '../src/host/protocol.ts'
+import { STARTER_COMPONENT_ROWS } from '../src/client/starter-rows.ts'
 
 const disposers: Array<() => void> = []
 afterEach(() => {
@@ -93,7 +94,7 @@ describe('Mnemon Web client composition', () => {
     expect(inject).toEqual(['slots', 'sessions', 'workspaces', 'uiSession', 'connection', 'locale', 'layout'])
     expect(context.locale.register).toHaveBeenCalledWith('mnemon', { zh, en })
     await vi.waitFor(() => expect(slots).toEqual(expect.arrayContaining([
-      expect.objectContaining({ name: 'shell.overlay', id: 'mnemon', children: { 'mnemon.source.page': { kind: 'list', scope: 'root' } } }),
+      expect.objectContaining({ name: 'shell.overlay', id: 'mnemon', children: { 'mnemon.source.page': { kind: 'list', scope: 'root' }, 'mnemon.component.status': { kind: 'keyed', scope: 'root' } } }),
       expect.objectContaining({ name: 'conversation.chat.assistant-actions', id: 'mnemon-save' }),
     ])))
     const props = (settingsEntry.inject as () => { t: (key: keyof typeof zh) => string })()
@@ -118,6 +119,18 @@ describe('Mnemon Web client composition', () => {
     expect(props.interactionScope).toBeInstanceOf(MnemonSettingsScope)
     expect(props.interactionScope).not.toBe(scope)
     expect(props.t('config.strategyTitle')).toBe('主策略')
+    // Each component row DSH lists under the bundle opens that component's page, with the same services.
+    const rows = slots.filter(options => options.name === 'plugins.row.config')
+    expect(rows.map(row => row.key)).toEqual(STARTER_COMPONENT_ROWS.map(({ rowId }) => `dsh-mnemon#${rowId}`))
+    for (const row of rows) {
+      // Only the configuration declares the settings region; a row page renders what was registered there.
+      expect(row).toMatchObject({ locale: 'mnemon' })
+      expect(row.children).toBeUndefined()
+      expect(context.slots.register).toHaveBeenCalledWith(row, MnemonComponentRowHost)
+      const injected = (row.inject as () => Record<string, unknown>)()
+      expect(injected).toMatchObject({ scope, component: STARTER_COMPONENT_ROWS.find(({ rowId }) => `dsh-mnemon#${rowId}` === row.key)!.packageName })
+      expect(injected.renderContributed).toBeTypeOf('function')
+    }
   })
 
   it('links the memory workspace and its configuration through the Plugins page', async () => {

@@ -340,11 +340,13 @@
 @keyframes mnemon-metadata-refreshed { 0% { border-color: color-mix(in srgb, var(--mn-accent) 60%, var(--mn-card-line)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--mn-accent) 14%, transparent); } 100% { border-color: var(--mn-card-line); box-shadow: 0 0 0 0 transparent; } }
 
 /* Status overview: one settings-card surface split into four cells. */
-.healthStrip { position: relative; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; overflow: hidden; border: .5px solid var(--mn-card-line); border-radius: var(--dsw-radius-lg); }
+/* One card for the engine and one per Source component, however many are
+   installed: cards share each row, and the hairlines between them fall on
+   the first row and column outside the clip. */
+.healthStrip { position: relative; display: flex; flex-wrap: wrap; margin-bottom: 16px; overflow: hidden; border: .5px solid var(--mn-card-line); border-radius: var(--dsw-radius-lg); }
 .asyncStatusBlock { position: relative; min-width: 0; min-height: 36px; }
-.healthStrip article { display: flex; min-width: 0; min-height: 76px; box-sizing: border-box; align-items: flex-start; gap: 10px; padding: 14px 16px; border-right: .5px solid var(--mn-line); }
+.healthStrip article { display: flex; min-width: 0; min-height: 76px; box-sizing: border-box; flex: 1 1 150px; align-items: flex-start; gap: 10px; margin: -.5px 0 0 -.5px; padding: 14px 16px; border-top: .5px solid var(--mn-line); border-left: .5px solid var(--mn-line); }
 .healthStrip article > div { min-width: 0; }
-.healthStrip article:last-child { border-right: 0; }
 .healthStrip small { display: block; margin-bottom: 2px; color: var(--mn-faint); font-size: 12px; line-height: 18px; }
 .healthStrip strong { display: block; overflow: hidden; font-size: 14px; font-weight: 500; line-height: 22px; text-overflow: ellipsis; white-space: nowrap; }
 .healthStrip p { margin: 2px 0 0; overflow: hidden; color: var(--mn-faint); font-size: 12px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
@@ -497,13 +499,11 @@
   .page { padding: 16px 16px calc(170px + env(safe-area-inset-bottom, 0px)); }
   .pageHeader { display: grid; gap: 10px; }
   .pageHeaderMeta { justify-content: flex-start; }
-  .healthStrip { grid-template-columns: 1fr; }
+  .healthStrip article { flex-basis: 100%; }
   .providerHealthMeta { align-items: flex-end; flex-direction: column; gap: 4px; }
   .storageRoot { align-items: flex-start; flex-direction: column; }
   .storageRoot > div:last-child { justify-items: start; }
   .storageAreaGrid { grid-template-columns: 1fr; }
-  .healthStrip article { border-right: 0; border-bottom: .5px solid var(--mn-line); }
-  .healthStrip article:last-child { border-bottom: 0; }
 }
 
 @media (max-width: 520px) {

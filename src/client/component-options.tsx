@@ -1,15 +1,15 @@
 import { useId, useState, type JSX } from 'react'
-import { Button, Checkbox, TextShimmer } from '@deepseek-ai/dsh-client-ui-primitives'
+import { Checkbox } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MemoryJsonValue } from '../core/contracts/index.ts'
 import type { MemoryPluginEntryView, MemoryViewDashboard } from '../host/view-protocol.ts'
-import type { MnemonKey, MnemonTranslate } from './locales.ts'
+import { componentCopy } from './component-copy.ts'
+import type { MnemonTranslate } from './locales.ts'
 import css from './MnemonSettingsCard.module.css'
+import { PanelActions } from './settings-panel.tsx'
 
 type Field = MemoryPluginEntryView['fields'][number]
 type Config = Record<string, MemoryJsonValue>
 
-/** Names of the shipped Source types, as the composition lists them. */
-const SOURCE_COPY: Readonly<Record<string, MnemonKey>> = { runtime: 'layers.runtimeLabel', documents: 'layers.documentsLabel', 'memory-spaces': 'layers.memorySpacesLabel' }
 /** The Host's limits on a list option, from the configuration contract. */
 const LIST_ITEMS = 32
 const LIST_ITEM_LENGTH = 500
@@ -64,22 +64,21 @@ export interface ComponentOptionsProps {
   entry: MemoryPluginEntryView
   /** The component's name as the page shows it. */
   name: string
-  /** The running Source instances a Source list chooses from. */
-  sources: MemoryViewDashboard['sources']
+  /** The running Source instances a Source list chooses from, named by their components. */
+  dashboard: Pick<MemoryViewDashboard, 'sources' | 'entries'>
   language: string
   t: MnemonTranslate
   disabled: boolean
   /** While the options cross the wire. */
   pending: boolean
-  onApply: (config: Config) => void
-  onCancel: () => void
+  onApply: (config: Config) => Promise<boolean>
 }
 
 /**
  * A component's options, drawn from the fields it declares, so an installed
- * Strategy or enhancement brings its own settings. Edits stay staged until
- * applied together; an option left at its default is not written, and one
- * set here can be put back to its default.
+ * Strategy or enhancement brings its own settings. Typed values wait for
+ * Apply, which appears once something changed; an option left at its default
+ * is not written, and one set here can be put back to its default.
  */
 export function ComponentOptions(props: ComponentOptionsProps): JSX.Element {
   const { entry, t } = props
@@ -90,10 +89,16 @@ export function ComponentOptions(props: ComponentOptionsProps): JSX.Element {
   const results = entry.fields.map(field => ({ field, result: parse(field, draft[field.key]!, t) }))
   const invalid = results.some(({ field, result }) => draft[field.key]!.own && 'error' in result)
   const config: Config = Object.fromEntries(results.flatMap(({ field, result }) => draft[field.key]!.own && 'value' in result ? [[field.key, result.value]] : []))
-  const changed = JSON.stringify(config) !== JSON.stringify(Object.fromEntries(entry.fields.flatMap(field => Object.hasOwn(entry.config, field.key) ? [[field.key, entry.config[field.key]!]] : [])))
+  // Any edit shows Apply, a refused value included, so the page can say what to fix.
+  const edited = JSON.stringify(draft) !== JSON.stringify(initial(entry))
   const edit = (field: Field, next: Partial<Staged>): void => setDraft(current => ({ ...current, [field.key]: { ...current[field.key]!, ...next, own: true } }))
   const reset = (field: Field): void => setDraft(current => ({ ...current, [field.key]: staged(field, undefined, false) }))
   const locked = props.disabled || props.pending
+  // A Source is named by the component that registered it, as everywhere else.
+  const sourceName = (sourceTypeId: string, fallback: string): string => {
+    const component = props.dashboard.entries.find(candidate => candidate.roles.includes('source') && candidate.typeId === sourceTypeId)
+    return component === undefined ? fallback : componentCopy(component, props.language).label
+  }
 
   return <div className={css.optionsPanel} role="group" aria-label={t('options.aria', { component: props.name })}>
     {results.map(({ field, result }) => {
@@ -111,7 +116,7 @@ export function ComponentOptions(props: ComponentOptionsProps): JSX.Element {
             : <span className={css.optionDefault}>{t('options.default')}</span>}
         </div>
         {field.input === 'source-list'
-          ? <SourceChoice field={field} value={value} sources={props.sources} labelledBy={`${control}-label`} disabled={locked} t={t} onChange={sources => edit(field, { sources })} />
+          ? <SourceChoice field={field} value={value} sources={props.dashboard.sources} name={sourceName} labelledBy={`${control}-label`} disabled={locked} t={t} onChange={sources => edit(field, { sources })} />
           : field.input === 'textarea' || field.input === 'string-list'
             ? <textarea id={control} className={css.optionInput} rows={field.input === 'string-list' ? 3 : 4} value={value.text} disabled={locked}
               aria-invalid={error !== undefined} aria-describedby={describedBy} onChange={event => edit(field, { text: event.target.value })} />
@@ -120,17 +125,14 @@ export function ComponentOptions(props: ComponentOptionsProps): JSX.Element {
         {describedBy !== undefined && <small id={describedBy} className={css.optionHint} data-error={error === undefined ? undefined : ''}>{hint}</small>}
       </div>
     })}
-    <div className={css.optionsActions}>
-      <Button variant="ghost" size="sm" disabled={props.pending} onClick={props.onCancel}>{t('common.cancel')}</Button>
-      <Button variant="primary" size="sm" disabled={locked || invalid || !changed} aria-busy={props.pending || undefined} onClick={() => props.onApply(config)}>
-        {props.pending ? <TextShimmer active>{t('options.applying')}</TextShimmer> : t('options.apply')}
-      </Button>
-    </div>
+    {/* A refused save keeps the edits; the page's notice says why. */}
+    <PanelActions dirty={edited} saving={props.pending} invalid={invalid ? t('options.fix') : null} failed={null} applied={false}
+      disabled={props.disabled} t={t} onDiscard={() => setDraft(initial(entry))} onApply={() => { void props.onApply(config) }} />
   </div>
 }
 
 /** Sources a Strategy may use, in the order chosen; ones no longer running stay listed so they can be removed. */
-function SourceChoice(props: { field: Field; value: Staged; sources: MemoryViewDashboard['sources']; labelledBy: string; disabled: boolean; t: MnemonTranslate; onChange: (sources: string[]) => void }): JSX.Element {
+function SourceChoice(props: { field: Field; value: Staged; sources: MemoryViewDashboard['sources']; name: (sourceTypeId: string, fallback: string) => string; labelledBy: string; disabled: boolean; t: MnemonTranslate; onChange: (sources: string[]) => void }): JSX.Element {
   const { field, value, t } = props
   const eligible = props.sources.filter(source => field.sourceRoles === undefined || field.sourceRoles.length === 0 || field.sourceRoles.includes(source.role))
   const missing = value.sources.filter(key => !eligible.some(source => source.sourceInstanceKey === key))
@@ -139,8 +141,7 @@ function SourceChoice(props: { field: Field; value: Staged; sources: MemoryViewD
   if (eligible.length === 0 && missing.length === 0) return <p className={css.optionEmpty}>{t('options.noSources')}</p>
   return <div className={css.optionChoices} role="group" aria-labelledby={props.labelledBy}>
     {eligible.map(source => {
-      const shipped = SOURCE_COPY[source.sourceTypeId]
-      const label = shipped === undefined ? source.label : t(shipped)
+      const label = props.name(source.sourceTypeId, source.label)
       return <Checkbox key={source.sourceInstanceKey} checked={value.sources.includes(source.sourceInstanceKey)} disabled={props.disabled}
         label={several(source.sourceTypeId) ? `${label} · ${source.sourceInstanceKey}` : label} onChange={on => toggle(source.sourceInstanceKey, on)} />
     })}

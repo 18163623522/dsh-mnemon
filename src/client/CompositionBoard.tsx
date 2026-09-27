@@ -1,9 +1,9 @@
-import { useId, useState, type JSX, type ReactNode } from 'react'
+import { useId, useMemo, useState, type JSX, type ReactNode } from 'react'
 import { IconChevronDownOutlineRegular, IconLinkOutlineRegular, IconSearchOutlineRegular, IconSettingsOutlineRegular, StateDot, Switch, TextShimmer } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { MemoryCompositionStatus } from '../host/protocol.ts'
 import type { MemoryPluginEntryView, MemoryPluginPreference, MemoryViewDashboard } from '../host/view-protocol.ts'
 import { componentCopy, nameList } from './component-copy.ts'
-import { ComponentDetails, MainChoice, type ComponentState } from './component-details.tsx'
+import { ComponentDetails, ComponentPage, MainChoice, type ComponentDetailsProps, type ComponentState } from './component-details.tsx'
 import { componentModel, enhancementApplies, layerOf, mainPlan, relationsOf, sourceOf, switchPlan, unmetRequirements, type MemoryComponentModel, type SwitchPlan } from './component-model.ts'
 import { ActionButton, Callout, Reveal, TARGET } from './feedback.tsx'
 import type { MnemonKey, MnemonTranslate } from './locales.ts'
@@ -25,6 +25,58 @@ const SEARCH_FROM = 8
 
 type View = { store: MnemonViewStore; state: MnemonViewState }
 type Name = (entry: MemoryPluginEntryView) => string
+
+/** The settings components contribute to their own pages. */
+export interface ComponentSettingsRenderer {
+  has(packageName: string): boolean
+  render(entry: MemoryPluginEntryView, writable: boolean): ReactNode
+}
+
+/**
+ * The component pages open, newest last. A page opened from another page can
+ * go back to it; one opened from the configuration starts a new trail.
+ */
+export interface PageTrail {
+  trail: readonly string[]
+  open(entryId: string, from: 'configuration' | 'page'): void
+  back(): void
+  close(): void
+}
+
+export function usePageTrail(): PageTrail {
+  const [trail, setTrail] = useState<readonly string[]>([])
+  return useMemo(() => ({
+    trail,
+    open: (entryId, from) => setTrail(current => from === 'page' ? current.at(-1) === entryId ? current : [...current, entryId] : [entryId]),
+    back: () => setTrail(current => current.slice(0, -1)),
+    close: () => setTrail([]),
+  }), [trail])
+}
+
+/** A component's name, which opens its page; underlined on hover. */
+export function PageLink(props: { label: string; onOpen: () => void }): JSX.Element {
+  return <button type="button" className={css.pageLink} aria-haspopup="dialog" onClick={props.onOpen}><span>{props.label}</span></button>
+}
+
+/** The gear that opens a component's page where its settings are: the page's visible way in. */
+export function SettingsGear(props: { label: string; onOpen: () => void }): JSX.Element {
+  return <button type="button" className={css.boardIconButton} aria-haspopup="dialog" aria-label={props.label} title={props.label} onClick={props.onOpen}>
+    <IconSettingsOutlineRegular size={16} />
+  </button>
+}
+
+/** Components named as chips, each opening its page; the dot-less chip is one switched off. */
+export function ComponentChips(props: { label?: string | undefined; chips: readonly { key: string; name: string; on: boolean; title: string; open: (() => void) | undefined }[] }): JSX.Element | null {
+  if (props.chips.length === 0) return null
+  return <span className={css.boardLinks}>
+    {props.label !== undefined && <span className={css.boardLinksLabel}>{props.label}</span>}
+    {props.chips.map(chip => chip.open === undefined
+      ? <span key={chip.key} className={css.boardLink} title={chip.title} data-on={chip.on ? '' : undefined}><IconLinkOutlineRegular size={12} />{chip.name}</span>
+      : <button key={chip.key} type="button" className={css.boardLink} aria-haspopup="dialog" title={chip.title} data-on={chip.on ? '' : undefined} onClick={chip.open}>
+        <IconLinkOutlineRegular size={12} />{chip.name}
+      </button>)}
+  </span>
+}
 
 /** The saved layer switch, for a layer an earlier configuration turned off. */
 export interface LayerSettings {
@@ -75,6 +127,7 @@ interface Relation {
   on: boolean
   /** Which way the relation goes, for the tooltip. */
   title: string
+  open: () => void
 }
 
 /** One row of the board: a component, or a saved memory layer whose component cannot be read. */
@@ -92,32 +145,23 @@ interface BoardItem {
 }
 
 /**
- * A component as a preference row: its name and what it does, which open
- * its page; its state as DSH's component list shows it; a gear when it has
- * options; and its switch.
+ * A component as a preference row: its name and what it does; the components
+ * it relates to, each opening its own page; its state as DSH shows it; a gear
+ * where it has settings of its own; and its switch. The gear and the name
+ * both open the component's page.
  */
-function BoardRow(props: { item: BoardItem; t: MnemonTranslate; onOpen: (() => void) | undefined }): JSX.Element {
+function BoardRow(props: { item: BoardItem; configurable: boolean; t: MnemonTranslate; onOpen: (() => void) | undefined }): JSX.Element {
   const { item, t } = props
-  const copy = <>
-    <strong>{item.label}</strong>
-    {item.hint !== '' && <small>{item.hint}</small>}
-    {item.relations.length > 0 && <span className={css.boardLinks}>
-      {item.relations.map(relation => <span key={relation.key} className={css.boardLink} title={relation.title} data-on={relation.on ? '' : undefined}>
-        <IconLinkOutlineRegular size={12} />{relation.name}
-      </span>)}
-    </span>}
-  </>
   return <div className={css.boardRow} {...{ [TARGET]: item.target }}>
     <div className={css.boardRowLine}>
-      {props.onOpen === undefined
-        ? <div className={css.settingCopy}>{copy}</div>
-        : <button type="button" className={`${css.settingCopy} ${css.boardRowCopy}`} aria-haspopup="dialog" onClick={props.onOpen}>{copy}</button>}
+      <div className={css.settingCopy}>
+        {props.onOpen === undefined ? <strong>{item.label}</strong> : <PageLink label={item.label} onOpen={props.onOpen} />}
+        {item.hint !== '' && <small>{item.hint}</small>}
+        <ComponentChips chips={item.relations} />
+      </div>
       <div className={css.boardControl}>
         {item.state !== undefined && <StateLabel state={item.state} />}
-        {props.onOpen !== undefined && item.entry !== undefined && item.entry.fields.length > 0 && <button type="button" className={css.boardIconButton}
-          aria-haspopup="dialog" aria-label={t('options.aria', { component: item.label })} title={t('options.aria', { component: item.label })} onClick={props.onOpen}>
-          <IconSettingsOutlineRegular size={16} />
-        </button>}
+        {props.onOpen !== undefined && props.configurable && <SettingsGear label={t('options.aria', { component: item.label })} onOpen={props.onOpen} />}
         <Switch className={css.switch} checked={item.checked} label={item.label} disabled={item.disabled} onChange={item.onSwitch} />
       </div>
     </div>
@@ -146,6 +190,12 @@ export interface CompositionBoardProps {
   layers: LayerSettings
   /** While the saved memory layers are still being read. */
   systemPending?: boolean
+  /** The settings components contribute to their pages. */
+  componentSettings?: ComponentSettingsRenderer
+  /** The pages open, when the configuration opens them from elsewhere too. */
+  pages?: PageTrail
+  /** Show only this component's page, by its package name, as DSH's row page does; related pages open over it. */
+  page?: string | undefined
   readOnly: boolean
   language: string
   t: MnemonTranslate
@@ -164,14 +214,16 @@ export function CompositionBoard(props: CompositionBoardProps): JSX.Element | nu
   const { view, system, t, language } = props
   const instance = useId()
   const [layerPending, setLayerPending] = useState<{ layerId: string; on: boolean } | null>(null)
-  const [opened, setOpened] = useState<string | null>(null)
+  const ownPages = usePageTrail()
+  const pages = props.pages ?? ownPages
   const [othersOpen, setOthersOpen] = useState(false)
   const [query, setQuery] = useState('')
   const dashboard = view.state.dashboard
   // Without the View the components cannot be read, but the saved memory
   // layers can still be switched.
   const componentsUnavailable = dashboard === null && view.state.status === 'unavailable'
-  if (componentsUnavailable && system === null) return null
+  const pageMode = props.page !== undefined
+  if (componentsUnavailable && (pageMode || system === null)) return pageMode ? <p className={css.boardEmpty} role="status">{t('board.componentsUnavailable')}</p> : null
   const name: Name = entry => componentCopy(entry, language).label
   const model = dashboard === null ? undefined : componentModel(dashboard)
   const working = view.state.working
@@ -194,6 +246,7 @@ export function CompositionBoard(props: CompositionBoardProps): JSX.Element | nu
     <div className={css.board}>{content}</div>
   </section>
   if (model === undefined && !componentsUnavailable) {
+    if (pageMode) return <p className={css.boardLoading} role="status"><StateDot state="ongoing" /><TextShimmer active>{t('board.loading')}</TextShimmer></p>
     return frame(<>
       <p className={css.boardLoading} role="status"><StateDot state="ongoing" /><TextShimmer active>{t('board.loading')}</TextShimmer></p>
       {placeholders(4)}
@@ -221,8 +274,8 @@ export function CompositionBoard(props: CompositionBoardProps): JSX.Element | nu
   const relationsFor = (entry: MemoryPluginEntryView): Relation[] => {
     const relations = relationsOf(dashboard!, entry)
     const needs = relations.needs.flatMap(need => need.providers.length === 1 ? [need.providers[0]!] : [])
-      .map(other => ({ key: 'needs:' + other.entryId, name: name(other), on: other.enabled, title: t('board.relationNeeds', { component: name(other) }) }))
-    const neededBy = relations.neededBy.map(other => ({ key: 'by:' + other.entryId, name: name(other), on: true, title: t('board.relationNeededBy', { component: name(other) }) }))
+      .map(other => ({ key: 'needs:' + other.entryId, name: name(other), on: other.enabled, title: t('board.relationNeeds', { component: name(other) }), open: () => pages.open(other.entryId, 'configuration') }))
+    const neededBy = relations.neededBy.map(other => ({ key: 'by:' + other.entryId, name: name(other), on: true, title: t('board.relationNeededBy', { component: name(other) }), open: () => pages.open(other.entryId, 'configuration') }))
     return [...needs, ...neededBy]
   }
   /** A component's own row: its switch brings or takes along what depends on it. */
@@ -279,8 +332,10 @@ export function CompositionBoard(props: CompositionBoardProps): JSX.Element | nu
   const total = sourceItems.length + others.length
   const needle = query.trim().toLowerCase()
   const matches = (item: BoardItem): boolean => needle === '' || [item.label, item.hint, item.entry?.packageName ?? ''].some(text => text.toLowerCase().includes(needle))
-  const openRow = (entry: MemoryPluginEntryView | undefined): (() => void) | undefined => entry === undefined ? undefined : () => setOpened(entry.entryId)
-  const rows = (items: readonly BoardItem[]): JSX.Element[] => items.filter(matches).map(item => <BoardRow key={item.key} item={item} t={t} onOpen={openRow(item.entry)} />)
+  const openRow = (entry: MemoryPluginEntryView | undefined): (() => void) | undefined => entry === undefined ? undefined : () => pages.open(entry.entryId, 'configuration')
+  // A gear marks a component with settings of its own: declared options, or settings it contributed.
+  const configurable = (entry: MemoryPluginEntryView | undefined): boolean => entry !== undefined && (entry.fields.length > 0 || props.componentSettings?.has(entry.packageName) === true)
+  const rows = (items: readonly BoardItem[]): JSX.Element[] => items.filter(matches).map(item => <BoardRow key={item.key} item={item} configurable={configurable(item.entry)} t={t} onOpen={openRow(item.entry)} />)
   const count = (items: readonly BoardItem[]): string => t('board.enabledCount', { on: items.filter(item => item.checked).length, total: items.length })
   const otherItems = others.map(entry => componentItem(entry, 'enhancement:' + entry.entryId))
 
@@ -317,18 +372,37 @@ export function CompositionBoard(props: CompositionBoardProps): JSX.Element | nu
     if (entry === model?.composing) return { tone: 'done', text: t('board.composing') }
     return entry.enabled ? { tone: 'warning', text: t('board.notRunning') } : { tone: 'idle', text: t('board.off') }
   }
-  const open = opened === null || dashboard === null ? undefined : dashboard.entries.find(entry => entry.entryId === opened)
-  let details: ReactNode = null
-  if (open !== undefined && dashboard !== null) {
-    const isMain = open.roles.includes('strategy')
-    const item = isMain ? undefined : [...sourceItems, ...otherItems].find(candidate => candidate.entry === open)
+  /** A component's page: its state and control, as its row has them, and what it declares and contributed. */
+  const pageOf = (entry: MemoryPluginEntryView, board: MemoryViewDashboard): Omit<ComponentDetailsProps, 'onClose' | 'onOpen' | 'back'> => {
+    const isMain = entry.roles.includes('strategy')
+    const item = isMain ? undefined : [...sourceItems, ...otherItems].find(candidate => candidate.entry === entry)
     const control = isMain
-      ? <MainChoice selected={open.typeId === dashboard.strategyTypeId} disabled={locked || !open.writable} t={t} onChoose={() => { void chooseMain(view.store, dashboard, open) }} />
+      ? <MainChoice selected={entry.typeId === board.strategyTypeId} disabled={locked || !entry.writable} t={t} onChoose={() => { void chooseMain(view.store, board, entry) }} />
       : item === undefined ? null : <Switch className={css.switch} checked={item.checked} label={item.label} disabled={item.disabled} onChange={item.onSwitch} />
-    details = <ComponentDetails entry={open} dashboard={dashboard} name={name} hint={componentCopy(open, language).hint}
-      state={isMain ? mainState(open) : item?.state} control={control} writable={!locked} applying={working?.key === 'options:' + open.entryId} language={language} t={t}
-      onClose={() => setOpened(null)}
-      onApply={config => { void view.store.configure('options:' + open.entryId, open, config).then(saved => { if (saved) setOpened(null) }) }} />
+    return {
+      entry, dashboard: board, name, hint: componentCopy(entry, language).hint,
+      state: isMain ? mainState(entry) : item?.state, control, writable: !locked, applying: working?.key === 'options:' + entry.entryId, language, t,
+      settings: props.componentSettings?.has(entry.packageName) === true ? props.componentSettings.render(entry, !props.readOnly) : undefined,
+      onApply: config => view.store.configure('options:' + entry.entryId, entry, config),
+    }
+  }
+  const openedId = pages.trail.at(-1)
+  const open = openedId === undefined || dashboard === null ? undefined : dashboard.entries.find(entry => entry.entryId === openedId)
+  const previous = pages.trail.length < 2 || dashboard === null ? undefined : dashboard.entries.find(entry => entry.entryId === pages.trail.at(-2))
+  const details: ReactNode = open === undefined || dashboard === null ? null : <ComponentDetails {...pageOf(open, dashboard)}
+    {...(previous === undefined ? {} : { back: { name: name(previous), go: pages.back } })}
+    onOpen={other => pages.open(other.entryId, 'page')}
+    onClose={pages.close} />
+
+  // DSH's row page shows the component's own page in place; a related name opens over it.
+  if (pageMode) {
+    const own = dashboard?.entries.find(entry => entry.packageName === props.page)
+    return <section className={css.componentRowPage} aria-busy={working !== null}>
+      {own === undefined || dashboard === null
+        ? <p className={css.boardEmpty} role="status">{t('board.componentsUnavailable')}</p>
+        : <ComponentPage {...pageOf(own, dashboard)} headed onOpen={other => pages.open(other.entryId, 'configuration')} />}
+      {details}
+    </section>
   }
 
   return frame(<>
@@ -336,7 +410,7 @@ export function CompositionBoard(props: CompositionBoardProps): JSX.Element | nu
       {...(problem.actions.length === 0 ? {} : { actions: problem.actions.map(action => <ActionButton key={action.key} label={action.label} disabled={locked}
         {...(action.primary === true ? { primary: true } : {})} onClick={action.run} />) })} />}</Reveal>
     {model !== undefined && <MainStrategyRow {...props} model={model} dashboard={dashboard!} locked={locked} name={name}
-      pending={working?.key.startsWith('strategy:') === true} onOpen={model.selected === undefined ? undefined : () => setOpened(model.selected!.entryId)} />}
+      pending={working?.key.startsWith('strategy:') === true} onOpen={model.selected === undefined ? undefined : () => pages.open(model.selected!.entryId, 'configuration')} />}
     {total > SEARCH_FROM && <label className={css.boardSearch}>
       <IconSearchOutlineRegular size={14} />
       <input type="search" value={query} placeholder={t('board.search')} aria-label={t('board.search')} onChange={event => setQuery(event.target.value)} />
@@ -360,7 +434,7 @@ function rank(role: string): number {
 /**
  * The main Strategy as a choice of one, the same way however many are
  * installed: a selector naming each with its description. Its gear opens the
- * selected Strategy's page, with its options.
+ * selected Strategy's page, with its options and settings.
  */
 function MainStrategyRow(props: CompositionBoardProps & { model: MemoryComponentModel; dashboard: MemoryViewDashboard; locked: boolean; pending: boolean; name: Name; onOpen: (() => void) | undefined }): JSX.Element | null {
   const { model, dashboard, t } = props
@@ -380,10 +454,7 @@ function MainStrategyRow(props: CompositionBoardProps & { model: MemoryComponent
       </div>
       <div className={css.boardControl}>
         {props.pending && <StateLabel state={{ text: t('board.switching'), pending: true }} />}
-        {props.onOpen !== undefined && <button type="button" className={css.boardIconButton} aria-haspopup="dialog"
-          aria-label={t('details.open', { component: props.name(selected!) })} title={t('details.open', { component: props.name(selected!) })} onClick={props.onOpen}>
-          <IconSettingsOutlineRegular size={16} />
-        </button>}
+        {props.onOpen !== undefined && <SettingsGear label={t('details.open', { component: props.name(selected!) })} onOpen={props.onOpen} />}
         {mains.length === 1
           ? <span className={css.boardValue}>{props.name(mains[0]!)}</span>
           : <SettingSelect labelledBy={`${id}-title`} value={dashboard.strategyTypeId} disabled={props.locked} onChange={choose}

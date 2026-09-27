@@ -16,10 +16,12 @@
       "types": "./lib/extension-sdk.d.ts",
       "default": "./lib/extension-sdk.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./locale/*.json": "./locale/*.json"
   },
   "files": [
     "lib",
+    "locale",
     "README.md"
   ],
   "scripts": {

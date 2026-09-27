@@ -16,9 +16,12 @@
   font-family: inherit;
 }
 
-.page *, .page *::before, .page *::after { box-sizing: border-box; }
-/* Element resets carry no weight, so every control class below wins. */
-:where(.page) :where(button, input, select, textarea) { color: inherit; font: inherit; }
+/* Every root the settings draw in: the page, and each component page, which
+   DSH's Modal renders outside it. Element resets carry no weight, so every
+   control class below wins. */
+.surface { color: var(--dsw-alias-label-primary); }
+:where(.page, .surface) *, :where(.page, .surface) *::before, :where(.page, .surface) *::after { box-sizing: border-box; }
+:where(.page, .surface) :where(button, input, select, textarea) { color: inherit; font: inherit; }
 
 .loading {
   min-height: 140px;
@@ -34,6 +37,7 @@
 .sectionHeading h2 { grid-column: 1; margin: 0; font-size: 14px; font-weight: 500; line-height: 20px; }
 .sectionHeading p { grid-column: 1; max-width: 66ch; margin: 2px 0 0; color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }
 .sectionHeading .miniSpinner { grid-column: 2; grid-row: 1; }
+.sectionHeading > .boardLinks { grid-column: 1; padding-top: 6px; }
 /* About DSH's component list below the configuration, where the Starter's group row cannot be switched. */
 .componentListNote { max-width: 72ch; margin: 0; color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }
 /* Groups whose controls write at once, unlike the staged groups saved from the bar below. */
@@ -81,20 +85,29 @@
 .boardGroupHead { display: flex; min-width: 0; align-items: baseline; justify-content: space-between; gap: 8px; }
 .boardGroupHead h3 { margin: 0; color: var(--dsw-alias-label-tertiary); font-size: 12px; font-weight: 500; line-height: 18px; }
 .boardGroupHead span { color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; white-space: nowrap; }
-/* A component's name and description open its page. */
-.boardRowCopy { appearance: none; margin: -4px -6px; border: 0; border-radius: var(--dsw-radius-md); padding: 4px 6px; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; transition: background-color 120ms ease; }
-.boardRowCopy:hover { background: var(--dsw-alias-interactive-bg-hover); }
-/* The components a row relates to, named at a glance. */
-.boardLinks { display: flex; min-width: 0; flex-wrap: wrap; gap: 4px; padding-top: 4px; }
-.boardLink { display: inline-flex; max-width: 100%; align-items: center; gap: 4px; border: .5px solid var(--dsw-alias-border-l3); border-radius: 999px; padding: 0 8px; color: var(--dsw-alias-label-tertiary); font-size: 11px; line-height: 18px; white-space: nowrap; }
-.boardLink[data-on] { color: var(--dsw-alias-label-secondary); }
-.boardLink > svg { flex: none; }
-.boardRowCopy:focus-visible, .boardIconButton:focus-visible, .boardSearch:focus-within { outline: none; box-shadow: 0 0 0 2px var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary)); }
+/* A component's name opens its page too, underlined on hover; the gear is the visible way in. */
+.pageLink { appearance: none; display: inline-flex; max-width: 100%; align-items: center; border: 0; border-radius: var(--dsw-radius-sm); padding: 0; color: inherit; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.pageLink > span { min-width: 0; overflow-wrap: anywhere; }
+.pageLink:hover > span { text-decoration: underline; text-underline-offset: 3px; }
+.settingCopy .pageLink { width: fit-content; color: var(--dsw-alias-label-primary); font-size: 14px; line-height: 22px; }
+/* The gear: a component's settings, on its page. */
 .boardIconButton { display: inline-grid; width: 28px; height: 28px; flex: none; place-items: center; border: 0; border-radius: var(--dsw-radius-sm); padding: 0; color: var(--dsw-alias-label-secondary); background: transparent; cursor: pointer; }
 .boardIconButton:hover { color: var(--dsw-alias-label-primary); background: var(--dsw-alias-interactive-bg-hover); }
+/* The components a row relates to, named at a glance; each opens its page. */
+.boardLinks { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 4px; padding-top: 4px; }
+.boardLink { appearance: none; display: inline-flex; max-width: 100%; align-items: center; gap: 4px; border: .5px solid var(--dsw-alias-border-l3); border-radius: 999px; padding: 0 8px; color: var(--dsw-alias-label-tertiary); background: transparent; font: inherit; font-size: 11px; line-height: 18px; white-space: nowrap; cursor: pointer; transition: color 120ms ease, border-color 120ms ease; }
+.boardLink[data-on] { color: var(--dsw-alias-label-secondary); }
+.boardLink:hover { border-color: var(--dsw-alias-border-l4); color: var(--dsw-alias-label-primary); }
+.boardLink > svg { flex: none; }
+.boardLinksLabel { color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }
+.pageLink:focus-visible, .boardIconButton:focus-visible, .boardLink:focus-visible, .detailsBack:focus-visible, .boardSearch:focus-within { outline: none; box-shadow: 0 0 0 2px var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary)); }
 .boardSearch { display: flex; min-width: 0; align-items: center; gap: 8px; margin: 12px 0 0; border: .5px solid var(--dsw-alias-border-l3); border-radius: var(--dsw-radius-md); padding: 0 10px; color: var(--dsw-alias-label-tertiary); background: var(--dsw-alias-bg-base); }
 .boardSearch input { min-width: 0; height: 32px; flex: 1; border: 0; outline: none; color: var(--dsw-alias-label-primary); background: transparent; font: inherit; font-size: 13px; }
-/* A component's page: what it is, how it relates to the others, its options. */
+/* A component's page: what it is, how it relates to the others, its options.
+   The card grows to fit a component's own settings and scrolls inside the
+   Modal's padding box, as DSH asks of its consumers. */
+.detailsDialog { width: min(560px, 100%); max-height: 100%; }
+.detailsScroll { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .detailsBody { display: flex; min-width: 0; flex-direction: column; gap: 16px; }
 .detailsHead { display: flex; min-width: 0; flex-direction: column; gap: 6px; }
 .detailsHeadLine { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
@@ -106,10 +119,31 @@
 .detailsRelations > div { display: contents; }
 .detailsRelations dt { color: var(--dsw-alias-label-secondary); }
 .detailsRelations dd { display: flex; min-width: 0; flex-wrap: wrap; gap: 4px 12px; margin: 0; color: var(--dsw-alias-label-primary); }
-.detailsName { display: inline-flex; align-items: center; gap: 6px; }
+.detailsName { appearance: none; display: inline-flex; align-items: center; gap: 6px; border: 0; padding: 0; color: inherit; background: transparent; font: inherit; cursor: pointer; }
+.detailsName:hover > span { text-decoration: underline; text-underline-offset: 3px; }
+/* Back to the page this one was opened from. */
+.detailsBack { appearance: none; display: inline-flex; width: fit-content; align-items: center; gap: 2px; margin: -4px 0 -6px -4px; border: 0; border-radius: var(--dsw-radius-sm); padding: 2px 4px; color: var(--dsw-alias-label-secondary); background: transparent; font: inherit; font-size: 12px; line-height: 18px; cursor: pointer; }
+.detailsBack:hover { color: var(--dsw-alias-label-primary); }
 .detailsMissing { color: var(--dsw-alias-label-secondary); }
 .detailsEffect { margin: 0; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 18px; }
 .detailsBody .optionsPanel { margin: 0; border-radius: 0; padding: 0; background: transparent; }
+/* A component's page on DSH's own row page, under the title DSH draws. */
+.componentRowPage { display: flex; min-width: 0; flex-direction: column; gap: 16px; }
+/* What a component contributed to its page, after what its declarations give. */
+.detailsContributed { display: flex; min-width: 0; flex-direction: column; gap: 16px; border-top: .5px solid var(--dsw-alias-border-l2); padding-top: 14px; }
+.panelSection { display: flex; min-width: 0; flex-direction: column; gap: 8px; }
+.panelHeading { display: grid; min-width: 0; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; }
+.panelHeading h3 { margin: 0; color: var(--dsw-alias-label-primary); font-size: 13px; font-weight: 500; line-height: 20px; }
+.panelHeading p { grid-column: 1; margin: 2px 0 0; color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }
+.panelHeading .miniSpinner { grid-column: 2; grid-row: 1; }
+.panelNote { margin: 0; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 18px; }
+.panelActions { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; padding-top: 8px; }
+.panelActions > span { min-width: 0; flex: 1; color: var(--dsw-alias-label-secondary); font-size: 12px; line-height: 18px; }
+.panelActions > span.panelError, .panelError { color: var(--dsw-alias-state-error-primary); }
+/* A group's Apply among preference rows reads as one more row. */
+.rows > .panelActions { padding: 10px 0; border-bottom: .5px solid var(--dsw-alias-border-l2); }
+.rows > .panelNote { padding: 8px 0; }
+.panelError { margin: 0; font-size: 12px; line-height: 18px; }
 .boardRow { display: flex; min-width: 0; flex-direction: column; padding: 14px 0; border-bottom: .5px solid var(--dsw-alias-border-l2); }
 .boardRowLine { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
 .boardGroup > .boardRow:last-child,
@@ -140,7 +174,6 @@
 .optionHint[data-error] { color: var(--dsw-alias-state-error-primary); }
 .optionChoices { display: flex; min-width: 0; flex-wrap: wrap; gap: 6px 16px; }
 .optionEmpty { margin: 0; color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }
-.optionsActions { display: flex; justify-content: flex-end; gap: 8px; }
 /* The row's state then its control, kept together when the row wraps. */
 .boardControl { display: flex; min-width: 0; flex: 0 1 auto; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 6px 12px; margin-left: auto; }
 .boardState { display: inline-flex; min-width: 0; align-items: center; gap: 6px; color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; white-space: nowrap; }
@@ -310,7 +343,7 @@ details[open] > summary .providerChevron { transform: rotate(180deg); }
 
 /* Stacked fields, as the DSH settings form: label above a 34px input. */
 .fieldGrid,
-.providerSettingsGrid { display: grid; min-width: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.providerSettingsGrid { display: grid; min-width: 0; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; }
 .providerSettingsGrid { grid-template-columns: minmax(0, 1fr); }
 .fieldGrid > label,
 .providerFieldControl > label:not(.providerBoolean) { display: flex; min-width: 0; flex-direction: column; gap: 6px; color: var(--dsw-alias-label-primary); font-size: 13px; font-weight: 500; line-height: 20px; }
@@ -391,62 +424,10 @@ details[open] > summary .providerChevron { transform: rotate(180deg); }
   white-space: nowrap;
 }
 
-/* Buttons: DSH toolbar (row actions), primary and link-sized text actions. */
-.pillButton,
-.primaryPill,
-.actions button {
-  appearance: none;
-  display: inline-flex;
-  box-sizing: border-box;
-  height: 36px;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  border: 0;
-  border-radius: var(--dsw-radius-md);
-  padding: 0 14px;
-  color: var(--dsw-alias-label-primary);
-  background: var(--dsw-alias-button-tool-bar-fill);
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 22px;
-  white-space: nowrap;
-}
-.pillButton:hover:not(:disabled) { background: var(--dsw-alias-button-tool-bar-hover); }
-.pillButton:disabled, .primaryPill:disabled, .actions button:disabled, .textButton:disabled { cursor: default; opacity: .4; }
-.primaryPill, .save {
-  color: var(--dsw-alias-label-primary-foreground) !important;
-  background: var(--dsw-alias-button-primary-fill) !important;
-}
-.primaryPill:hover:not(:disabled), .save:hover:not(:disabled) { background: var(--dsw-alias-button-primary-hover) !important; }
-.discard { border: .5px solid var(--dsw-alias-border-l3) !important; background: transparent !important; }
-.discard:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover) !important; }
-
-.textButton {
-  appearance: none;
-  display: inline-flex;
-  box-sizing: border-box;
-  height: 28px;
-  flex: none;
-  border: 0;
-  border-radius: var(--dsw-radius-sm);
-  align-items: center;
-  justify-content: center;
-  padding: 0 10px;
-  color: var(--dsw-alias-label-secondary);
-  background: transparent;
-  cursor: pointer;
-  font: inherit;
-  font-size: 12px;
-  line-height: 18px;
-}
-.textButton:hover:not(:disabled) { color: var(--dsw-alias-label-primary); background: var(--dsw-alias-interactive-bg-hover); }
-
-.activePath {
-  display: block;
-  width: fit-content;
-  max-width: 100%;
-  margin-top: 4px;
+/* Where memory lives now: a label and the path, cut short with its whole value on hover. */
+.location { display: flex; min-width: 0; align-items: baseline; gap: 6px; }
+.location > code {
+  min-width: 0;
   overflow: hidden;
   color: var(--dsw-alias-label-secondary);
   font-size: 11px;
@@ -474,41 +455,13 @@ details[open] > summary .providerChevron { transform: rotate(180deg); }
 .importBar strong { overflow: hidden; font-size: 13px; font-weight: 500; line-height: 20px; text-overflow: ellipsis; white-space: nowrap; }
 .importBar small { color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }
 
-.feedback, .packFeedback { display: grid; gap: 4px; }
-.feedback:empty, .packFeedback:empty { display: none; }
-.feedback p, .packFeedback p { margin: 0; font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
+.packFeedback { display: grid; gap: 4px; }
+.packFeedback:empty { display: none; }
+.packFeedback p { margin: 0; font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
 .error { color: var(--dsw-alias-state-error-primary); }
-.success { color: var(--dsw-alias-state-success-primary); }
 .readOnlyNotice { margin: 0 0 -20px; color: var(--dsw-alias-label-tertiary); font-size: 12px; line-height: 18px; }
 .packSuccess { color: var(--dsw-alias-state-success-primary); }
 
-/* Unsaved changes: a bar that floats above the bottom of the Plugins page
-   while this configuration is in view and rests after its last group.
-   Sticky insets respect the page scroller's 48px bottom padding, so -32px
-   holds the bar 16px above the scroller's edge. */
-.actions { display: none; }
-.actionsVisible {
-  position: sticky;
-  z-index: 2;
-  bottom: -32px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: -16px;
-  border: .5px solid var(--dsw-alias-border-l2);
-  border-radius: var(--dsw-radius-lg);
-  padding: 10px 10px 10px 16px;
-  background: var(--dsw-alias-bg-layer-2);
-  box-shadow: var(--dsw-elevation-prominent);
-}
-.actions > span { color: var(--dsw-alias-label-secondary); font-size: 13px; line-height: 20px; }
-.actions > div { display: flex; gap: 8px; }
-
-.pillButton:focus-visible,
-.primaryPill:focus-visible,
-.textButton:focus-visible,
-.actions button:focus-visible,
 .selector:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
@@ -516,13 +469,10 @@ details[open] > summary .providerChevron { transform: rotate(180deg); }
 
 @media (max-width: 620px) {
   .page { gap: 28px; }
-  .fieldGrid { grid-template-columns: minmax(0, 1fr); }
   .rowActions { width: 100%; }
   .rowActions button { flex: 1; }
   .importBar { grid-template-columns: minmax(0, 1fr) auto; }
-  .importBar .primaryPill { grid-column: 1 / -1; }
-  .actionsVisible { align-items: stretch; flex-direction: column; }
-  .actions > div, .actions button { flex: 1; }
+  .importBar > button:last-child { grid-column: 1 / -1; }
   .inlineChoices { width: 100%; }
   .inlineChoices label { flex: 1; }
   .inlineChoices span { width: 100%; justify-content: center; }
