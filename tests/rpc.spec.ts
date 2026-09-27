@@ -38,6 +38,7 @@ function protocolFixture(options: Config = {}) {
       role: type, availability: 'ready', revision: 'r1', capabilities: ['status'], management: { label: type, description: type },
     })) })),
     executeManagement: vi.fn(async (_request: unknown) => ({ revision: 'r2', value: {} })),
+    sourceInstances: () => ['runtime', 'documents', 'memory-spaces'].map(type => ({ sourceInstanceKey: 'source:mnemon-source-' + type, sourceTypeId: type })),
   }
   const release = vi.fn()
   const graph = {
@@ -93,6 +94,19 @@ describe('Mnemon RPC Source boundaries', () => {
     expect(await write('source-management-mutate', { ...request, confirmed: true })).toMatchObject({ ok: false, error: { message: expect.stringContaining('revision conflict') } })
     expect(execute).toHaveBeenCalledWith(expect.objectContaining({ scope: { storage: 'custom', workspaceId: f.workspace }, sourceInstanceKey: request.sourceInstanceKey }))
     expect(await read('source-management-read', { sourceInstanceKey: 'source:missing', operation: 'snapshot' })).toMatchObject({ ok: false })
+  })
+
+  it('refuses management and assistance on a memory layer that is off', async () => {
+    const f = protocolFixture({ memoryTopology: { layers: { documents: { enabled: false } } } } as Config)
+    const read = createReadHandler(f.runtime)
+    const write = createWriteHandler(f.runtime, lifecycle({ manageSource: vi.fn() }))
+    const off = { ok: false, error: { message: 'Memory layer documents is off; turn it on to read or change it' } }
+    expect(await read('source-management-read', { sourceInstanceKey: 'source:mnemon-source-documents', operation: 'snapshot' })).toMatchObject(off)
+    expect(await write('source-management-mutate', { sourceInstanceKey: 'source:mnemon-source-documents', operation: 'mutate', input: {}, expectedRevision: 'r1', confirmed: true })).toMatchObject(off)
+    expect(await write('source-assistance', { sourceInstanceKey: 'source:mnemon-source-documents', operation: 'mutate', input: {}, expectedRevision: 'r1', confirmed: true })).toMatchObject(off)
+    expect(f.generation.executeManagement).not.toHaveBeenCalled()
+    // Another layer stays usable.
+    expect(await read('source-management-read', { sourceInstanceKey: 'source:mnemon-source-runtime', operation: 'snapshot' })).toMatchObject({ ok: true })
   })
 
   it('keeps the Runtime UX and validates branch input in the owning Source', async () => {
