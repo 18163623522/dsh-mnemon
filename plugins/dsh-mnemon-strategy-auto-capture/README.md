@@ -1,6 +1,6 @@
 # dsh-mnemon-strategy-auto-capture
 
-Optional additive, **in-turn guidance** for any Mnemon main Strategy that accepts Core's standard `capture` slot, including the default three-tier and general Strategies.
+Optional additive, **in-turn guidance** for any Mnemon main Strategy that accepts Core's standard `capture` slot, including the Layered and General strategies.
 
 The default targets ready `durable-evidence` Sources whose selected View exposes the Source-local `remember` Action. Custom Sources must configure the Action ids that actually mean recording:
 

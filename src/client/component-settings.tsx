@@ -41,8 +41,8 @@ export interface ShippedSettingsServices {
 /**
  * Register the settings dsh-mnemon keeps for its shipped components, the way
  * an installed component registers its own: Runtime Memory carries where its
- * user profile lives, Memory Spaces its Providers and embedding, Default
- * three-tier the background tasks it drives.
+ * user profile lives, Memory Spaces its Providers and embedding, the Layered
+ * strategy the background tasks it drives.
  */
 export function installShippedComponentSettings(ctx: MemoryComponentUIContext, services: ShippedSettingsServices): () => void {
   const disposers = [
@@ -300,7 +300,7 @@ function EmbeddingEditor(props: {
   </section>
 }
 
-// ---- Default three-tier: the background tasks it drives ----
+// ---- Layered strategy: the background tasks it drives ----
 
 /** Where the background task Agents run: DSH's new-session route, or a fixed Provider and model. */
 interface Route {
@@ -363,7 +363,7 @@ function startingRoute(catalog: TaskAgentModelCatalog, current: Route): { provid
 }
 
 /**
- * Default three-tier's own settings: the model its background task Agents use,
+ * The Layered strategy's own settings: the model its background task Agents use,
  * and the idle review that keeps its layers in shape. Choices apply at once;
  * the review limits are typed and wait for their Apply.
  */

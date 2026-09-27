@@ -1,6 +1,6 @@
 # dsh-mnemon-strategy-light-context
 
-Optional additive projection cap for any Mnemon main Strategy that accepts Core's standard `projection` slot, including the default three-tier and general Strategies.
+Optional additive projection cap for any Mnemon main Strategy that accepts Core's standard `projection` slot, including the Layered and General strategies.
 
 ```yaml
 - id: mnemon-strategy-light-context

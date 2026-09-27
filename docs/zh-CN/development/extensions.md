@@ -106,7 +106,7 @@ DSH 自己的插件列表从包内的 `locale/en.json` 与 `locale/zh.json`（`m
 
 #### 组件自己的设置与状态卡片
 
-声明的选项不够用时，组件可以在 `./client` 入口把自己的设置加入它的组件页，与随附组件的做法相同：运行时记忆的用户画像范围、记忆空间的 Provider 与嵌入、默认三层的后台任务。Source 还可以提供它运行时在记忆系统“状态”页卡片上显示的内容。
+声明的选项不够用时，组件可以在 `./client` 入口把自己的设置加入它的组件页，与随附组件的做法相同：运行时记忆的用户画像范围、记忆空间的 Provider 与嵌入、分层策略的后台任务。Source 还可以提供它运行时在记忆系统“状态”页卡片上显示的内容。
 
 ```tsx
 import { installMemoryComponentUI } from 'dsh-mnemon/client'
@@ -138,7 +138,7 @@ export function apply(ctx) {
 | `dsh-mnemon-strategy-light-context` | `projection` | 一份共享投影上限，只收紧 Host 预算；不是增量注入或摘要压缩 |
 | `dsh-mnemon-strategy-auto-capture` | `capture` | 当前对话的记录指引、目标与明确 Action id；不启动后台 Agent、不直接写入 |
 
-Starter 会安装这三个包并注册为停用的 DSH Entry，因此开关始终可用，但默认组合、预算和提醒保持 v0.4 行为。打开开关后，对应贡献自动参与当前主策略，不改变主策略；关闭只撤销该贡献，不删除任何 Source 数据。通用主策略（`dsh-mnemon-strategy-general`）同样接受这三个槽。Runtime 当前没有展开 route；把常驻预算压得很低可能隐藏热记忆，需要针对实际任务评测。
+Starter 会安装这三个包并注册为停用的 DSH Entry，因此开关始终可用，但默认组合、预算和提醒保持 v0.4 行为。打开开关后，对应贡献自动参与当前主策略，不改变主策略；关闭只撤销该贡献，不删除任何 Source 数据。通用策略（`dsh-mnemon-strategy-general`）同样接受这三个槽。Runtime 当前没有展开 route；把常驻预算压得很低可能隐藏热记忆，需要针对实际任务评测。
 
 `scoped` 的 Source key 若包含 Loader 的 include 前缀，应使用实例目录中的完整 key；省略配置时按角色/key 确定性组合现有实例，不创建新的存储。面板的**选项**可编辑包声明的字段；Profile 配置仍可用于自动化。
 
@@ -161,17 +161,17 @@ export function apply(ctx: Context): void {
 
 可选的 `createTurn(view)` 返回执行级 `query(request, read)` 策略。它只获得绑定当前 Route 和私有 grant 的 `read(input, narrowerLimits?)`，Core 仍校验输入、有效上限、已分派次数和生命周期。策略可以筛选、重放结果，并用 `Evidence.output` 提供简洁模型输出，但不会获得 Source 对象、写入回调或新增权限。即使继承同一个不可变 View，不同执行轮次也拥有独立策略状态。不提供此钩子时，读取仍经过 Core 边界直接进入 Source。
 
-默认三层插件用此钩子实现旧版 Documents 单次查询、Recall 两次查询的共享证据预算、去重与 Related 准入。命名工具和通用 View Route 共用这套策略。Source 保留原始检索、存储和维护能力；显式的 DSH 辅助写入/归档仍由 Host 工作流执行，不成为 Core 的通用后台任务。
+分层策略插件用此钩子实现旧版 Documents 单次查询、Recall 两次查询的共享证据预算、去重与 Related 准入。命名工具和通用 View Route 共用这套策略。Source 保留原始检索、存储和维护能力；显式的 DSH 辅助写入/归档仍由 Host 工作流执行，不成为 Core 的通用后台任务。
 
 默认插件的公开 `threeTierActionWorkflow` 纯策略识别 Runtime `mutate` 的容量维护，Host 将具名工具、通用 View Action、子 Agent 与浏览器管理统一接入该流程。它只在选择默认 Strategy 时生效，不改变 Source 的独立管理协议，也不向 Core 添加三层存储逻辑。模型写入保留发起回合的 View、实例与权限，归档目标限定在该 View 的可写 Memory Spaces Source 及其定义的写入范围内；多个可写归档 Source 无法唯一确定目标时拒绝归档。浏览器使用已登记工作区对应的 scope、实例与确认修订，无需绑定用户会话。只有需要模型判断时才创建独立维护任务。
 
 归档预检时，Host 可向所选 Memory Spaces Source 的 `body-directory` 读取传入 `{ writeScope: { viewId, grant } }`。可选响应 `writeScope: { viewId, sourceInstanceKey, memoryBodyIds }` 与 `remember` 使用相同权限：grant 中已知的命名空间，加上该 View 创建的命名空间。Source 校验 grant 所属实例；Host 校验返回的 View 与 Source 身份，将空范围视为无授权，并在写入前复查权限与当前能力。未返回此字段的 Source 仍使用较窄的已激活命名空间固定范围。响应格式损坏时拒绝操作。Host 不会用其他 Source 或当前目录替代缺失的授权；召回保留原有命名空间固定范围。
 
-选中的 Source 默认必需；`required: false` 明确允许该实例在不可用或投影失败时被省略。必需实例失败会拒绝本轮 View，不悄悄切换策略。默认三层对可用 Source 作组合，并将它们标为可选，因此外部读取失败不会带走其他层。缺少必需实例时，Strategy 应明确拒绝，而不是返回一个空选择。
+选中的 Source 默认必需；`required: false` 明确允许该实例在不可用或投影失败时被省略。必需实例失败会拒绝本轮 View，不悄悄切换策略。分层策略对可用 Source 作组合，并将它们标为可选，因此外部读取失败不会带走其他层。缺少必需实例时，Strategy 应明确拒绝，而不是返回一个空选择。
 
 [external-strategy.ts](../../../scripts/fixtures/plugin-consumer/src/external-strategy.ts) 是完整的显式选择示例。默认 Host 沿用 `mnemon.memoryTopology.strategyId` 配置选择其 type id；多个适用 Strategy 是错误，不采用“后导入覆盖前者”。Profile 显式替换默认 Entry；只安装一个包不等于允许它替换当前组合。
 
-可选 `ViewSpec.guidance` 承载 Strategy 的可信 `system`、`routing` 和读写提醒，与 Source 的引用数据分离，经校验后进入 View digest。没有提供时，Host 使用通用路由提示。已有 DSH 命名工具只显示本轮可用性，不重复注入工具目录中的 schema；外部或未绑定的操作仍展示准确 id 和 schema。已有产品工具与人工管理保留；工具存在不代表对应 Source 已进入本轮 View。默认三层的自动后台整理只在选择 `default-three-tier` 时运行，自定义 Strategy 不会隐式触发这项业务流程。
+可选 `ViewSpec.guidance` 承载 Strategy 的可信 `system`、`routing` 和读写提醒，与 Source 的引用数据分离，经校验后进入 View digest。没有提供时，Host 使用通用路由提示。已有 DSH 命名工具只显示本轮可用性，不重复注入工具目录中的 schema；外部或未绑定的操作仍展示准确 id 和 schema。已有产品工具与人工管理保留；工具存在不代表对应 Source 已进入本轮 View。分层策略的自动后台整理只在选择 `default-three-tier` 时运行，自定义 Strategy 不会隐式触发这项业务流程。
 
 ## 开放操作，有限执行
 

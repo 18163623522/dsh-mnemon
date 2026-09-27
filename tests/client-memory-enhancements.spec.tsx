@@ -37,7 +37,7 @@ function featureEntry([entryId, packageName, label, zh]: typeof FEATURES[number]
 /** The running main Strategy the enhancements extend. */
 const THREE_TIER: MemoryPluginEntryView = {
   entryId: 'mnemon-strategy-default-three-tier', packageName: 'dsh-mnemon-strategy-default-three-tier', typeId: 'default-three-tier',
-  roles: ['strategy'], label: { en: 'Default three-tier', 'zh-CN': '默认三层' }, description: { en: '', 'zh-CN': '' }, fields: [],
+  roles: ['strategy'], label: { en: 'Layered strategy', 'zh-CN': '分层策略' }, description: { en: '', 'zh-CN': '' }, fields: [],
   provides: [{ id: 'strategy', exclusive: false }, { id: 'strategy.default-three-tier', exclusive: false }], requires: [], requiredBy: [],
   enabled: true, active: true, writable: true, config: {},
 }
