@@ -56,18 +56,16 @@ Expand **Subpackage versions** under dsh-mnemon to inspect Sources, Strategies, 
 
 ![Default memory layers and three optional enhancements](../../assets/webui-v0.5.4/en/enhancements.jpg)
 
-There is no standalone View page, and Status exposes no plugin catalog, dependency graph, or installation flow. **Main Strategy** chooses how memory is composed; exactly one applies at a time:
+There is no standalone View page, and Status exposes no plugin catalog, dependency graph, or installation flow. Memory is composed on the `dsh-mnemon` page under **Plugins**, in one **Memory composition** board drawn from what the installed components declare. Shipped components and installed extensions are named, related and configured the same way:
 
-- **Default three-tier** keeps Runtime memory resident, reads Documents and Memory Spaces on demand, and runs the automatic maintenance of earlier releases;
-- **General** offers every available Source in one budget and lets the model decide how to use each one, without automatic review or capacity maintenance.
+- **Main strategy** is one selector, whatever the number installed, listing each main Strategy with its description. The Starter ships **Default three-tier** (Runtime memory resident, Documents and Memory Spaces read on demand, with the automatic maintenance of earlier releases) and **General** (every available Source in one budget; the model decides how to use each one, without automatic review or capacity maintenance);
+- one group per role the other components declare, with a count of the switches that are on: **Memory sources**, **Enhancements**, and a group of its own for any new role. Each row has the component's name and description, its state as DSH's component list shows it, a gear when it has options, and its switch. Small link chips name the components a row relates to: the one it needs, or the one that depends on it. Enhancements written for another main Strategy wait in a closed group;
+- a problem line appears only while memory is not composed as chosen, with the one switch that fixes it: turning the selected main Strategy back on, using the one that stands in for it, turning off a second main Strategy left running unused, or turning on a Source when none runs;
+- once many components are installed, a search filters the rows by name, description or package.
 
-The choice appears only while both are installed. The Starter also ships three disabled enhancements that work with either main Strategy; they are listed with the main Strategy under **Strategy** on the `dsh-mnemon` page under **Plugins**:
+Every switch applies at once to future turns; it never rewrites a turn that already pinned its View. Turning a component on also turns on what it needs and turns off what cannot run beside it (two components claiming the same capability or enhancement slot); turning one off also turns off what depends on it; choosing a main Strategy turns the others off, with whatever only they could take. The last running Source stays on. While the selected main Strategy is not running, the other switches wait, because the Host validates every change against it. A switch that moves only its own row says nothing more; one that moved other components, switched the main Strategy or changed what composes memory is reported in a DSH toast with **Undo**; a change made elsewhere, such as DSH's component list further down the page, with **Show**; a refused one with **Retry**.
 
-- **Active capture** identifies and records facts worth retaining from the current conversation;
-- **Light context** reduces resident content while preserving on-demand reads;
-- **Scoped composition** combines the currently available memory sources in stable order.
-
-These controls and DSH's own component switches further down the page follow each other in both directions without a reload. Choosing a main Strategy turns the other main Strategies off. When the selected one is off, the group names the Strategy composing in its place, or says that none does, and offers the switch that resolves it; a second main Strategy left running unused is named with **Turn off**. Enhancements wait while the selected main Strategy is not running, because the Host validates every change against it, and an enhancement whose required component is off names that component with **Turn on**. A change applies immediately to future turns; it never rewrites a turn that already pinned its View. All three enhancements may be enabled together, and disabling one never deletes Source data. The UI names components by their display names, not package names or Entries. Third-party Sources and Strategies continue to use DSH Profile/Loader installation and composition; see [Building Memory Plugins](../development/extensions.md) for the author contract and contribution path.
+Selecting a row opens the component's page: its state and switch, whether it ships with dsh-mnemon or came from an installed package, what it needs, what depends on it and what cannot run beside it, what its switch would also move, and its options. Options come from the component's own field declarations (numbers, text, lists and Source choices), are checked against the limits the Host applies, and apply together; an option left at its default is not written, and **Reset to default** puts one back. Third-party Sources and Strategies install through DSH's Plugins list and appear on the board once loaded; see [Building Memory Plugins](../development/extensions.md) for how their declarations shape it.
 
 ## 2. Runtime: maintain every-turn context
 
@@ -192,25 +190,24 @@ The 390 × 844 captures cover [directory navigation](../../assets/webui-v0.5.4/e
 
 DSH 0.1.7 edits a plugin's configuration on its own page under **Plugins**; Settings keeps DSH's own sections and the read-only plugin inventory. Open **Plugins → dsh-mnemon**, which the Chinese interface titles 可组合记忆, or select **Configure** (the gear) in the Memory System header while the Plugins page is available. The page shows the plugin's title and description, the configuration, and then the components the Starter includes. **Open Memory System** at the head of the page leads back to the workspace.
 
-The configuration uses DSH preference rows: a name and description on the left, a selector, switch or button on the right. It has six groups:
+The configuration uses DSH preference rows: a name and description on the left, a selector, switch or button on the right. It has five groups:
 
 | Group | Contains | Applies |
 |---|---|---|
-| Strategy | Main strategy (while both are installed), plus Active capture, Light context and Scoped composition | Immediately, to future turns |
-| Memory layers | One switch each for Runtime memory, Project Documents and Memory Spaces | On Save |
+| Memory composition | Main strategy, one switch per memory Source, one per enhancement, and each component's options | Immediately, to future turns |
 | Memory providers | Cards for Mnemon Native and each third-party Provider | Each switch and service form saves on its own |
 | Storage | Storage scope, Data directory, User profile scope, Backup and migration | On Save; ZIP import and export run at once |
 | Background tasks | Task Agent model, Idle review | On Save |
 | Interface | Entry placement (Sidebar / Conversation tab), Turn memory bar, Save to memory action | On Save |
 
-The Strategy and Memory providers groups carry an **Applies at once** tag; the others are staged. While changes are unsaved, a Discard / Save bar floats at the bottom of the page; leaving the page drops them. A save from another window, or an edit of the profile, shows up without a reload. Health belongs on Status and instances belong on Overview; the configuration never waits for discovery or recall.
+The Memory composition and Memory providers groups carry an **Applies at once** tag; the others are staged. While changes are unsaved, a Discard / Save bar floats at the bottom of the page; leaving the page drops them. A save from another window, or an edit of the profile, shows up without a reload. Health belongs on Status and instances belong on Overview; the configuration never waits for discovery or recall.
 
 - **Storage scope** is Global, Workspace, or Centralized · isolated by workspace. Switching scopes never migrates, merges or deletes existing data.
 - **Data directory** is one field. With Global, leave it empty for `MNEMON_DATA_DIR` or `~/.mnemon`, or enter a path to use that directory instead (the `custom` scope in configuration, an explicit-path global scope). With Centralized, it is the central root; empty again means the default, and each workspace keeps its data in `workspaces/<workspace-path-hash>/`. Workspace needs no directory.
 - **User profile scope** is independent: **Shared globally** combines global USER.md with workspace/custom MEMORY.md without moving either source.
 - **Backup and migration** exports or imports the current data directory as a ZIP with Runtime memory, Project Documents and Mnemon Native memory spaces, without third-party Provider data or credentials.
-- Memory layers are the configured topology's layers. Each has one switch; “on” permits on-demand use and does not force Recall on every turn. When the Source component serving a layer is off, for example from DSH's component list, the row says so with **Turn on component**; the layer switch keeps its own value.
-- Memory providers are listed while the Memory Spaces component runs and its layer is on; otherwise the group says why instead of showing a Host error. While dsh-mnemon is read-only (`writeEnabled: false`), Provider switches are disabled with that reason.
+- A memory layer and the Source component serving it share one switch; “on” permits on-demand use and does not force Recall on every turn. A layer an earlier configuration turned off comes back on through the same switch. When the components cannot be read, the board still lists the saved layers and switches them.
+- Memory providers are listed while Memory Spaces is on; otherwise the group says so and offers **Turn on Memory Spaces**, the same switch as its row in Memory composition. While dsh-mnemon is read-only (`writeEnabled: false`), Provider switches are disabled with that reason.
 - Provider cards match DSH's model provider cards. Mnemon Native is the first card and, when expanded, holds only the local embedding settings it alone reads. Every third-party Provider has its own switch and is off by default; endpoint, API Key, and Provider-specific fields appear only after enabling.
 - The Global / Workspace tag on each card shows its effective scope; Providers with the same scope semantics reuse Mnemon's configuration framework.
 - OpenViking's optional **User key owner (skip admin)** field selects one user namespace for keys without Admin API access; fill the account and user key as well. A rejected data-plane check leaves the previous service configuration unchanged. [Setup and limits](./memory-providers.md#operational-boundaries);
