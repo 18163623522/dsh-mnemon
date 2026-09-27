@@ -2,7 +2,7 @@
 
 [简体中文](./README.zh-CN.md)
 
-Tested implementation: `41fced12`, stacked on the composition board record ([record](../composition-board-20260927/README.md)). macOS 15.6, Node 25.1.0, published DSH 0.1.7-rc.2, headless Chrome at 1280 × 860 (and 420 × 900). Each run walks an isolated WebUI fixture from the Starter's defaults with its test model. No personal memory or credentials were used.
+Tested implementation: `41fced12` for the configuration and `7fde5ecb` for the Memory System, stacked on the composition board record ([record](../composition-board-20260927/README.md)). macOS 15.6, Node 25.1.0, published DSH 0.1.7-rc.2, headless Chrome at 1280 × 860 (and 420 × 900). Each run walks an isolated WebUI fixture from the Starter's defaults with its test model. No personal memory or credentials were used.
 
 ## The configuration keeps what belongs to no component
 
@@ -36,6 +36,14 @@ Declared options show Apply once one changes:
 
 ![Light context option edited](./pages-options-edit.png)
 
+## The Memory System names what the components declare
+
+Tabs, the header's main Strategy and one Status card per Source component carry the names the components declare, as the configuration shows them; each card says what its component contributed.
+
+| Light | Dark |
+|---|---|
+| ![Status page](./workspace-status.png) | ![Status page, dark](./dark-workspace-status.png) |
+
 ## Dark theme and narrow column
 
 | Board | Storage and Interface | Review limits |
@@ -50,8 +58,9 @@ Declared options show Apply once one changes:
 
 - Unit tests cover the settings region (registration, release, directory), the shipped panels (Runtime Memory's profile scope, Memory Spaces' managed switch and connection, Default three-tier's route, review choices and limits), storage Apply with legacy keys retired, interface choices at once with a refused write shown and reverted, gears, names, relation chips and Back on the board, declared options with Apply, and the dialog's box model.
 - Full `pnpm run verify` and `pnpm run release:intent` passed; the package budget records the measured growth.
-- WebUI: 10 light, 3 dark and 3 narrow states captured by a scripted walk with no console errors; the same flows were driven by hand in the in-app browser, including an idle review choice written to the real Host and a refused nested write caught before the fix.
+- Unit tests also cover the Status card region and the shipped Sources' cards, and a workbench whose tabs, cards (including a Source that is off and one that contributed nothing) and header are named from the components.
+- WebUI: 11 light, 4 dark and 3 narrow states captured by a scripted walk with no console errors; the same flows were driven by hand in the in-app browser, including an idle review choice written to the real Host and a refused nested write caught before the fix.
 
 ## Limits
 
-DSH's own component list below the configuration still names rows by package; giving its rows the same component pages through `plugins.row.config` is a later change. The Memory System still names its tabs and status cards from the shipped layers; moving them to component declarations and contributed cards is also later.
+DSH's own component list below the configuration still names rows by package; giving its rows the same component pages through `plugins.row.config` is a later change. On the Status page, the Provider list and the storage section remain the Host's own sections rather than contributions.
