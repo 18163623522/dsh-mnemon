@@ -119,7 +119,7 @@ describe('Memory enhancement settings', () => {
     fireEvent.click(capture)
     await waitFor(() => expect(capture.getAttribute('aria-checked')).toBe('true'))
     await waitFor(() => expect(capture.disabled).toBe(true))
-    expect(screen.getByRole('alert').textContent).toBe('设置已更新，但状态刷新失败；请重新打开设置。')
+    expect(screen.getByRole('alert').textContent).toBe('设置已更新，但状态刷新失败；请重新打开此页面。')
   })
 
   it('uses English feature copy and honors a read-only Host', async () => {

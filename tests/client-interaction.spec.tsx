@@ -32,7 +32,8 @@ function makeCtx(initialValue: unknown, coreValue: Record<string, unknown> = {})
       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
       'conversation.view': { kind: 'list', scope: 'session' },
       'shell.overlay': { kind: 'list', scope: 'root' },
-      'settings.section': { kind: 'list', scope: 'root' },
+      'plugins.bundle.config': { kind: 'keyed', scope: 'root' },
+      'plugins.detail.actions': { kind: 'list', scope: 'root' },
     },
   })
   const injects: string[] = []
@@ -46,6 +47,8 @@ function makeCtx(initialValue: unknown, coreValue: Record<string, unknown> = {})
   const ctx = {
     get: vi.fn(() => undefined),
     on: vi.fn(() => () => {}),
+    // Plugins page navigation and the DSH settings mirror are not provided here.
+    inject: vi.fn(),
     sessions: { list: { getSnapshot: () => ({ current: 'session-a', byId: {} }) } },
     uiSession: { adapter: { current: { getSnapshot: () => ({ key: 'session-a' }), subscribe: () => () => {} } } },
     layout: { selectPanel: vi.fn() },
@@ -139,7 +142,7 @@ describe('interaction surfaces binding', () => {
     // A list entry renders for every Turn; the component itself waits for the closing Turn.
     expect(core.entriesOfSlot(slot)[0]!.select).toBeUndefined()
 
-    const settings = registeredOptions.find(options => options.name === 'settings.section')?.inject?.() as {
+    const settings = registeredOptions.find(options => options.name === 'plugins.bundle.config')?.inject?.() as {
       interactionScope: { mutate: (ops: unknown[]) => Promise<void> }
     }
     await settings.interactionScope.mutate([{ op: 'set', path: ['turnBar'], value: false }])
@@ -161,7 +164,7 @@ describe('interaction surfaces binding', () => {
     const { ctx, injects, activeRegistrations } = makeCtx({})
     apply(ctx)
     // Sidebar has a DSH-owned seat even before any session exists.
-    expect(injects).toContain('settings.section')
+    expect(injects).toContain('plugins.bundle.config')
     await waitFor(() => expect(injects).toContain('shell.overlay'))
     await waitFor(() => expect(activeRegistrations()).toEqual(expect.arrayContaining(['dsh-mnemon/turn-tail', 'mnemon-save'])))
   })
@@ -218,7 +221,8 @@ describe('interaction surfaces binding', () => {
     document.body.append(conversation)
     apply(ctx)
     await waitFor(() => expect(injects).toContain('conversation.view'))
-    expect(activeRegistrations().filter(id => id === 'mnemon')).toHaveLength(2)
+    expect(activeRegistrations().filter(id => id === 'mnemon')).toHaveLength(1)
+    expect(activeRegistrations()).toContain('dsh-mnemon')
 
     dispatchMnemonAnchor({ page: 'documents/library', sessionId: 'session-b' })
     expect(clicked).not.toHaveBeenCalled()
@@ -243,7 +247,8 @@ describe('interaction surfaces binding', () => {
     const { ctx, activeRegistrations } = makeCtx({}, { displayMode: 'builtin', tabEnabled: false })
     apply(ctx)
     await waitFor(() => expect(activeRegistrations()).toContain('mnemon-save'))
-    expect(activeRegistrations().filter(id => id === 'mnemon')).toHaveLength(1) // settings only
+    expect(activeRegistrations().filter(id => id === 'mnemon')).toHaveLength(0)
+    expect(activeRegistrations()).toContain('dsh-mnemon') // the configuration page only
     dispatchMnemonAnchor({ page: 'documents/library', sessionId: 'session-a' })
     expect(document.documentElement.hasAttribute('data-dsh-mnemon-active')).toBe(false)
     expect(consumeMnemonAnchor('session-a')).toMatchObject({ page: 'documents/library' })
@@ -252,8 +257,8 @@ describe('interaction surfaces binding', () => {
   it('registers and disposes interaction surfaces when mnemon-ui changes live', async () => {
     const { ctx, registeredOptions, activeRegistrations } = makeCtx({})
     apply(ctx)
-    await waitFor(() => expect(registeredOptions.some(options => options.name === 'settings.section')).toBe(true))
-    const settingsEntry = registeredOptions.find(options => options.name === 'settings.section')
+    await waitFor(() => expect(registeredOptions.some(options => options.name === 'plugins.bundle.config')).toBe(true))
+    const settingsEntry = registeredOptions.find(options => options.name === 'plugins.bundle.config')
     const injected = settingsEntry?.inject?.() as { interactionScope?: { mutate: (ops: unknown[]) => Promise<void> } } | undefined
     if (injected?.interactionScope === undefined) throw new Error('mnemon-ui settings scope was not injected')
 

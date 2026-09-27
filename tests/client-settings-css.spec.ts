@@ -10,9 +10,10 @@ describe('Settings layout invariants', () => {
     expect(settingsCss).toContain('.toggleRow {\n  display: flex;\n  position: relative;')
   })
 
-  it('pins the unsaved-changes bar flush with the bottom of the host settings scroller', () => {
-    expect(settingsCss).toContain('position: sticky;\n  z-index: 2;\n  bottom: -24px;')
-    expect(settingsCss).toContain('padding: 12px 24px 36px;')
+  it('floats the unsaved-changes bar just above the bottom of the Plugins page scroller', () => {
+    // The page scroller keeps 48px of bottom padding, which sticky insets respect.
+    expect(settingsCss).toContain('position: sticky;\n  z-index: 2;\n  bottom: -32px;')
+    expect(settingsCss).toContain('box-shadow: var(--dsw-elevation-prominent);')
   })
 
   it('keeps the added enhancement controls compact in a host-constrained mobile column', () => {

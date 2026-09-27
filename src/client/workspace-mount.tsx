@@ -8,6 +8,7 @@ import { MnemonWorkbench, type MnemonWorkspaceSelection } from './MnemonWorkbenc
 import type { MNEMON_SOURCE_PAGE_SLOT, MemorySourcePageDirectory } from './source-pages.tsx'
 import type { MnemonBetterSidebarSeat } from './better-sidebar-seat.ts'
 import type { MnemonNativeSidebarSeat } from './native-sidebar-seat.ts'
+import type { MnemonActionSeat } from './action-seat.ts'
 import { mountMnemonSidebarEntry } from './sidebar-entry.ts'
 import { MnemonWorkspaceController } from './workspace-controller.ts'
 import { useMnemonSessionId, type MnemonSessionBinding } from './session-binding.ts'
@@ -45,6 +46,8 @@ interface MnemonWorkspaceHostProps {
   localeRuntime: MnemonClientContext['locale']
   sourcePageDirectory: MemorySourcePageDirectory
   navigation?: MnemonWorkspaceNavigation
+  /** Opens the dsh-mnemon page under DSH Plugins while that page offers navigation. */
+  configuration?: MnemonActionSeat
   t: MnemonTranslate
   sessionId?: string | undefined
   cwd?: string
@@ -53,7 +56,7 @@ interface MnemonWorkspaceHostProps {
 }
 
 interface MnemonBuiltinWorkspaceHostProps extends Pick<MnemonWorkspaceHostProps,
-  'connection' | 'settingsScope' | 'localeRuntime' | 'sourcePageDirectory' | 'renderSlot' | 't'> {
+  'connection' | 'settingsScope' | 'localeRuntime' | 'sourcePageDirectory' | 'configuration' | 'renderSlot' | 't'> {
   sessionId: string
 }
 
@@ -70,6 +73,7 @@ export function MnemonBuiltinWorkspaceHost(props: MnemonBuiltinWorkspaceHostProp
     t={props.t}
     locale={locale.active}
     sourcePageDirectory={props.sourcePageDirectory}
+    {...(props.configuration === undefined ? {} : { configuration: props.configuration })}
     {...(props.renderSlot === undefined ? {} : { renderSlot: props.renderSlot })}
   />
 }
@@ -120,6 +124,7 @@ export function MnemonWorkspaceHost(props: MnemonWorkspaceHostProps): JSX.Elemen
     t={props.t}
     locale={locale.active}
     sourcePageDirectory={props.sourcePageDirectory}
+    {...(props.configuration === undefined ? {} : { configuration: props.configuration })}
     {...(props.renderSlot === undefined ? {} : { renderSlot: props.renderSlot })}
     {...(props.navigation === undefined ? {} : { onClose: props.navigation.close })}
   />
@@ -195,6 +200,7 @@ export function MnemonSidebarWorkspaceHost(props: MnemonWorkspaceHostProps & { c
     currentSession={props.currentSession}
     localeRuntime={props.localeRuntime}
     sourcePageDirectory={props.sourcePageDirectory}
+    {...(props.configuration === undefined ? {} : { configuration: props.configuration })}
     sessionId={betterSidebar.scope.sessionId}
     {...(betterSidebar.scope.cwd === undefined ? {} : { cwd: betterSidebar.scope.cwd })}
     active={betterSidebar.visible}

@@ -11,6 +11,9 @@ vi.mock('../src/client/better-sidebar.tsx', () => ({ mountBetterSidebarTab: moun
 
 import { apply, inject } from '../src/client/index.ts'
 import { en, zh } from '../src/client/locales.ts'
+import type { MnemonActionSeat } from '../src/client/action-seat.ts'
+import { MnemonPluginActions } from '../src/client/MnemonPluginActions.tsx'
+import { MnemonSettingsHost } from '../src/client/MnemonSettingsHost.tsx'
 import { MnemonSettingsScope } from '../src/client/settings.ts'
 import { MnemonBuiltinWorkspaceHost } from '../src/client/workspace-mount.tsx'
 import type { Config } from '../src/host/protocol.ts'
@@ -27,6 +30,8 @@ function workspaceContext(initialValue: Record<string, unknown>, load: () => Pro
   let active: 'zh' | 'en' = 'zh'
   const slots: Record<string, unknown>[] = []
   const workspaceStops: ReturnType<typeof vi.fn>[] = []
+  /** Scoped `ctx.inject` calls; a test provides a service by applying the matching callbacks. */
+  const injected: Array<{ deps: string[]; apply: (inner: Record<string, unknown>) => void }> = []
   const context = {
     uiSession: { adapter: { current: { getSnapshot: () => ({ key: undefined }), subscribe: () => () => {} } } },
     connection: { rpc: { call: vi.fn(async (_channel: string, endpoint: string, payload: { namespace?: string; ops?: Array<{ path: string[]; value?: unknown }> }) => {
@@ -40,6 +45,8 @@ function workspaceContext(initialValue: Record<string, unknown>, load: () => Pro
       const dispose = callback()
       if (typeof dispose === 'function') disposers.push(dispose as () => void)
     }),
+    inject: vi.fn((deps: string[], applyScoped: (inner: Record<string, unknown>) => void) => { injected.push({ deps, apply: applyScoped }) }),
+    layout: { selectPanel: vi.fn() },
     locale: {
       register: vi.fn(() => () => {}),
       bind: vi.fn(() => (key: keyof typeof zh) => (active === 'zh' ? zh : en)[key]),
@@ -59,9 +66,12 @@ function workspaceContext(initialValue: Record<string, unknown>, load: () => Pro
     },
   }
   apply(context)
-  const settingsEntry = slots.find(options => options.name === 'settings.section')!
+  const settingsEntry = slots.find(options => options.name === 'plugins.bundle.config')!
   const scope = (settingsEntry.inject as () => { scope: MnemonSettingsScope<Config> })().scope
-  return { context, slots, scope, settingsEntry, workspaceStops, setLocale: (locale: 'zh' | 'en') => { active = locale } }
+  const provide = (name: string, service: unknown): void => {
+    for (const entry of injected) if (entry.deps.includes(name)) entry.apply({ [name]: service, effect: context.effect })
+  }
+  return { context, slots, scope, settingsEntry, workspaceStops, provide, setLocale: (locale: 'zh' | 'en') => { active = locale } }
 }
 
 describe('Mnemon Web client composition', () => {
@@ -88,23 +98,71 @@ describe('Mnemon Web client composition', () => {
     ])))
     const props = (settingsEntry.inject as () => { t: (key: keyof typeof zh) => string })()
     expect(props.t('config.storageTitle')).toBe('存储')
-    expect((settingsEntry.label as () => string)()).toBe('记忆系统')
     const save = slots.find(options => options.name === 'conversation.chat.assistant-actions')!
     expect((save.inject as (id: string) => { settingsScope: unknown })('session-1').settingsScope).toBe(scope)
     setLocale('en')
-    expect((settingsEntry.label as () => string)()).toBe('Memory System')
     expect(props.t('config.storageTitle')).toBe('Storage')
     expect(slots.some(options => options.name === 'conversation.view')).toBe(false)
   })
 
-  it('offers the memory composition on the dsh-mnemon page under Plugins', () => {
-    const { context, slots } = workspaceContext({})
+  it('edits the whole configuration on the dsh-mnemon page under Plugins, not in Settings', () => {
+    const { context, slots, scope } = workspaceContext({})
+    expect(slots.some(options => options.name === 'settings.section')).toBe(false)
     const entry = slots.find(options => options.name === 'plugins.bundle.config')!
     expect(entry).toMatchObject({ key: 'dsh-mnemon', locale: 'mnemon' })
-    const props = (entry.inject as () => { connection: unknown; localeRuntime: unknown; t: (key: keyof typeof zh) => string })()
-    expect(props.connection).toBe(context.connection)
-    expect(props.localeRuntime).toBe(context.locale)
+    expect(context.slots.register).toHaveBeenCalledWith(entry, MnemonSettingsHost)
+    const props = (entry.inject as () => Record<string, unknown> & { t: (key: keyof typeof zh) => string })()
+    expect(props).toMatchObject({
+      scope, connection: context.connection, currentSession: context.uiSession.adapter.current, localeRuntime: context.locale,
+    })
+    expect(props.interactionScope).toBeInstanceOf(MnemonSettingsScope)
+    expect(props.interactionScope).not.toBe(scope)
     expect(props.t('config.strategyTitle')).toBe('主策略')
+  })
+
+  it('links the memory workspace and its configuration through the Plugins page', async () => {
+    const { context, slots, scope, provide, workspaceStops } = workspaceContext({ displayMode: 'sidebar' })
+    await vi.waitFor(() => expect(workspaceStops).toHaveLength(1))
+    const action = slots.find(options => options.name === 'plugins.detail.actions')!
+    expect(action).toMatchObject({ id: 'dsh-mnemon/open-workspace', locale: 'mnemon' })
+    expect(context.slots.register).toHaveBeenCalledWith(action, MnemonPluginActions)
+    const workspace = (action.inject as () => { workspace: MnemonActionSeat })().workspace
+    expect(workspace.getSnapshot()).toBeTypeOf('function')
+
+    const shell = slots.find(options => options.name === 'shell.overlay')!
+    const configuration = (shell.inject as () => { configuration: MnemonActionSeat })().configuration
+    expect(configuration.getSnapshot()).toBeUndefined()
+    const openBundle = vi.fn()
+    provide('pluginNavigation', { openBundle })
+    configuration.getSnapshot()!()
+    expect(openBundle).toHaveBeenCalledWith('dsh-mnemon')
+
+    // Hiding the workspace withdraws its entry from the Plugins page.
+    await scope.mutate([{ op: 'set', path: ['tabEnabled'], value: false }])
+    expect(workspace.getSnapshot()).toBeUndefined()
+  })
+
+  it('re-reads Mnemon settings when DSH reports a newer revision of the mnemon entry', async () => {
+    const { context, scope, provide } = workspaceContext({})
+    await vi.waitFor(() => expect(scope.getSnapshot().status).toBe('ready'))
+    let revision: number | undefined
+    const listeners = new Set<() => void>()
+    const form = { getSnapshot: () => ({ revision }), subscribe: (listener: () => void) => { listeners.add(listener); return () => listeners.delete(listener) } }
+    const get = vi.fn(() => form)
+    provide('configForms', { get })
+    expect(get).toHaveBeenCalledWith('mnemon')
+    const reads = () => context.connection.rpc.call.mock.calls.filter(([, endpoint]) => endpoint === 'get').length
+    const before = reads()
+    // The revision this page already holds is not a change.
+    revision = scope.getSnapshot().revision
+    for (const listener of listeners) listener()
+    await Promise.resolve()
+    expect(reads()).toBe(before)
+    revision = 7
+    for (const listener of listeners) listener()
+    await vi.waitFor(() => expect(reads()).toBe(before + 2))
+    expect(context.connection.rpc.call).toHaveBeenCalledWith('/dsh-mnemon-settings', 'get', { namespace: 'mnemon' }, expect.anything())
+    expect(context.connection.rpc.call).toHaveBeenCalledWith('/dsh-mnemon-settings', 'get', { namespace: 'mnemon-ui' }, expect.anything())
   })
 
   it.each([undefined, 'sidebar'])('keeps one complete Sidebar for displayMode=%s with live visibility', async displayMode => {

@@ -186,7 +186,7 @@ function operations(fields: readonly DraftField[], dirty: ReadonlySet<Field>, dr
   })
 }
 
-/** Dedicated Mnemon page contributed directly to DSH's settings navigation. */
+/** The dsh-mnemon configuration, shown on its bundle page under DSH Plugins. */
 export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractionScope, connection, sessionId, workspaceId, workspaceLabel, t = translateZh, language = 'zh' }: MnemonSettingsCardProps): JSX.Element | null {
   const interactionScope = suppliedInteractionScope ?? scope as unknown as ClientSettingsScope<InteractionConfig>
   const coreSnapshot = useScope(scope)
@@ -451,48 +451,20 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
     if (scopeChoice === 'global' && globalScope !== draft.storageScope) editMany({ dataDir: value, storageScope: globalScope })
     else edit('dataDir', value)
   }
+  // The DSH Plugins page draws the plugin's title and description above this
+  // section. Composition comes first, then where memory lives, then how the
+  // background tasks and the in-conversation surfaces behave.
   return (
     <section className={css.page} aria-label={t('config.aria')} aria-busy={saving || loading}>
       {loading ? <p className={css.loading} role="status">{t('common.loading')}</p> : <>
-        <header className={css.pageHeader}>
-          <h1>{t('config.title')}</h1>
-          <p>{t('config.description')}</p>
-        </header>
-
-        <section className={css.section} aria-labelledby="mnemon-interface-heading">
-          <div className={css.sectionHeading}><h2 id="mnemon-interface-heading">{t('config.interfaceTitle')}</h2></div>
-          <div className={css.rows}>
-            <SelectRow id="mnemon-display" label={t('config.displayTitle')} value={draft.displayMode} disabled={coreDisabled} onChange={value => edit('displayMode', value)} options={[
-              { value: 'sidebar', label: t('config.displaySidebar'), detail: t('config.displaySidebarHint') },
-              { value: 'builtin', label: t('config.displayBuiltin'), detail: t('config.displayBuiltinHint') },
-            ]} />
-            <ToggleRow id="mnemon-interaction-turn-bar" label={t('config.interactionTurnBar')} hint={t('config.interactionTurnBarHint')} checked={draft.turnBar} disabled={interactionDisabled} onChange={value => edit('turnBar', value)} />
-            <ToggleRow id="mnemon-interaction-save-action" label={t('config.interactionSaveAction')} hint={t('config.interactionSaveActionHint')} checked={draft.saveAction} disabled={interactionDisabled} onChange={value => edit('saveAction', value)} />
-          </div>
-        </section>
-
-        <section className={css.section} aria-labelledby="mnemon-storage-heading">
-          <div className={css.sectionHeading}><h2 id="mnemon-storage-heading">{t('config.storageTitle')}</h2><p>{t('config.storageDescription')}</p></div>
-          <div className={css.rows}>
-            <SelectRow id="mnemon-storage-scope" label={t('config.scopeTitle')} value={scopeChoice} disabled={coreDisabled} onChange={chooseScope} options={[
-              { value: 'global', label: t('config.global'), detail: t('config.globalScopeHint') },
-              { value: 'workspace', label: t('config.workspace'), detail: t('config.workspaceScopeHint') },
-              { value: 'workspaces', label: t('config.workspaces'), detail: t('config.workspacesHint') },
-            ]} />
-            {scopeChoice !== 'workspace' && <SettingRow title={t('config.dataDirectory')} htmlFor="mnemon-data-directory" hint={scopeChoice === 'workspaces' ? t('config.dataDirectoryWorkspacesHint') : t('config.dataDirectoryHint')} stacked>
-              <input id="mnemon-data-directory" className={css.directoryInput} type="text" value={draft.dataDir}
-                aria-invalid={error !== null && (draft.storageScope === 'custom' || draft.storageScope === 'workspaces')}
-                placeholder={scopeChoice === 'workspaces' ? t('config.workspacesDefault') : t('config.nativeDefaultLocation')}
-                disabled={coreDisabled} autoComplete="off" spellCheck={false} autoCapitalize="none" autoCorrect="off"
-                onChange={event => editDirectory(event.target.value)} />
-            </SettingRow>}
-            <SelectRow id="mnemon-runtime-user-scope" label={t('config.runtimeUserScopeTitle')} value={draft.runtimeUserScope} disabled={coreDisabled} onChange={value => edit('runtimeUserScope', value)} options={[
-              { value: 'storage', label: t('config.runtimeUserScopeStorage'), detail: t('config.runtimeUserScopeStorageHint') },
-              { value: 'global', label: t('config.runtimeUserScopeGlobal'), detail: t('config.runtimeUserScopeGlobalHint') },
-            ]} />
-            <MnemonPackSection {...(connection === undefined ? {} : { connection })} {...(sessionId === undefined ? {} : { sessionId })} {...(workspaceId === undefined ? {} : { workspaceId })} refreshKey={targetRevision} t={t} />
-          </div>
-        </section>
+        <MemoryCompositionSections
+          {...(connection === undefined ? {} : { connection })}
+          {...(sessionId === undefined ? {} : { sessionId })}
+          {...(workspaceId === undefined ? {} : { workspaceId })}
+          refreshKey={targetRevision}
+          language={language}
+          t={t}
+        />
 
         <MemoryTopologySection
           descriptor={memorySystem}
@@ -500,15 +472,6 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
           state={topologyState}
           disabled={coreDisabled}
           onEnabled={editLayerEnabled}
-          t={t}
-        />
-
-        <MemoryCompositionSections
-          {...(connection === undefined ? {} : { connection })}
-          {...(sessionId === undefined ? {} : { sessionId })}
-          {...(workspaceId === undefined ? {} : { workspaceId })}
-          refreshKey={targetRevision}
-          language={language}
           t={t}
         />
 
@@ -542,6 +505,29 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
           />
         </section>
 
+        <section className={css.section} aria-labelledby="mnemon-storage-heading">
+          <div className={css.sectionHeading}><h2 id="mnemon-storage-heading">{t('config.storageTitle')}</h2><p>{t('config.storageDescription')}</p></div>
+          <div className={css.rows}>
+            <SelectRow id="mnemon-storage-scope" label={t('config.scopeTitle')} value={scopeChoice} disabled={coreDisabled} onChange={chooseScope} options={[
+              { value: 'global', label: t('config.global'), detail: t('config.globalScopeHint') },
+              { value: 'workspace', label: t('config.workspace'), detail: t('config.workspaceScopeHint') },
+              { value: 'workspaces', label: t('config.workspaces'), detail: t('config.workspacesHint') },
+            ]} />
+            {scopeChoice !== 'workspace' && <SettingRow title={t('config.dataDirectory')} htmlFor="mnemon-data-directory" hint={scopeChoice === 'workspaces' ? t('config.dataDirectoryWorkspacesHint') : t('config.dataDirectoryHint')} stacked>
+              <input id="mnemon-data-directory" className={css.directoryInput} type="text" value={draft.dataDir}
+                aria-invalid={error !== null && (draft.storageScope === 'custom' || draft.storageScope === 'workspaces')}
+                placeholder={scopeChoice === 'workspaces' ? t('config.workspacesDefault') : t('config.nativeDefaultLocation')}
+                disabled={coreDisabled} autoComplete="off" spellCheck={false} autoCapitalize="none" autoCorrect="off"
+                onChange={event => editDirectory(event.target.value)} />
+            </SettingRow>}
+            <SelectRow id="mnemon-runtime-user-scope" label={t('config.runtimeUserScopeTitle')} value={draft.runtimeUserScope} disabled={coreDisabled} onChange={value => edit('runtimeUserScope', value)} options={[
+              { value: 'storage', label: t('config.runtimeUserScopeStorage'), detail: t('config.runtimeUserScopeStorageHint') },
+              { value: 'global', label: t('config.runtimeUserScopeGlobal'), detail: t('config.runtimeUserScopeGlobalHint') },
+            ]} />
+            <MnemonPackSection {...(connection === undefined ? {} : { connection })} {...(sessionId === undefined ? {} : { sessionId })} {...(workspaceId === undefined ? {} : { workspaceId })} refreshKey={targetRevision} t={t} />
+          </div>
+        </section>
+
         <section className={css.section} aria-labelledby="mnemon-background-heading">
           <div className={css.sectionHeading}>
             <h2 id="mnemon-background-heading">{t('config.backgroundTitle')}</h2>
@@ -562,6 +548,18 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
               t={t}
             />
             <IdleReviewRows draft={draft} disabled={coreDisabled} onEditMany={editMany} t={t} />
+          </div>
+        </section>
+
+        <section className={css.section} aria-labelledby="mnemon-interface-heading">
+          <div className={css.sectionHeading}><h2 id="mnemon-interface-heading">{t('config.interfaceTitle')}</h2></div>
+          <div className={css.rows}>
+            <SelectRow id="mnemon-display" label={t('config.displayTitle')} value={draft.displayMode} disabled={coreDisabled} onChange={value => edit('displayMode', value)} options={[
+              { value: 'sidebar', label: t('config.displaySidebar'), detail: t('config.displaySidebarHint') },
+              { value: 'builtin', label: t('config.displayBuiltin'), detail: t('config.displayBuiltinHint') },
+            ]} />
+            <ToggleRow id="mnemon-interaction-turn-bar" label={t('config.interactionTurnBar')} hint={t('config.interactionTurnBarHint')} checked={draft.turnBar} disabled={interactionDisabled} onChange={value => edit('turnBar', value)} />
+            <ToggleRow id="mnemon-interaction-save-action" label={t('config.interactionSaveAction')} hint={t('config.interactionSaveActionHint')} checked={draft.saveAction} disabled={interactionDisabled} onChange={value => edit('saveAction', value)} />
           </div>
         </section>
 
