@@ -102,9 +102,9 @@ The board is drawn from what each plugin declares, so a new plugin needs no Mnem
 
 The component's page says what else its switch would move, and the toast after a switch names what moved, with **Undo**. Declare `requires` and `provides` precisely: they are how users see what your plugin needs, and what it cannot run beside.
 
-#### A component's own settings
+#### A component's own settings and Status card
 
-When declared options are not enough, a component adds its own settings to its page from its `./client` entry, the way the shipped components do: Runtime Memory's user profile scope, Memory Spaces' Providers and embedding, Default three-tier's background tasks.
+When declared options are not enough, a component adds its own settings to its page from its `./client` entry, the way the shipped components do: Runtime Memory's user profile scope, Memory Spaces' Providers and embedding, Default three-tier's background tasks. A Source can also say what its card on the Memory System's Status page shows while it runs.
 
 ```tsx
 import { installMemoryComponentUI } from 'dsh-mnemon/client'
@@ -113,11 +113,14 @@ export function apply(ctx) {
   ctx.effect(() => installMemoryComponentUI(ctx, {
     packageName: 'acme-memory-notes',
     settings: ({ component, writable, language }) => <NotesSettings enabled={component.enabled} readOnly={!writable} language={language} />,
+    status: ({ language }) => <><strong>{notesHeadline(language)}</strong><p>{notesDetail(language)}</p></>,
   }))
 }
 ```
 
 The settings render in the `mnemon.component.settings` region, keyed by the package name the plugin's declaration names, after the page's state, relations and declared options; the component's row gets a gear that opens them. They receive only what the page knows: `component` (`packageName`, `label`, `enabled`), `writable`, `language`, and the conversation's `sessionId` and `workspace` when there is one; bring your own services through your own registration. Registration waits until dsh-mnemon's configuration exists and ends with the returned function. Follow the page's interaction rules: switches and selectors apply when they change, typed values wait for your own **Apply**, and your settings never join another group's save.
+
+The Status card renders in the `mnemon.component.status` region, keyed the same way, as a headline in `<strong>` and one line in `<p>` under the component's declared name. It receives `component`, `language`, and the Memory System's `sessionId` and `workspace` when there is one, and reads its own Source. Every Source component has a card whether or not it contributes one: a component that is off, or whose Source is not running, shows the page's own note instead, and one that contributed nothing shows that it runs. Tabs, the card and the header use the name the component declares.
 
 Third-party packages continue to use DSH's native Profile/Loader workflow. Install an exact package with `dsh plugin --profile <Profile> add <name>@<version> --save-exact`, verify its `peerDependencies` and `dsh.bundle.patch`, then activate it explicitly in Profile composition after restarting. Downloading an npm package is not activation, and Mnemon does not hot-load it into the current process. External standalone repositories following this guide are welcome; generic graphical management may be revisited after the contracts and community cases settle, but is not a v0.5 promise.
 

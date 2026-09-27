@@ -15,7 +15,7 @@ Every capability of dsh-mnemon may be extended: Sources, main Strategies, enhanc
 |---|---|---|---|---|
 | Memory System page and tab | `mnemon.source.page` | list | `shell.overlay`, `conversation.view` | existing |
 | A component's own settings, on its page | `mnemon.component.settings` | keyed by package name | `plugins.bundle.config`, `plugins.row.config` | new |
-| A component's card on the Status page | `mnemon.component.status` | keyed by package name | `shell.overlay`, `conversation.view` | next |
+| A component's card on the Status page | `mnemon.component.status` | keyed by package name | `shell.overlay`, `conversation.view` | new |
 
 `installMemoryComponentUI(ctx, { packageName, settings?, status? })` in `dsh-mnemon/client` registers a component's contributions, beside the existing `installMemorySourceUI`. Owner props carry only what the host knows about the component (its declaration view, writability, language); a registrant injects its own services through its registration, as DSH slots already allow.
 
@@ -33,7 +33,7 @@ The page shows, in order: state and switch; origin (shipped or installed package
 - **Runtime Memory** contributes where its user profile (USER.md) lives.
 - **Memory Spaces** contributes Memory providers and embedding. They leave the page's top level.
 - **Default three-tier** contributes the background tasks it drives: the task Agent model and idle review.
-- The Sources contribute their Status cards; the Memory System names tabs and layers from declarations rather than a table of shipped names.
+- The Sources contribute their Status cards; the Memory System names tabs, cards, storage areas, the header's main Strategy and layers from declarations rather than a table of shipped names. Every Source component has a card, a component that is off included.
 - dsh-mnemon keeps what belongs to no component: storage, backup, interface, versions. Storage names the components that keep their data in its directory, from the Sources a backup carries.
 
 ## Rules

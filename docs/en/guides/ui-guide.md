@@ -20,7 +20,7 @@ With `displayMode: builtin`, open Memory System from the conversation's tabs ins
 
 While Memory System is displayed in Builtin, its owning conversation's width resize handles are hidden. The resident composer remains usable; switching to Chat or another view restores normal width dragging. This applies only to the owning conversation, including when other plugins render adjacent or nested conversations.
 
-Primary pages remain **Status, Runtime, Documents, Memory Spaces**. Memory Spaces adds **Overview, Recall, Content, Entities**, with **Remember** and **Distillation strategy** at the top right. A generated View is an internal per-turn runtime artifact, not a navigation page; Status does not own plugin discovery or installation.
+Primary pages remain **Status, Runtime memory, Project Documents, Memory Spaces**: each Source's page carries the name its component declares, as the configuration shows it, and an installed Source's page joins them the same way. Memory Spaces adds **Overview, Recall, Content, Entities**, with **Remember** and **Distillation strategy** at the top right. A generated View is an internal per-turn runtime artifact, not a navigation page; Status does not own plugin discovery or installation.
 
 All four pages use the same content inset and one page scroll area. Their primary headers remain visible while scrolling; Memory Spaces keeps its title, actions and internal tabs together. Changing a primary page or a Memory Spaces tab starts at the top without moving the conversation or other plugin panels. Opening related memories reveals their heading and close button below the fixed header. Document readers, related-memory readers and dialogs retain their own bounded scrolling.
 
@@ -40,7 +40,7 @@ All four pages use the same content inset and one page scroll area. Their primar
 
 The top Memory Engine area shows only dsh-mnemon. The Memory providers list shows Mnemon Native as its first row (while its CLI is installed or a Native space exists), followed by the other Providers with enabled, health, and connection state. A failure is marked on its own row and never becomes a global banner.
 
-The page loads concurrently and progressively. Only one region-level spinner remains while work is pending; returned data appears immediately. Status also summarizes Runtime, Documents, Memory Spaces, storage root, and dsh-mnemon / Mnemon versions.
+The page loads concurrently and progressively. Only one region-level spinner remains while work is pending; returned data appears immediately. After the engine, every Source component has a card named as it declares itself: what it contributed (Runtime memory's entries, Project Documents' active and archived documents, Memory Spaces' active spaces), or that it runs, for an installed Source that contributed nothing. Status also shows the storage root, whose areas carry the same names, and dsh-mnemon / Mnemon versions. The header names the composing main Strategy the same way.
 
 A notice above the pages, with **Open configuration**, says when memory needs attention: **Memory not in use** while no main Strategy runs (conversations continue without memory), **The latest component change did not take effect** while a rejected change leaves the previous composition serving, and **The selected main strategy is not running** while a fallback Strategy composes. A layer card whose layer is off, whose Source component is off, or that nothing composes says so instead of waiting for data.
 
