@@ -465,6 +465,7 @@ export function MnemonSettingsCard({ scope, interactionScope: suppliedInteractio
           {...(workspaceId === undefined ? {} : { workspaceId })}
           refreshKey={targetRevision}
           language={language}
+          readOnly={!coreSnapshot.writable}
           t={t}
         />
 

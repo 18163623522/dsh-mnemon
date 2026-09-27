@@ -24,6 +24,8 @@ export interface MemoryCompositionProps {
   refreshKey?: number
   /** Active DSH locale id; it picks the language of a third-party descriptor. */
   language: string
+  /** The configuration around these controls cannot be saved, such as a remote page without the management grant. */
+  readOnly?: boolean
   t: MnemonTranslate
 }
 
@@ -78,7 +80,7 @@ export function MemoryCompositionSections(props: MemoryCompositionProps): JSX.El
   const enhancements = dashboard.entries.filter(entry => entry.roles.includes('strategy-extension'))
   if (mains.length <= 1 && enhancements.length === 0) return null
   const selected = mains.find(entry => entry.typeId === dashboard.strategyTypeId)
-  const disabled = working !== null || !dashboard.writable
+  const disabled = working !== null || !dashboard.writable || props.readOnly === true
   const copy = (entry: MemoryPluginEntryView): { label: string; hint: string } => {
     const shipped = SHIPPED_COPY[entry.packageName]
     if (shipped !== undefined) return { label: props.t(shipped.label), hint: props.t(shipped.hint) }

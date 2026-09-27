@@ -101,6 +101,17 @@ describe('memory composition controls', () => {
     expect(await screen.findByRole('status')).toHaveProperty('textContent', translateEn('config.strategyInactive'))
   })
 
+  it('keeps the controls read-only with a configuration that cannot be saved', async () => {
+    const { applied, connection } = fixture([threeTier, general, capture])
+    render(<MemoryCompositionSections connection={connection} language="en" readOnly t={translateEn} />)
+    await waitFor(() => expect(mainSelectors()).toHaveLength(1))
+    expect((mainSelectors()[0] as HTMLButtonElement).disabled).toBe(true)
+    const toggle = screen.getByRole('switch', { name: 'Active capture' }) as HTMLButtonElement
+    expect(toggle.disabled).toBe(true)
+    fireEvent.click(toggle)
+    expect(applied).toEqual([])
+  })
+
   it('shows the Host state after a change meets a newer revision', async () => {
     const { applied, connection, external } = fixture([threeTier, general, capture])
     render(<MemoryCompositionSections connection={connection} language="en" t={translateEn} />)
