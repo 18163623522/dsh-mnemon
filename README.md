@@ -13,7 +13,7 @@
 </p>
 
 <p align="center"><strong>Composable, view-based memory for DeepSeek Harness.</strong></p>
-<p align="center">Pluggable sources and strategies, with three-tier memory out of the box.</p>
+<p align="center">Pluggable sources and strategies, with layered memory out of the box.</p>
 
 <p align="center">
   <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/ui-guide.md">

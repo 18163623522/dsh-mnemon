@@ -13,7 +13,7 @@
 </p>
 
 <p align="center"><strong>面向 DeepSeek Harness 的可组合视图记忆。</strong></p>
-<p align="center">记忆来源与策略可插拔，开箱即用提供三层记忆。</p>
+<p align="center">记忆来源与策略可插拔，开箱即用提供分层记忆。</p>
 
 <p align="center">
   <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/ui-guide.md">
