@@ -1,8 +1,10 @@
-import type { JSX } from 'react'
+import { useRef, type JSX } from 'react'
+import { PathLabel } from '@deepseek-ai/dsh-client-ui-primitives'
 import { MNEMON_PACK_COMPONENTS, type ClientConnectionHandle, type ClientSettingsScope, type Config, type SettingsOperation } from '../host/protocol.ts'
 import type { MemoryPluginEntryView, MemoryViewDashboard } from '../host/view-protocol.ts'
 import { componentCopy } from './component-copy.ts'
 import { ComponentChips } from './CompositionBoard.tsx'
+import { GlobalLocationSetting } from './GlobalLocationSetting.tsx'
 import type { MnemonTranslate } from './locales.ts'
 import css from './MnemonSettingsCard.module.css'
 import { MnemonPackSection, type PackTarget } from './MnemonPackSection.tsx'
@@ -10,9 +12,12 @@ import { SelectRow, SettingRow } from './settings-controls.tsx'
 import { PanelActions, useStaged } from './settings-panel.tsx'
 
 type StorageChoice = 'global' | 'workspace' | 'workspaces'
+/** Whether a shared or central directory is Mnemon's default one or one the user chose. */
+type LocationChoice = 'default' | 'custom'
 
 interface StorageDraft {
-  storageScope: string
+  scope: StorageChoice
+  location: LocationChoice
   dataDir: string
 }
 
@@ -23,24 +28,49 @@ function legacyPackDirectory(value: Config): string {
     ?? ''
 }
 
+function savedDirectory(value: Config): string {
+  return value.dataDir?.trim() || legacyPackDirectory(value)
+}
+
+/** The scope the configuration stores; a global scope with its own directory is `custom`. */
+function savedScope(value: Config): string {
+  return value.storageScope ?? (savedDirectory(value) === '' ? 'global' : 'custom')
+}
+
+function storedScope(draft: StorageDraft): string {
+  return draft.scope === 'global' ? (draft.location === 'custom' ? 'custom' : 'global') : draft.scope
+}
+
 function storageDraft(value: Config | undefined): StorageDraft {
   const resolved = value ?? {}
-  const dataDir = resolved.dataDir?.trim() || legacyPackDirectory(resolved)
-  return { storageScope: resolved.storageScope ?? (dataDir === '' ? 'global' : 'custom'), dataDir }
+  const dataDir = savedDirectory(resolved)
+  const stored = savedScope(resolved)
+  const scope: StorageChoice = stored === 'workspace' || stored === 'workspaces' ? stored : 'global'
+  // The global scope ignores a directory it does not store as `custom`; the others use any one set.
+  const location: LocationChoice = stored === 'custom' || (stored !== 'global' && dataDir !== '') ? 'custom' : 'default'
+  return { scope, location, dataDir }
+}
+
+/** Whether the draft waits for a directory to be typed; an empty field is not yet a mistake. */
+function storageMissing(draft: StorageDraft): boolean {
+  return draft.scope !== 'workspace' && draft.location === 'custom' && draft.dataDir.trim() === ''
 }
 
 function storageProblem(t: MnemonTranslate, draft: StorageDraft): string | null {
-  if (!['global', 'workspace', 'custom', 'workspaces'].includes(draft.storageScope)) return t('config.invalidScope')
-  if (draft.storageScope === 'custom' || (draft.storageScope === 'workspaces' && draft.dataDir.trim() !== '')) {
-    const directory = draft.dataDir.trim()
-    if (directory === '') return t('config.customRequired')
-    const posixAbsolute = directory.startsWith('/')
-    const homeRelative = directory === '~' || directory.startsWith('~/')
-    const windowsDriveAbsolute = /^[a-zA-Z]:[\\/]/.test(directory)
-    const windowsUncAbsolute = /^\\\\[^\\/]+[\\/][^\\/]+/.test(directory)
-    if (directory.includes('\0') || (!posixAbsolute && !homeRelative && !windowsDriveAbsolute && !windowsUncAbsolute)) return t('config.customAbsolute')
-  }
+  if (draft.scope === 'workspace' || draft.location === 'default') return null
+  const directory = draft.dataDir.trim()
+  if (directory === '') return null
+  const posixAbsolute = directory.startsWith('/')
+  const homeRelative = directory === '~' || directory.startsWith('~/')
+  const windowsDriveAbsolute = /^[a-zA-Z]:[\\/]/.test(directory)
+  const windowsUncAbsolute = /^\\\\[^\\/]+[\\/][^\\/]+/.test(directory)
+  if (directory.includes('\0') || (!posixAbsolute && !homeRelative && !windowsDriveAbsolute && !windowsUncAbsolute)) return t('config.customAbsolute')
   return null
+}
+
+/** A directory as DSH shows a path: its end stays in view, the whole of it on hover. */
+function Path(props: { value: string; label?: string }): JSX.Element {
+  return <span className={css.location}>{props.label !== undefined && <span>{props.label}</span>}<PathLabel path={props.value} /></span>
 }
 
 export interface MnemonStorageSectionProps {
@@ -67,15 +97,26 @@ export interface MnemonStorageSectionProps {
  * change moves where every component below reads and writes, and the ZIP
  * backup that carries the data from one place to another. The components
  * that keep their data here are named at the top, each opening its page.
+ *
+ * The directory is Mnemon's default one or one the user types, chosen
+ * outright rather than implied by an empty field, and the row shows the one
+ * path memory uses.
  */
 export function MnemonStorageSection(props: MnemonStorageSectionProps): JSX.Element {
   const { t } = props
-  const saved = storageDraft(props.value)
+  const value = props.value ?? {}
+  const saved = storageDraft(value)
   const storage = useStaged(saved, async draft => {
     const operations: SettingsOperation[] = []
-    if (draft.storageScope !== saved.storageScope) operations.push({ op: 'set', path: ['storageScope'], value: draft.storageScope })
-    if (draft.dataDir.trim() !== saved.dataDir.trim()) {
-      operations.push(draft.dataDir.trim() === '' && draft.storageScope !== 'workspaces' ? { op: 'unset', path: ['dataDir'] } : { op: 'set', path: ['dataDir'], value: draft.dataDir.trim() })
+    const scope = storedScope(draft)
+    if (scope !== savedScope(value)) operations.push({ op: 'set', path: ['storageScope'], value: scope })
+    // A workspace's own directory takes none; the others keep the one typed or return to the default.
+    if (draft.scope !== 'workspace') {
+      const directory = draft.location === 'custom' ? draft.dataDir.trim() : ''
+      if (directory !== saved.dataDir.trim()) {
+        // A central root returns to the default as an empty value, which no lower settings layer can fill.
+        operations.push(directory === '' && draft.scope === 'global' ? { op: 'unset', path: ['dataDir'] } : { op: 'set', path: ['dataDir'], value: directory })
+      }
     }
     if (operations.length === 0) return
     // A saved directory retires the named Packs an earlier version kept.
@@ -85,17 +126,23 @@ export function MnemonStorageSection(props: MnemonStorageSectionProps): JSX.Elem
     props.onSaved()
   })
   const { draft } = storage
-  // A global scope with a directory is the stored `custom` scope; the directory field alone tells them apart.
-  const choice: StorageChoice = draft.storageScope === 'workspace' || draft.storageScope === 'workspaces' ? draft.storageScope : 'global'
-  const chooseScope = (next: StorageChoice): void => storage.edit({ storageScope: next === 'global' ? (draft.dataDir.trim() === '' ? 'global' : 'custom') : next })
-  const editDirectory = (value: string): void => storage.edit(choice === 'global' ? { dataDir: value, storageScope: value.trim() === '' ? 'global' : 'custom' } : { dataDir: value })
   const problem = storageProblem(t, draft)
+  // Choosing to type a directory puts the cursor in the field.
+  const focusDirectory = useRef(false)
+  const chooseLocation = (location: LocationChoice): void => {
+    focusDirectory.current = location === 'custom'
+    storage.edit({ location, dataDir: saved.dataDir })
+  }
   // The Sources that keep their data here, in the order a backup lists them.
   const order = (entry: MemoryPluginEntryView): number => (MNEMON_PACK_COMPONENTS as readonly string[]).indexOf(entry.typeId ?? '')
   const users = (props.dashboard?.entries ?? []).filter(entry => entry.roles.includes('source') && order(entry) >= 0).sort((left, right) => order(left) - order(right))
   // Where memory lives now; while a change waits, the Apply line says what it does instead.
-  const location = storage.dirty || props.target === null ? undefined
-    : <span className={css.location}><span>{t('storage.current')}</span><code title={props.target.root}>{props.target.root}</code></span>
+  const current = storage.dirty ? undefined : props.target?.root
+  const defaultRoot = props.target?.defaultRoot ?? (saved.scope === 'global' && saved.location === 'default' ? current : undefined)
+  // The row shows one path: the default one, or this workspace's under a central root; a typed one is in its field.
+  const directoryHint = draft.scope === 'workspaces'
+    ? current === undefined ? '' : <Path label={t('storage.thisWorkspace')} value={current} />
+    : draft.location === 'default' && defaultRoot !== undefined ? <Path value={defaultRoot} /> : ''
   return <section className={css.section} aria-labelledby="mnemon-storage-heading">
     <div className={css.sectionHeading}>
       <h2 id="mnemon-storage-heading">{t('config.storageTitle')}</h2>
@@ -105,22 +152,26 @@ export function MnemonStorageSection(props: MnemonStorageSectionProps): JSX.Elem
       })} />
     </div>
     <div className={css.rows}>
-      <SelectRow id="mnemon-storage-scope" label={t('config.scopeTitle')} value={choice} disabled={props.disabled} onChange={chooseScope} options={[
+      <SelectRow id="mnemon-storage-scope" label={t('config.scopeTitle')} value={draft.scope} disabled={props.disabled} onChange={scope => storage.edit({ scope })} options={[
         { value: 'global', label: t('config.global'), detail: t('config.globalScopeHint') },
         { value: 'workspace', label: t('config.workspace'), detail: t('config.workspaceScopeHint') },
         { value: 'workspaces', label: t('config.workspaces'), detail: t('config.workspacesHint') },
       ]} />
-      {/* A workspace keeps its own directory, so there is nothing to type, only where it is. */}
-      {choice === 'workspace'
-        ? location === undefined ? null : <SettingRow title={t('config.dataDirectory')} hint={location} />
-        : <SettingRow title={t('config.dataDirectory')} htmlFor="mnemon-data-directory" hint={location} stacked>
+      {/* A workspace keeps its own directory, so there is nothing to choose, only where it is. */}
+      {draft.scope === 'workspace'
+        ? current === undefined ? null : <SettingRow title={t('config.dataDirectory')} hint={<Path value={current} />} />
+        : <GlobalLocationSetting name="mnemon-data-location" className={css.locationRow} ariaLabel={t('config.dataDirectory')}
+          label={t('config.dataDirectory')} hint={directoryHint} defaultLabel={t('storage.default')} customLabel={t('config.custom')}
+          custom={draft.location === 'custom'} workspace={false} disabled={props.disabled}
+          onChange={custom => chooseLocation(custom ? 'custom' : 'default')}>
           <input id="mnemon-data-directory" className={css.directoryInput} type="text" value={draft.dataDir}
-            aria-invalid={problem !== null}
-            placeholder={t('config.nativeDefaultLocation')}
+            aria-label={t('config.dataDirectory')} aria-invalid={problem !== null}
+            placeholder={t('storage.directoryExample')}
             disabled={props.disabled} autoComplete="off" spellCheck={false} autoCapitalize="none" autoCorrect="off"
-            onChange={event => editDirectory(event.target.value)} />
-        </SettingRow>}
-      <PanelActions dirty={storage.dirty} saving={storage.saving} invalid={problem} failed={storage.failed} applied={storage.applied} disabled={props.disabled}
+            ref={element => { if (element !== null && focusDirectory.current) { focusDirectory.current = false; element.focus() } }}
+            onChange={event => storage.edit({ dataDir: event.target.value })} />
+        </GlobalLocationSetting>}
+      <PanelActions dirty={storage.dirty} saving={storage.saving} invalid={problem} failed={storage.failed} applied={storage.applied} disabled={props.disabled || storageMissing(draft)}
         note={t('storage.moveNote')} t={t} onDiscard={storage.discard} onApply={() => { void storage.apply() }} />
       <MnemonPackSection {...(props.connection === undefined ? {} : { connection: props.connection })} {...(props.sessionId === undefined ? {} : { sessionId: props.sessionId })}
         {...(props.workspaceId === undefined ? {} : { workspaceId: props.workspaceId })} target={props.target} t={t} />

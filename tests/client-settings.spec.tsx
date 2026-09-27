@@ -53,6 +53,8 @@ const runtime = (scope: ClientSettingsScope<Config>, options: PageOptions = {}, 
   <RuntimeSettings scope={scope} t={t} page={page(RUNTIME_PACKAGE, options)} />
 /** A group's Apply, shown once something in it changed. */
 const apply = (name = '应用') => screen.getByRole('button', { name }) as HTMLButtonElement
+/** The data directory's default or custom choice. */
+const directoryChoice = (option: string, group = '数据目录') => within(screen.getByRole('radiogroup', { name: group })).getByRole('radio', { name: option }) as HTMLInputElement
 /** A selector found by its row id, where row titles share a prefix. */
 const rowSelector = (id: string) => document.querySelector<HTMLButtonElement>(`[aria-labelledby^="${id}-title "]`)!
 function chooseIn(id: string, option: string): void {
@@ -661,7 +663,15 @@ describe('MnemonSettingsCard', () => {
     const scope = settingsScope(snapshot, mutate)
     const view = render(<MnemonSettingsCard scope={scope} />)
 
-    fireEvent.change(view.getByRole('textbox', { name: '数据目录' }), { target: { value: '  /tmp/mnemon-custom  ' } })
+    // The default location has no field; choosing Custom opens one, ready to type in.
+    expect(directoryChoice('默认').checked).toBe(true)
+    expect(view.queryByRole('textbox', { name: '数据目录' })).toBeNull()
+    fireEvent.click(directoryChoice('自定义'))
+    const directory = view.getByRole('textbox', { name: '数据目录' }) as HTMLInputElement
+    expect(document.activeElement).toBe(directory)
+    expect(directory.placeholder).toBe('例如 ~/Documents/mnemon')
+    expect(apply().disabled).toBe(true)
+    fireEvent.change(directory, { target: { value: '  /tmp/mnemon-custom  ' } })
     expect(selector('存储范围').textContent).toBe('全局')
     fireEvent.click(apply())
 
@@ -710,7 +720,7 @@ describe('MnemonSettingsCard', () => {
     ]))
   })
 
-  it('treats an empty data directory as the default global location', async () => {
+  it('returns to the default directory by choosing it, not by emptying the field', async () => {
     const snapshot = {
       status: 'ready' as const,
       value: { storageScope: 'global' as const },
@@ -726,8 +736,14 @@ describe('MnemonSettingsCard', () => {
     render(<MnemonSettingsCard scope={scope} />)
     const directory = screen.getByRole('textbox', { name: '数据目录' }) as HTMLInputElement
     expect(directory.value).toBe('/data/mnemon')
-    expect(directory.placeholder).toBe('留空即默认目录')
+    expect(directoryChoice('自定义').checked).toBe(true)
+    // An emptied field waits for a directory rather than meaning the default, which is a choice of its own.
     fireEvent.change(directory, { target: { value: '' } })
+    expect(apply().disabled).toBe(true)
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(directory.getAttribute('aria-invalid')).toBe('false')
+    fireEvent.click(directoryChoice('默认'))
+    expect(screen.queryByRole('textbox', { name: '数据目录' })).toBeNull()
     expect(screen.queryByRole('alert')).toBeNull()
     fireEvent.click(apply())
 
@@ -746,6 +762,7 @@ describe('MnemonSettingsCard', () => {
     const scope = settingsScope(snapshot)
 
     render(<MnemonSettingsCard scope={scope} />)
+    fireEvent.click(directoryChoice('自定义'))
     const directory = screen.getByRole('textbox', { name: '数据目录' })
     fireEvent.change(directory, { target: { value: 'relative/mnemon' } })
     expect(screen.getByRole('alert').textContent).toContain('绝对路径')
@@ -770,7 +787,8 @@ describe('MnemonSettingsCard', () => {
     render(<><MnemonSettingsCard scope={scope} />{threeTier(scope)}</>)
 
     expect(selector('存储范围').disabled).toBe(true)
-    expect((screen.getByRole('textbox', { name: '数据目录' }) as HTMLInputElement).disabled).toBe(true)
+    expect(directoryChoice('默认').disabled).toBe(true)
+    expect(directoryChoice('自定义').disabled).toBe(true)
     expect((screen.getByRole('switch', { name: '启用空闲审查' }) as HTMLButtonElement).disabled).toBe(true)
     expect(selector('审查方式').disabled).toBe(true)
     expect(selector('记忆系统入口').disabled).toBe(true)
@@ -1177,7 +1195,7 @@ describe('MnemonSettingsCard', () => {
     const connection = { rpc: { call }, isLoopback: true } as ClientConnectionHandle
 
     render(<MnemonSettingsCard scope={scope} connection={connection} />)
-    await waitFor(() => expect(screen.getByText('/active/.mnemon')).toBeTruthy())
+    await waitFor(() => expect(screen.getByTitle('/active/.mnemon')).toBeTruthy())
 
     const file = new File(['pack'], 'backup.zip', { type: 'application/zip' })
     fireEvent.change(screen.getByLabelText('选择 Mnemon 备份 ZIP'), { target: { files: [file] } })
@@ -1204,6 +1222,7 @@ describe('centralized workspace storage settings', () => {
     render(<MnemonSettingsCard scope={scope} />)
     choose('存储范围', '集中存储 · 按工作区隔离')
     const section = screen.getByRole('region', { name: '存储' })
+    fireEvent.click(directoryChoice('自定义'))
     fireEvent.change(within(section).getByRole('textbox', { name: '数据目录' }), { target: { value: '  /tmp/central-memory  ' } })
     fireEvent.click(within(section).getByRole('button', { name: '应用' }))
     await waitFor(() => expect(mutate).toHaveBeenCalledWith([
@@ -1212,14 +1231,14 @@ describe('centralized workspace storage settings', () => {
     ]))
   })
 
-  it('rejects a relative central root and lets an empty value restore the default without changing scope', async () => {
+  it('rejects a relative central root and returns to the default root without changing scope', async () => {
     const { scope, mutate } = settings({ storageScope: 'workspaces', dataDir: '/old-root' })
     render(<MnemonSettingsCard scope={scope} t={translateEn} />)
     const input = screen.getByRole('textbox', { name: 'Data directory' })
     fireEvent.change(input, { target: { value: 'relative' } })
     expect(apply('Apply').disabled).toBe(true)
     expect(screen.getByRole('alert').textContent).toContain('absolute')
-    fireEvent.change(input, { target: { value: '' } })
+    fireEvent.click(directoryChoice('Default', 'Data directory'))
     fireEvent.click(apply('Apply'))
     await waitFor(() => expect(mutate).toHaveBeenCalledWith([{ op: 'set', path: ['dataDir'], value: '' }]))
   })
@@ -1228,7 +1247,44 @@ describe('centralized workspace storage settings', () => {
     render(<MnemonSettingsCard scope={scope} />)
     expect(selector('存储范围').disabled).toBe(true)
     expect(selector('存储范围').textContent).toBe('集中存储 · 按工作区隔离')
-    expect((screen.getByRole('textbox', { name: '数据目录' }) as HTMLInputElement).disabled).toBe(true)
+    expect(directoryChoice('默认').disabled).toBe(true)
+    expect(directoryChoice('自定义').disabled).toBe(true)
     expect(mutate).not.toHaveBeenCalled()
+  })
+
+  it('shows the one directory memory uses: the default under its title, a typed one in its field', async () => {
+    const connection = (root: string, scope: string) => {
+      const call = vi.fn(async (channel: string, endpoint: string) => {
+        if (channel === '/dsh-mnemon-pack' && endpoint === 'target') return { ok: true as const, value: { root, scope, defaultRoot: '/home/me/.mnemon' } }
+        throw new Error(`unexpected ${channel} ${endpoint}`)
+      })
+      return { call, connection: { rpc: { call }, isLoopback: true } as unknown as ClientConnectionHandle }
+    }
+
+    // The default: its path under the title, with no empty field beside it.
+    const global = connection('/home/me/.mnemon', 'global')
+    const first = render(<MnemonSettingsCard scope={settings({ storageScope: 'global' }).scope} connection={global.connection} />)
+    expect(await screen.findByTitle('/home/me/.mnemon')).toBeTruthy()
+    expect(directoryChoice('默认').checked).toBe(true)
+    expect(screen.queryByRole('textbox', { name: '数据目录' })).toBeNull()
+    first.unmount()
+
+    // A central root: this workspace's own directory under it.
+    const central = connection('/home/me/.mnemon/workspaces/project-1a2b', 'workspaces')
+    const second = render(<MnemonSettingsCard scope={settings({ storageScope: 'workspaces' }).scope} connection={central.connection} />)
+    expect(await screen.findByTitle('/home/me/.mnemon/workspaces/project-1a2b')).toBeTruthy()
+    expect(screen.getByText('本工作区')).toBeTruthy()
+    second.unmount()
+
+    // A typed directory shows in its field only; choosing Default shows where memory would go.
+    const custom = connection('/data/mnemon', 'custom')
+    render(<MnemonSettingsCard scope={settings({ storageScope: 'custom', dataDir: '/data/mnemon' }).scope} connection={custom.connection} />)
+    await waitFor(() => expect(custom.call).toHaveBeenCalledWith('/dsh-mnemon-pack', 'target', expect.anything()))
+    await act(async () => {})
+    expect((screen.getByRole('textbox', { name: '数据目录' }) as HTMLInputElement).value).toBe('/data/mnemon')
+    expect(screen.queryByTitle('/data/mnemon')).toBeNull()
+    fireEvent.click(directoryChoice('默认'))
+    expect(screen.getByTitle('/home/me/.mnemon')).toBeTruthy()
+    expect(screen.getByText('应用后读写新位置，已有数据不会迁移')).toBeTruthy()
   })
 })

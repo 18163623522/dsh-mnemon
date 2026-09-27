@@ -554,6 +554,13 @@ export interface MnemonPackManifest {
   summary: MnemonPackComponentSummary[]
 }
 
+/** Where memory lives now, and where the global scope keeps it when no directory is chosen. */
+export interface MnemonPackTarget {
+  root: string
+  scope: StorageScopeKind
+  defaultRoot: string
+}
+
 export interface MnemonPackExport {
   fileName: string
   mimeType: 'application/zip'
