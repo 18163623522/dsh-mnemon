@@ -39,6 +39,8 @@ Test-Path "$env:LOCALAPPDATA\Programs\mnemon\mnemon.exe"
 
 npm 更新要求当前启动器属于现有 npm 所报告的全局安装目录；不同 Node/npm 环境或启动器故障会显示修复指引。首次安装或迁移使用 `npm install --global @mnemon-dev/mnemon@latest`，后续使用 `mnemon update`。命令在 DSH 宿主运行，需要 Node.js 22+。修改 PATH 或 CLI 配置后，重新检查并核对面板中的可执行文件路径。
 
+在 Windows 桌面宿主中，记忆操作和版本检查会直接调用已识别的官方 Mnemon npm 安装所锁定的原生程序，避免 npm 启动器额外弹出控制台窗口，并保留隐藏子进程、超时、取消和已保存的嵌入设置。界面显示的安装路径和 npm 更新归属仍指向原启动器。对于未知包布局或缺失的原生依赖，继续使用启动器回退路径及其修复诊断。
+
 展开 dsh-mnemon 子包列表，可按 Source、Strategy、Provider 查看版本。主包固定的依赖随主包更新，仅当前所属 Profile 中独立安装的包支持单独更新；源码链接保持原维护方式。包更新串行执行，重新检查或重开面板仍保留待重启提示。只读连接可检查版本与复制命令；页面更新需要管理权限且开启 `writeEnabled`。
 
 Go 更新还要求当前执行文件确实位于本机 Go 的安装输出位置（`GOBIN`，或 `GOPATH` 第一项的 `bin` 目录），且未配置交叉编译目标。不能仅因下载的二进制包含 Go 构建信息就认定它由 Go 管理。CLI 更新后还会核验当前执行文件已达到所检查的版本，才报告成功。
