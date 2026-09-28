@@ -16,14 +16,14 @@
 <p align="center">Pluggable sources and strategies, with layered memory out of the box.</p>
 
 <p align="center">
-  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/assets/webui-v0.5.17/README.md">
-    <img src="https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.17/en/demo.gif" alt="A question answered from working memory, Memory Spaces and Project Documents; the turn memory bar lists the tools used, then the Memory Spaces graph and the main strategy selector" width="960" />
+  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/ui-guide.md#in-a-conversation">
+    <img src="https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.18/en/recall.gif" alt="A question answered from working memory, Project Documents and Memory Spaces; the expanded turn memory bar opens the document it read in Project Documents" width="880" />
   </a>
 </p>
 
 <p align="center">
   <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/getting-started.md"><strong>Get started</strong></a> ·
-  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/assets/webui-v0.5.17/en/demo.mp4">Watch the demo</a> ·
+  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/assets/webui-v0.5.18/README.md">Watch the demo</a> ·
   <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/README.md">Documentation</a> ·
   <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/development/extensions.md">Build a plugin</a>
 </p>
@@ -33,22 +33,35 @@
 An Agent that starts every session from scratch keeps asking what it was already told. Putting everything into one memory store is no better: it either floods each turn or misses what matters. dsh-mnemon gives DeepSeek Harness memory that is layered, visible and composable.
 
 - **The right memory for each turn.** Preferences and working facts stay in context. Project documents and long-term evidence are searched only when a question needs them.
-- **You can see what a turn used.** Under each reply, the turn memory bar lists the searches, recalls and writes behind it. The Memory System shows everything that is stored and lets you edit it.
+- **You can see what a turn used.** Under each reply, the turn memory bar lists the documents and memories the turn read and wrote, and one click opens each in the Memory System. The Memory System shows everything that is stored and lets you edit it.
+- **Save to memory in one click.** When a conversation turns up a fact worth keeping, the brain mark under the reply hands it to a task Agent, which removes duplicates, distils it and writes it to the right Memory Space; the receipt says where it went.
 - **Compose it on the Plugins page.** Choose a main strategy and optional enhancements, and switch them without moving any data. Every component has its own page for its settings.
 - **Keep data where you want it.** Local by default with Mnemon Native, or one of eight third-party Providers. Storage can be global, per workspace or centralized, with ZIP backup.
 - **Extend it.** Sources and Strategies are ordinary DSH plugins built on public SDKs. An installed component gets the same pages and switches as the shipped ones.
 
 ## See it in action
 
-| Memory in a conversation | The Memory System |
-|---|---|
-| [![An answer that cites working memory, Memory Spaces and Documents, with the turn memory bar expanded](https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.17/en/chat-recall.jpg)](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/ui-guide.md#in-a-conversation) | [![The Memory Spaces graph with an entity selected](https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.17/en/memory-graph.jpg)](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/ui-guide.md#memory-spaces) |
-| One answer drawn from all three kinds of memory. The turn memory bar names the tools it used. | Runtime memory, Project Documents and Memory Spaces in one place. The graph links memories through the entities they mention. |
-| **Composition on the Plugins page** | **Providers for long-term memory** |
-| [![The Memory composition board on the dsh-mnemon plugin page](https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.17/en/plugin-composition.jpg)](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/ui-guide.md#on-the-plugins-page) | [![The Memory Spaces page listing Mnemon Native and eight third-party Providers](https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.17/en/plugin-spaces.jpg)](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/memory-providers.md) |
-| One main strategy, its memory sources and optional enhancements, each with a switch that applies at once. | Mnemon Native runs locally; the other Providers connect to their own services when you enable them. |
+These recordings come from a real WebUI with the live DeepSeek model answering, on a seeded, fictional project, Lumen. Waits for the model play faster, marked in the lower right corner.
 
-More screens are in the [UI guide](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/ui-guide.md) and the [v0.5.17 gallery](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/assets/webui-v0.5.17/README.md).
+**Save a new fact to memory.** A reply reports a new measurement. Select the brain mark under it, cut the candidate down to the sentence worth keeping and send it to the task Agent; the receipt names the Memory Space it went to and opens it in one click.
+
+<p align="center">
+  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/ui-guide.md#save-to-memory"><img src="https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.18/en/save.gif" alt="Save to memory: edit the candidate, send it to the task Agent, then view the new memory from the Saved receipt" width="880" /></a>
+</p>
+
+**See all memory in one place.** Status, runtime memory, Project Documents and Memory Spaces live in the Memory System. The graph links memories through the entities they mention, and Ask Agent answers with the memories it cites, by content.
+
+<p align="center">
+  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/ui-guide.md#the-memory-system"><img src="https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.18/en/memory.gif" alt="The Memory System: status, runtime memory, a document, the Memory Spaces graph, then an Agent answer with citations" width="880" /></a>
+</p>
+
+**Compose memory on the Plugins page.** One main strategy, its memory sources and optional enhancements, each switch applying at once. Every component has its own page, and storage, backup and interface settings live here too.
+
+<p align="center">
+  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/ui-guide.md#on-the-plugins-page"><img src="https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.18/en/plugins.gif" alt="The Plugins page: memory composition, the main strategy menu, the Layered strategy's and Memory Spaces' pages, then storage and interface" width="880" /></a>
+</p>
+
+Every step is explained in the [UI guide](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/ui-guide.md); all screens, recordings and the capture environment are in the [v0.5.18 gallery](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/assets/webui-v0.5.18/README.md).
 
 ## Three kinds of memory
 
@@ -72,7 +85,8 @@ dsh web
 1. Open **Memory System** in the sidebar. **Status** shows each memory component and Provider.
 2. Add a runtime memory entry. Select a DSH workspace before creating Project Documents.
 3. For Memory Spaces, install the Mnemon CLI for Mnemon Native with `npm install --global @mnemon-dev/mnemon`, or enable another Provider on the Memory Spaces page.
-4. Choose the main strategy and enhancements under **Plugins → dsh-mnemon**.
+4. In a conversation, the turn memory bar under each reply lists what the turn read and wrote, and the brain mark saves a reply to memory.
+5. Choose the main strategy and enhancements under **Plugins → dsh-mnemon**.
 
 For Headless, add the same package with `dsh plugin --profile headless add dsh-mnemon`. Keep `v0.5.16` on older hosts. The [getting started guide](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/getting-started.md) covers each platform, and [compatibility and upgrades](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/reference/compatibility.md) covers existing installations.
 
@@ -126,4 +140,4 @@ pnpm verify
 pnpm verify:plugins
 ```
 
-Use Node.js `^22.19.0 || >=24.0.0` and pnpm. `node scripts/serve-e2e.mjs` starts a disposable real WebUI; add `--docs-demo` for the seeded project behind these screenshots. Mechanical tests are not claims about model accuracy or live cloud Providers. [Development and verification](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/development/README.md).
+Use Node.js `^22.19.0 || >=24.0.0` and pnpm. `node scripts/serve-e2e.mjs` starts a disposable real WebUI; add `--docs-demo` for the seeded project behind these screenshots, and `--live-model` to have the DeepSeek API answer, with the key read from `DEEPSEEK_API_KEY`. Mechanical tests are not claims about model accuracy or live cloud Providers. [Development and verification](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/development/README.md).

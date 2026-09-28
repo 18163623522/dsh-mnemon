@@ -153,7 +153,7 @@ With `storageScope=workspace`, Headless resolves `<invocation cwd>/.mnemon`; no 
 
 Click **Memory System** in the sidebar. It opens on **Status**.
 
-![Status with each memory component and the Providers](../../assets/webui-v0.5.17/en/memory-status.jpg)
+![Status with each memory component and the Providers](../../assets/webui-v0.5.18/en/memory-status.jpg)
 
 Check that:
 
@@ -176,11 +176,11 @@ Project Documents needs a DSH workspace even with global storage. Select a works
 2. Give it a narrow name, such as *Project decisions*, and describe what belongs there.
 3. Keep it active so conversations can read it.
 
-In an empty storage root, the first Mnemon Native space uses Mnemon's `default` store id while keeping your name and description; spaces on other Providers get their own ids. Then choose **Remember**, enter something stable and secret-free, and confirm. An independent task Agent picks the space, removes duplicates and writes.
+In an empty storage root, the first Mnemon Native space uses Mnemon's `default` store id while keeping your name and description; spaces on other Providers get their own ids. Then choose **Save to memory**, enter something stable and secret-free, and choose **Send to task Agent**. An independent task Agent picks the space, removes duplicates and writes, and its receipt says where it went.
 
-**Check it.** Open **Memory Spaces → Recall**, ask a concrete question and choose **Direct search**. Each result keeps its memory space, category, importance, score and id.
+**Check it.** Open **Memory Spaces → Recall**, ask a concrete question and choose **Direct search**. Each result keeps its memory space, category, importance and score; copy its id when you need it.
 
-![Direct search across the active memory spaces](../../assets/webui-v0.5.17/en/memory-recall.jpg)
+![Direct search across the active memory spaces](../../assets/webui-v0.5.18/en/memory-recall.jpg)
 
 You can also use conversation commands:
 
@@ -193,10 +193,10 @@ You can also use conversation commands:
 
 Ask a question that depends on what you stored, and let the Agent decide whether it needs memory. After the reply:
 
-- a **Turn memory** line appears if the turn used memory; expand it to see the exact tools, each linking to its page;
-- **Save to memory** opens an editable confirmation; **Cancel** writes nothing.
+- a **Turn memory** line appears if the turn used memory; expand it to see the documents and memories each tool read or wrote, and select one to open it where it lives;
+- the brain mark under the reply is **Save to memory**: it opens an editable dialog, **Cancel** writes nothing, and sending it to the task Agent returns a receipt.
 
-![An answer that uses working memory, Memory Spaces and Documents](../../assets/webui-v0.5.17/en/chat-recall.jpg)
+![An answer that uses working memory, Project Documents and Memory Spaces, with the items the turn read](../../assets/webui-v0.5.18/en/chat-recall.jpg)
 
 Ordinary conversation does not force recall. Current requests, repository files and live tool results outrank remembered history.
 
@@ -204,7 +204,7 @@ Ordinary conversation does not force recall. Current requests, repository files 
 
 Open **Plugins → dsh-mnemon**, or the gear in the Memory System header.
 
-![The Memory composition board](../../assets/webui-v0.5.17/en/plugin-composition.jpg)
+![The Memory composition board](../../assets/webui-v0.5.18/en/plugin-composition.jpg)
 
 - **Main strategy**: keep the **Layered strategy**, or choose the **General strategy** to offer every available source in one budget and let the model decide.
 - **Memory sources**: Runtime memory, Project Documents and Memory Spaces, one switch each. Turning one off stops its context, tools and background work without deleting data.

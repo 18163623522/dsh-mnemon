@@ -108,7 +108,7 @@ Mnemon 在 DSH 中展示的一切都注册到 DSH 自己的界面区域。对话
 
 | DSH 区域 | 注册 | 行为 |
 |---|---|---|
-| `conversation.chat.turnTail` | list，`id=dsh-mnemon/turn-tail` | 通过 `turn-activity` 汇总完成回合中的 `mnemon_*` 调用；无活动或未完成回合不渲染 |
+| `conversation.chat.turnTail` | list，`id=dsh-mnemon/turn-tail` | 通过 `turn-activity` 汇总完成回合中的 `mnemon_*` 调用，以及工具活动元数据中每次调用读到或写入的内容；无活动或未完成回合不渲染 |
 | `conversation.chat.assistant-actions` | list，`id=mnemon-save` | 通过 `assistant-message` 读取已定稿文本；只在用户确认后调用 `supervise` |
 | `conversation.session.header.lineage` | DSH 官方条目的低优先级副本 | 任务 Agent 会话页眉只统计该 Agent 自己的 token，不含其 fork 来源的日志 |
 | `plugins.bundle.config` | keyed，`dsh-mnemon` | 插件页中 dsh-mnemon 页面上的全部配置 |

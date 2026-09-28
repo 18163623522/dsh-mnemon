@@ -108,7 +108,7 @@ Everything Mnemon shows inside DSH is registered into DSH's own UI regions. The 
 
 | DSH region | Registration | Behavior |
 |---|---|---|
-| `conversation.chat.turnTail` | list, `id=dsh-mnemon/turn-tail` | `turn-activity` summarizes `mnemon_*` calls from completed turns; open turns and turns without activity render nothing |
+| `conversation.chat.turnTail` | list, `id=dsh-mnemon/turn-tail` | `turn-activity` summarizes `mnemon_*` calls from completed turns, with the items each call read or wrote from the tools' activity metadata; open turns and turns without activity render nothing |
 | `conversation.chat.assistant-actions` | list, `id=mnemon-save` | `assistant-message` reads finalized text; `supervise` runs only after confirmation |
 | `conversation.session.header.lineage` | lower-priority copy of DSH's own entry | A task Agent's session header counts that Agent's own tokens, not the log it was forked from |
 | `plugins.bundle.config` | keyed, `dsh-mnemon` | The whole configuration on dsh-mnemon's page under Plugins |

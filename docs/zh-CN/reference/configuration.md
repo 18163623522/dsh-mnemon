@@ -102,7 +102,7 @@ mnemon:
 | `memoryTopology.layers.<id>.participation` | 每层各自的默认值 | `recall`、`write`、`projection`、`maintenance` 分别取 `off` / `manual` / `automatic` | 分层策略下每一层如何参与各类工作 |
 | `memoryView.strategyTypeId` | 未设置 | Strategy type id，例如 `default-three-tier` 或 `general` | 当前选择的主策略，由**主策略**选择器写入，优先于 `memoryTopology.strategyId` |
 | `memoryView.entries.<entry>.config` | `{}` | 组件声明的选项 | 在组件页保存的选项。开关状态不在这里：DSH 插件管理器把它写为 profile patch 中对应 Entry 的 `disabled` 行，早先保存的选择会一次性迁移过去 |
-| `persistenceStrategy` | `{ mode: manual }` | `manual` / `automatic`、`providerId`、`prompt`、`rules` | Agent 写入的沉淀策略：手动指定目标，或按允许的 Provider、数据边界、必需能力与偏好进行智能选择 |
+| `persistenceStrategy` | `{ mode: manual }` | `manual` / `automatic`、`providerId`、`prompt`、`rules` | 新空间的 Provider：任务 Agent 新建记忆空间时固定使用一个 Provider，或按允许的 Provider、数据边界、必需能力与偏好智能选择；已有空间仍按名称与说明路由 |
 | `recallQuality.policy` | `strict-v1` | 已注册策略 ID | 在召回正文序列化给 Agent 或客户端前执行的确定性策略 |
 | `recallQuality.lowScoreThreshold` | `0.25` | 0–1，低于高分阈值 | `strict-v1` 会移除低于此边界的标准化分数结果 |
 | `recallQuality.highScoreThreshold` | `0.6` | 0–1，高于低分阈值 | 保留结果达到此边界时标记为高相关度 |
@@ -125,7 +125,7 @@ mnemon:
 | `displayMode` | `sidebar` | `sidebar` / `builtin`；兼容旧值 `buildin` | 记忆系统入口：独立 Sidebar 或会话内标签页，共用同一工作台；旧拼写自动迁移为 `builtin` |
 | `tabEnabled` | `true` | boolean | 是否挂载所选入口和工作台；关闭后 Host RPC、命令和 Agent 工具保持注册 |
 | `writeEnabled` | `true` | boolean | 是否暴露语义写工具、写 RPC 和写命令 |
-| `taskAgentModel` | `{ mode: inherit }` | `inherit` / `fixed` | AI 元信息、Agent 查询、记忆沉淀和档案归档使用的独立任务 Agent，以及空闲复盘 worker 的模型路由；`fixed` 必须同时保存 `provider` 与 `model`，并会钉住对应的写入、证据问答、Provider 选择、迁移、压缩、归档和元信息维护 worker。对话中的 Recall 与 Related 是 Host 直接读取，不使用该路由 |
+| `taskAgentModel` | `{ mode: inherit }` | `inherit` / `fixed` | 整理名称与说明、Agent 查询、存入记忆和档案归档使用的独立任务 Agent，以及空闲复盘 worker 的模型路由；`fixed` 必须同时保存 `provider` 与 `model`，并会钉住对应的写入、证据问答、Provider 选择、迁移、压缩、归档和元信息维护 worker。对话中的 Recall 与 Related 是 Host 直接读取，不使用该路由 |
 | `remoteAccess` | `read-only` | `read-only` / `trusted-host` | 非 loopback Mnemon 管理授权，仅启动时读取，由 API Gateway 映射执行 |
 | `conversationInteraction.turnBar` | `true` | boolean | 回复下方的回合记忆栏，立即生效 |
 | `conversationInteraction.saveAction` | `true` | boolean | 已完成回复上的**存入记忆**操作及其确认框，立即生效 |
@@ -150,7 +150,7 @@ mnemon:
 
 运行时记忆页面显示每个文件的已用大小与上限。
 
-![运行时记忆：USER.md 与 MEMORY.md 及其默认上限](../../assets/webui-v0.5.17/zh-CN/memory-runtime.jpg)
+![运行时记忆：USER.md 与 MEMORY.md 及其默认上限](../../assets/webui-v0.5.18/zh-CN/memory-runtime.jpg)
 
 ### Mnemon Native 嵌入
 
@@ -184,7 +184,7 @@ Endpoint 必须是不含凭据、查询参数或片段的 HTTP(S) 绝对 URL。M
 
 每个记忆 Source 在**记忆组合**中有一个开关。它通过 DSH 插件管理器打开或关闭该 Source 的 DSH Entry，并在 profile patch 中保存为对应 Entry 的 `disabled` 行。打开表示允许主策略在需要时使用该 Source，并不强制每一轮召回或写入；关闭会同时停止它的上下文注入、工具、后台任务与数据面 Web/RPC 操作。
 
-![记忆组合：每个记忆来源与增强各有一个开关](../../assets/webui-v0.5.17/zh-CN/plugin-composition.jpg)
+![记忆组合：每个记忆来源与增强各有一个开关](../../assets/webui-v0.5.18/zh-CN/plugin-composition.jpg)
 
 关闭是可逆的路由状态，不是删除。它在记忆系统中的页面会保留并标记为**未运行**，不读取数据面；状态页与管理目录仍可查看。重新打开后使用原来的目录与数据。最后一个运行中的 Source 不能关闭。旧版的 `memoryTopology.layers.<id>.enabled` 标记会随 Source 一起恢复，只在读不到组件时使用。
 
@@ -220,7 +220,7 @@ Agent / 工具 / 生命周期：resolve(currentSession.header.cwd, ".mnemon")
 Web 工作台查看：resolve(workspaceRegistry.get(selectedWorkspaceId).path, ".mnemon")
 ```
 
-每个 DSH 工作区拥有独立的记忆根，包含运行时记忆、项目档案与记忆空间。对话 Agent、模型工具、命令和生命周期按当前会话的 cwd 路由；Web 发起的独立任务 Agent 则显式使用工作台选择的 Host 已登记工作区，不能提交任意路径。因此，没有选中主会话时，AI 元信息、Agent 查询、记忆沉淀和档案归档仍会写入记忆系统顶栏选定的工作区。
+每个 DSH 工作区拥有独立的记忆根，包含运行时记忆、项目档案与记忆空间。对话 Agent、模型工具、命令和生命周期按当前会话的 cwd 路由；Web 发起的独立任务 Agent 则显式使用工作台选择的 Host 已登记工作区，不能提交任意路径。因此，没有选中主会话时，整理名称与说明、Agent 查询、存入记忆和档案归档仍会写入记忆系统顶栏选定的工作区。
 
 Headless 没有 `workspaceRegistry`；其新 session 的 cwd 就是启动 `dsh --profile headless ...` 的目录，因此 `workspace` 直接解析为 `<启动命令 cwd>/.mnemon`。
 
@@ -308,7 +308,7 @@ Memory Space 目录建立后，长期语义操作使用明确的记忆空间 ID�
 
 ## 后台任务 Agent 的模型路由
 
-AI 元信息、Agent 查询、工作台/对话区的记忆沉淀和档案归档会创建一个无会话历史的独立顶层任务 Agent。它使用当前查看工作区作为 cwd；即使没有选中主 Agent session，也能落到左上角选定工作区。任务完成后 Agent 会被释放。
+整理名称与说明、Agent 查询、记忆系统与对话中的存入记忆和档案归档会创建一个无会话历史的独立顶层任务 Agent。它使用当前查看工作区作为 cwd；即使没有选中主 Agent session，也能落到左上角选定工作区。任务完成后 Agent 会被释放。
 
 默认的 `inherit` 先使用 DSH“创建新会话”时的默认 Provider / Model；该路由不可用时才沿用当前可用主 Agent 的完整模型路由。在“分层策略”页面的“后台任务 → 任务 Agent 模型”中选择“指定模型”后，会保存完整的 Provider + Model，并只覆盖 Mnemon 后台任务，不改变对话主 Agent。独立任务 Agent 内部如需语义判断，仍可调度受限 worker；该 worker 继承任务 Agent 的模型路由。
 
@@ -320,7 +320,7 @@ mnemon:
     model: deepseek-chat
 ```
 
-DSH 的实时模型目录会报告各模型的输入模态，选择器为支持图片的模型标记**图片输入**。选中它不代表 Mnemon 后台任务会摄取图片：AI 元信息、Agent 查询、记忆沉淀、智能选择与档案归档仍只提交文本与有界证据。在主对话中，dsh-mnemon 追加生命周期指引时会保留 DSH 管理的图片块及其附件引用，活动阈值只计算文本块。原始图片字节不会复制进运行时记忆、项目档案或记忆空间。
+DSH 的实时模型目录会报告各模型的输入模态，选择器为支持图片的模型标记**图片输入**。选中它不代表 Mnemon 后台任务会摄取图片：整理名称与说明、Agent 查询、存入记忆、智能选择与档案归档仍只提交文本与有界证据。在主对话中，dsh-mnemon 追加生命周期指引时会保留 DSH 管理的图片块及其附件引用，活动阈值只计算文本块。原始图片字节不会复制进运行时记忆、项目档案或记忆空间。
 
 ## Provider 要求
 

@@ -22,7 +22,7 @@ Test-Path "$env:LOCALAPPDATA\Programs\mnemon\mnemon.exe"
 /mnemon status
 ```
 
-![状态页：每个记忆组件、Provider 与存储区域](../../assets/webui-v0.5.17/zh-CN/memory-status.jpg)
+![状态页：每个记忆组件、Provider 与存储区域](../../assets/webui-v0.5.18/zh-CN/memory-status.jpg)
 
 状态页显示 dsh-mnemon 与 Mnemon 的版本、每个记忆组件一张卡片、各个 Provider，以及当前实际目录。`mnemon status` 会打开有效 Store，上游 CLI 可能初始化数据或执行迁移，因此不是完全无副作用的只读探测。
 
@@ -105,7 +105,7 @@ DSH 以写权限打开旧会话时，会迁移为不可变的 v3 generation。Mn
 
 导入受 `writeEnabled` 控制，只读部署会拒绝。ZIP 包含私有记忆，应加密、限制访问并验证恢复。Provider 凭据保存在 `state/memory-providers.json`（`0600`），不会进入 ZIP。已保存的凭据值也不会经管理通道返回；若要备份连接，需要按下述离线快照保护整个 `state/`。
 
-![安全导入前经过校验的备份预览](../../assets/webui-v0.5.17/zh-CN/plugin-backup-preview.jpg)
+![安全导入前经过校验的备份预览](../../assets/webui-v0.5.18/zh-CN/plugin-backup-preview.jpg)
 
 ### 恢复演练
 
@@ -253,7 +253,7 @@ HTTP 403 可能来自 Host/Origin 不匹配，或旧远程 Client 仍调用独�
 
 ## 故障排查
 
-`mnemon.cliPath` 接受显式路径，也接受按 Host 的 PATH 查找的命令名。DSH 运行时，若二进制安装或恢复到既有搜索目录，在状态页点击**重新检查**即可刷新可用状态，无需重启；Host 进程环境变量的变化仍需重启。状态与版本检查解析同一个配置命令。
+`mnemon.cliPath` 接受显式路径，也接受按 Host 的 PATH 查找的命令名。DSH 运行时，若二进制安装或恢复到既有搜索目录，点击记忆系统顶栏的**刷新**即可更新可用状态，无需重启；Host 进程环境变量的变化仍需重启。状态与版本检查解析同一个配置命令。
 
 | 现象 | 检查与处理 |
 |---|---|

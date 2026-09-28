@@ -18,7 +18,7 @@ Turn memory registers with a stable ID in DSH's `conversation.chat.turnTail` lis
 
 See [DSH 0.1.7 settings verification](../../pr-assets/issue-267-settings-migration/README.md), [RC/alpha verification and before/after screenshots](../../pr-assets/issue-261-dsh-slots/README.md), [DSH 0.1.5 verification](../../pr-assets/issue-223-dsh-015/README.md), [Host compatibility evidence](../../pr-assets/dsh-rc1-compat/README.md), [upgrade evidence](../../pr-assets/main-rebase-20260904/README.md), and [current development checks](../development/README.md). A passing mechanism test is not an LLM quality benchmark. OS-specific and real-CLI checks may be skipped unless their environment is explicitly available.
 
-The [v0.5.17 Light gallery](../../assets/webui-v0.5.17/README.md) covers the bilingual desktop pages, the Plugins page, and Memory Spaces and the composition board at 390 × 844, where long names truncate. It does not retest every Host settings surface or physical phones, so phone support is not declared complete; the historical v0.5.2 layout failure at 390 px keeps its [versioned evidence](../../pr-assets/documentation-refresh/README.md).
+The [v0.5.18 Light gallery](../../assets/webui-v0.5.18/README.md) covers the bilingual desktop pages, the Plugins page, and a conversation, Memory Spaces and the composition board at 390 × 844, where long names truncate. It does not retest every Host settings surface or physical phones, so phone support is not declared complete; the historical v0.5.2 layout failure at 390 px keeps its [versioned evidence](../../pr-assets/documentation-refresh/README.md).
 
 ## Desktop profile generations
 

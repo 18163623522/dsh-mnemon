@@ -22,7 +22,7 @@ Test-Path "$env:LOCALAPPDATA\Programs\mnemon\mnemon.exe"
 /mnemon status
 ```
 
-![Status with each memory component, the Providers and the storage areas](../../assets/webui-v0.5.17/en/memory-status.jpg)
+![Status with each memory component, the Providers and the storage areas](../../assets/webui-v0.5.18/en/memory-status.jpg)
 
 Status shows the dsh-mnemon and Mnemon versions, one card per memory component, the Providers and the effective directories. `mnemon status` opens the effective Store and may initialize data or run upstream migrations, so it is not a completely side-effect-free probe.
 
@@ -105,7 +105,7 @@ The UI offers safe merge, not “overwrite everything”:
 
 Import is governed by `writeEnabled` and is rejected in read-only deployments. A ZIP contains private memory—encrypt it, restrict access, and rehearse recovery. Provider credentials live in `state/memory-providers.json` with mode `0600`; they are excluded from ZIP. Saved credential values are not returned through management responses either. Protect the entire `state/` directory in the offline snapshot below if connections must be backed up.
 
-![A verified backup preview before Safe import](../../assets/webui-v0.5.17/en/plugin-backup-preview.jpg)
+![A verified backup preview before Safe import](../../assets/webui-v0.5.18/en/plugin-backup-preview.jpg)
 
 ### Recovery rehearsal
 
@@ -253,7 +253,7 @@ Report vulnerabilities privately through [SECURITY.md](../../../SECURITY.md), no
 
 ## Troubleshooting
 
-`mnemon.cliPath` accepts an explicit path or a command name resolved against the Host's PATH. If the binary is installed or restored into an existing search directory while DSH is running, click **Check again** on Status to refresh availability without restarting. Changes to the Host process's environment still require a restart. Status and version checks resolve the same configured command.
+`mnemon.cliPath` accepts an explicit path or a command name resolved against the Host's PATH. If the binary is installed or restored into an existing search directory while DSH is running, choose **Refresh** in the Memory System header to update availability without restarting. Changes to the Host process's environment still require a restart. Status and version checks resolve the same configured command.
 
 | Symptom | Check and resolution |
 |---|---|

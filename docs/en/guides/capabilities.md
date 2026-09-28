@@ -13,13 +13,13 @@ The short rule: **keep every-turn context in runtime memory, complete narratives
 | Keep preferences, conventions and environment facts in every turn | **Runtime memory** | The Host maintains `USER.md` and `MEMORY.md` projections | Yes, after you confirm |
 | Keep complete designs, investigations, procedures and handoffs | **Project Documents** | The Host manages Markdown, search, capacity and revisions | Creating and editing do; reading and searching do not |
 | Create a durable space on one of nine backends | **Memory Spaces → Overview → Create Memory Space** | You choose an enabled Provider | Yes |
-| Let policy choose the backend for Agent writes | **Memory Spaces → Distillation strategy → Smart selection** | Host rules first; a task Agent only for ambiguous cases | Saving the policy does |
+| Decide the Provider for spaces a task Agent creates | **Memory Spaces → Provider for new spaces** | One fixed Provider, or Host rules first and then the task Agent among the eligible ones | Saving the setting does |
 | Find raw durable evidence | **Memory Spaces → Recall → Direct search** | Active spaces answer concurrently with their native recall | No |
 | Turn evidence into an answer | **Memory Spaces → Recall → Ask Agent** | A clean task Agent receives only the bounded evidence | No |
-| Qualify, deduplicate, distil and write a candidate | **Remember**, or **Save to memory** under a reply | A clean task Agent behind Host-enforced tools, paths, locks and receipts | Only if the Agent decides to write |
-| Title and describe several spaces | **Memory Spaces → Overview → AI metadata** | One isolated task per space | Local catalog metadata only |
+| Qualify, deduplicate, distil and write a candidate | **Save to memory** under a reply or on Memory Spaces | A clean task Agent behind Host-enforced tools, paths, locks and receipts, with a receipt for you | Only if the Agent decides to write |
+| Title and describe several spaces | **Memory Spaces → Overview → Tidy names and descriptions** | One isolated task per space | Local catalog metadata only |
 | Move a document out of hot capacity | **Project Documents → Archive** | A task Agent indexes a cold reference before the Host moves the original | Yes |
-| See what memory a turn used | **Turn memory** under the reply | Recalls, searches and writes, each linking to its page | No |
+| See what memory a turn used | **Turn memory** under the reply | The documents and memories each tool read or wrote, each opening where it lives | No |
 | Change how memory is composed | **Plugins → dsh-mnemon → Memory composition** | Switches apply to future turns | Configuration only |
 
 ## Three kinds of memory
@@ -68,11 +68,11 @@ Memory Spaces' page under **Plugins → dsh-mnemon** holds each Provider's reusa
 
 **Independent task Agents.** These never reuse the main conversation's history or context window:
 
-- **Remember** qualifies, routes, deduplicates, distils and writes;
+- **Save to memory** qualifies, routes, deduplicates, distils, writes and reports a receipt;
 - **Ask Agent** answers from bounded recalled evidence;
-- **AI metadata** runs one title and description task per selected space;
+- **Tidy names and descriptions** runs one title and description task per selected space;
 - **Document archive** indexes a cold reference before the Host moves the original;
-- **Smart Provider selection** calls a model only when rules leave several candidates.
+- **Provider for new spaces**, with smart selection, calls a model only when rules leave several candidates.
 
 Task Agents follow DSH's default route for new sessions. **Task Agent model**, under Background tasks on the Layered strategy's page, can choose a separate Provider and model. Tasks are isolated: a failure shows on its own space or operation and never blocks the page.
 

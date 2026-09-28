@@ -17,14 +17,14 @@
 <p align="center">记忆来源与策略可插拔，开箱即用提供分层记忆。</p>
 
 <p align="center">
-  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/assets/webui-v0.5.17/README.md">
-    <img src="https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.17/zh-CN/demo.gif" alt="一次提问同时用到工作记忆、记忆空间和项目档案，回合记忆栏列出所用工具；随后查看记忆空间图谱与主策略选择器" width="960" />
+  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/ui-guide.md#在对话中">
+    <img src="https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.18/zh-CN/recall.gif" alt="提问后，回答同时用到工作记忆、项目档案与记忆空间；展开回合记忆栏，点击读到的档案，直接在项目档案中打开它" width="880" />
   </a>
 </p>
 
 <p align="center">
   <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/getting-started.md"><strong>快速开始</strong></a> ·
-  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/assets/webui-v0.5.17/zh-CN/demo.mp4">观看演示</a> ·
+  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/assets/webui-v0.5.18/README.md">观看演示</a> ·
   <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/README.md">文档中心</a> ·
   <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/development/extensions.md">制作插件</a>
 </p>
@@ -34,22 +34,35 @@
 每次会话都从零开始的 Agent，会反复询问你早已说过的事情；把所有内容塞进同一个记忆库也不行，要么每轮都被淹没，要么漏掉真正要紧的信息。dsh-mnemon 为 DeepSeek Harness 提供分层、可见、可组合的记忆。
 
 - **每一轮都拿到合适的记忆。** 偏好和工作中的事实常驻上下文；项目档案与长期证据只在问题需要时才检索。
-- **看得见这一轮用了什么。** 每条回复下方的回合记忆栏列出背后的检索、召回与写入；记忆系统展示全部已保存的内容，并可直接编辑。
+- **看得见这一轮用了什么。** 每条回复下方的回合记忆栏列出这一轮读到和写入的档案与记忆，点一下就在记忆系统中打开它；记忆系统展示全部已保存的内容，并可直接编辑。
+- **一键存入记忆。** 对话里出现值得保留的事实，点击回复下的脑形图标，由任务 Agent 去重、提炼并写入合适的记忆空间，回执写明存到了哪里。
 - **在插件页组合。** 选择一个主策略和若干可选增强，切换时无需迁移任何数据；每个组件都有自己的设置页。
 - **数据放在你想放的地方。** 默认由 Mnemon Native 在本地保存，也可以接入八种第三方 Provider；存储范围可选全局、按工作区或集中存储，并支持 ZIP 备份。
 - **可以扩展。** Source 与 Strategy 都是基于公开 SDK 的普通 DSH 插件；安装的组件与随附组件拥有同样的页面和开关。
 
 ## 看看实际效果
 
-| 对话中的记忆 | 记忆系统 |
-|---|---|
-| [![一条回答引用了工作记忆、记忆空间和项目档案，回合记忆栏已展开](https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.17/zh-CN/chat-recall.jpg)](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/ui-guide.md#在对话中) | [![选中一个实体的记忆空间图谱](https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.17/zh-CN/memory-graph.jpg)](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/ui-guide.md#记忆空间) |
-| 一条回答同时用到三类记忆，回合记忆栏写明所用的工具。 | 运行时记忆、项目档案与记忆空间集中呈现，图谱按记忆提到的实体把它们连接起来。 |
-| **在插件页组合** | **长期记忆的 Provider** |
-| [![可组合记忆插件页中的记忆组合面板](https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.17/zh-CN/plugin-composition.jpg)](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/ui-guide.md#在插件页中) | [![记忆空间页面列出 Mnemon Native 与八种第三方 Provider](https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.17/zh-CN/plugin-spaces.jpg)](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/memory-providers.md) |
-| 一个主策略、它的记忆来源与可选增强，每一项的开关都即时生效。 | Mnemon Native 在本地运行；其他 Provider 启用后连接各自的服务。 |
+以下录屏来自真实 WebUI，由真实的 DeepSeek 模型作答，项目是预置的虚构项目 Lumen；等待模型的片段加速播放，画面右下角有标记。
 
-更多画面见[界面指南](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/ui-guide.md)与 [v0.5.17 图集](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/assets/webui-v0.5.17/README.md)。
+**把新事实存进记忆。** 回复中出现了新的测量结果：点击回复下的脑形图标，把候选内容改成要记住的那一句，交给任务 Agent；回执写明存进了哪个记忆空间，一键即可查看。
+
+<p align="center">
+  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/ui-guide.md#存入记忆"><img src="https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.18/zh-CN/save.gif" alt="存入记忆：编辑候选内容，交给任务 Agent，收到已存入的回执后在记忆空间中查看新记忆" width="880" /></a>
+</p>
+
+**在一处查看全部记忆。** 状态、运行时记忆、项目档案与记忆空间集中在记忆系统中；图谱按实体把记忆连接起来，Agent 查询给出按内容引用记忆的回答。
+
+<p align="center">
+  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/ui-guide.md#记忆系统"><img src="https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.18/zh-CN/memory.gif" alt="记忆系统：依次查看状态、运行时记忆、项目档案、记忆空间图谱，再用 Agent 查询得到带引用的回答" width="880" /></a>
+</p>
+
+**在插件页组合记忆。** 一个主策略、它的记忆来源与可选增强，每个开关即时生效；每个组件都有自己的页面，存储、备份与界面设置也在这里。
+
+<p align="center">
+  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/ui-guide.md#在插件页中"><img src="https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/webui-v0.5.18/zh-CN/plugins.gif" alt="插件页：记忆组合、主策略菜单、分层策略与记忆空间的组件页，以及存储与界面" width="880" /></a>
+</p>
+
+更多画面与每一步的说明见[界面指南](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/ui-guide.md)，全部截图、录屏与采集环境见 [v0.5.18 图集](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/assets/webui-v0.5.18/README.md)。
 
 ## 三类记忆
 
@@ -73,7 +86,8 @@ dsh web
 1. 在侧栏打开**记忆系统**，“状态”页列出每个记忆组件和 Provider。
 2. 添加一条运行时记忆；创建项目档案前先选择 DSH 工作区。
 3. 使用记忆空间时，可用 `npm install --global @mnemon-dev/mnemon` 安装 Mnemon Native 所需的 CLI，或在记忆空间页面启用其他 Provider。
-4. 在**插件 → 可组合记忆**中选择主策略与增强。
+4. 在对话中，回复下方的回合记忆栏列出这一轮读到和写入的记忆，脑形图标可以把回复存入记忆。
+5. 在**插件 → 可组合记忆**中选择主策略与增强。
 
 Headless 使用同一个包：`dsh plugin --profile headless add dsh-mnemon`。更早的宿主请继续使用 `v0.5.16`。各平台步骤见[快速开始](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/getting-started.md)，已有安装的升级见[兼容性与升级](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/reference/compatibility.md)。
 
@@ -127,4 +141,4 @@ pnpm verify
 pnpm verify:plugins
 ```
 
-需要 Node.js `^22.19.0 || >=24.0.0` 与 pnpm。`node scripts/serve-e2e.mjs` 会启动一个用后即弃的真实 WebUI；加上 `--docs-demo` 即可得到这些截图背后的示例项目。机制测试不代表模型准确率，也不代表云端 Provider 的实际表现。详见[开发与验证](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/development/README.md)。
+需要 Node.js `^22.19.0 || >=24.0.0` 与 pnpm。`node scripts/serve-e2e.mjs` 会启动一个用后即弃的真实 WebUI；加上 `--docs-demo` 即可得到这些截图背后的示例项目，再加 `--live-model` 则由 DeepSeek API（读取 `DEEPSEEK_API_KEY`）真实作答。机制测试不代表模型准确率，也不代表云端 Provider 的实际表现。详见[开发与验证](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/development/README.md)。

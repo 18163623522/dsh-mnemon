@@ -100,7 +100,7 @@ mnemon:
 | `memoryTopology.layers.<id>.participation` | per layer | `off` / `manual` / `automatic` for `recall`, `write`, `projection`, `maintenance` | How a layer takes part in each kind of work under the Layered strategy |
 | `memoryView.strategyTypeId` | unset | Strategy type id, for example `default-three-tier` or `general` | The selected main strategy, written by the **Main strategy** selector; overrides `memoryTopology.strategyId` |
 | `memoryView.entries.<entry>.config` | `{}` | the options a component declares | Options saved from a component's page. On/off is not stored here: DSH's plugin manager writes it as the Entry's `disabled` row in the profile patch, and earlier saved choices are moved there once |
-| `persistenceStrategy` | `{ mode: manual }` | `manual` / `automatic`, `providerId`, `prompt`, `rules` | Distillation strategy for Agent writes: a manual target, or smart selection with allowed Providers, data boundary, required capabilities and preference |
+| `persistenceStrategy` | `{ mode: manual }` | `manual` / `automatic`, `providerId`, `prompt`, `rules` | Provider for new spaces: when a task Agent creates a Memory Space, one fixed Provider, or smart selection with allowed Providers, data boundary, required capabilities and preference; existing spaces are still chosen by name and description |
 | `recallQuality.policy` | `strict-v1` | registered policy id | Deterministic policy applied before recall content is serialized to an Agent or client |
 | `recallQuality.lowScoreThreshold` | `0.25` | 0–1, below high threshold | Normalized scores below this boundary are removed by `strict-v1` |
 | `recallQuality.highScoreThreshold` | `0.6` | 0–1, above low threshold | Retained normalized scores at or above this boundary are labeled high relevance |
@@ -123,7 +123,7 @@ mnemon:
 | `displayMode` | `sidebar` | `sidebar` / `builtin`; legacy `buildin` accepted | Where the Memory System opens: standalone Sidebar or a conversation tab using the same workspace UI; legacy spelling is migrated to `builtin` |
 | `tabEnabled` | `true` | boolean | Whether to mount the selected entry and workbench; Host RPC, commands, and Agent tools remain registered when off |
 | `writeEnabled` | `true` | boolean | Whether to expose semantic write tools, write RPC, and write commands |
-| `taskAgentModel` | `{ mode: inherit }` | `inherit` / `fixed` | Model route for independent task Agents used by AI metadata, Agent Query, memory distillation, and Document archiving, plus the idle-review worker; `fixed` requires both `provider` and `model` and also pins their bounded workers for write, answer, provider placement, migration, compaction, archive, and metadata maintenance. Conversation Recall and Related are direct Host reads and do not use this route |
+| `taskAgentModel` | `{ mode: inherit }` | `inherit` / `fixed` | Model route for independent task Agents used by Tidy names and descriptions, Ask Agent, Save to memory, and Document archiving, plus the idle-review worker; `fixed` requires both `provider` and `model` and also pins their bounded workers for write, answer, provider placement, migration, compaction, archive, and metadata maintenance. Conversation Recall and Related are direct Host reads and do not use this route |
 | `remoteAccess` | `read-only` | `read-only` / `trusted-host` | Startup-only grant for non-loopback Mnemon management, enforced by the API Gateway projection |
 | `conversationInteraction.turnBar` | `true` | boolean | The turn memory bar under replies; applies at once |
 | `conversationInteraction.saveAction` | `true` | boolean | The **Save to memory** action and confirmation on finished replies; applies at once |
@@ -148,7 +148,7 @@ Storage byte limits count entry content and delimiters. The model snapshot's imp
 
 The Runtime memory page shows each file's size against its limit.
 
-![Runtime memory with USER.md and MEMORY.md against their default limits](../../assets/webui-v0.5.17/en/memory-runtime.jpg)
+![Runtime memory with USER.md and MEMORY.md against their default limits](../../assets/webui-v0.5.18/en/memory-runtime.jpg)
 
 ### Mnemon Native embeddings
 
@@ -182,7 +182,7 @@ The endpoint must be an absolute HTTP(S) URL without credentials, query paramete
 
 Each memory Source has one switch in **Memory composition**. It turns the Source's DSH Entry on or off through DSH's plugin manager, which saves the choice as the Entry's `disabled` row in the profile patch. On permits the main strategy to use the Source when needed; it does not force recall or writes on every turn. Off stops that Source's context injection, tools, background work and data-plane Web and RPC operations together.
 
-![Memory composition with one switch per memory Source and enhancement](../../assets/webui-v0.5.17/en/plugin-composition.jpg)
+![Memory composition with one switch per memory Source and enhancement](../../assets/webui-v0.5.18/en/plugin-composition.jpg)
 
 Turning a Source off is reversible routing state, not deletion. Its Memory System page stays, marked **Not running**, and does not read the data plane; Status and the management directories stay observable. Turning it on again uses the original directories and data. The last running Source cannot be turned off. The legacy `memoryTopology.layers.<id>.enabled` flag is turned back on with the Source and is used only when the components cannot be read.
 
@@ -218,7 +218,7 @@ Agent / tool / lifecycle: resolve(currentSession.header.cwd, ".mnemon")
 Web workbench inspection: resolve(workspaceRegistry.get(selectedWorkspaceId).path, ".mnemon")
 ```
 
-Each DSH workspace owns an independent memory root for runtime memory, documents and memory spaces. Conversation Agents, model tools, commands, and lifecycle hooks route by the current session cwd. Independent task Agents launched from the Web workbench instead use the selected Host-registered workspace explicitly; the browser can never submit an arbitrary path. AI metadata, Agent Query, memory distillation, and document archiving therefore target the workspace selected in the Memory System header, even when no main session is selected.
+Each DSH workspace owns an independent memory root for runtime memory, documents and memory spaces. Conversation Agents, model tools, commands, and lifecycle hooks route by the current session cwd. Independent task Agents launched from the Web workbench instead use the selected Host-registered workspace explicitly; the browser can never submit an arbitrary path. Tidy names and descriptions, Ask Agent, Save to memory, and document archiving therefore target the workspace selected in the Memory System header, even when no main session is selected.
 
 Headless has no `workspaceRegistry`; its fresh session cwd is the directory from which `dsh --profile headless ...` was launched, so `workspace` resolves directly to `<invocation cwd>/.mnemon`.
 
@@ -306,7 +306,7 @@ After the Memory Space directory has been established, long-term semantic operat
 
 ## Background Task Agent Model Route
 
-AI metadata, Agent Query, workbench/conversation memory distillation, and document archiving create a clean independent top-level task Agent. It uses the selected workspace as its cwd, works even when no main Agent session is selected, and is disposed after the task finishes.
+Tidy names and descriptions, Ask Agent, Save to memory in the Memory System and in conversations, and document archiving create a clean independent top-level task Agent. It uses the selected workspace as its cwd, works even when no main Agent session is selected, and is disposed after the task finishes.
 
 The default `inherit` mode first uses the DSH Provider / Model selected for new sessions, then falls back to a complete route from the current available main Agent. Choosing **Choose a model** under **Background tasks → Task Agent model** on the Layered strategy's page stores a complete Provider + Model and overrides only Mnemon background tasks; it does not change the conversation Agent. When semantic judgment requires a bounded worker inside that task Agent, the worker inherits the task Agent route.
 
@@ -318,7 +318,7 @@ mnemon:
     model: deepseek-chat
 ```
 
-DSH's live catalog reports each model's input modalities, and the picker labels image-capable models **Image input**. Choosing one does not make Mnemon background jobs ingest images: AI metadata, Agent Query, distillation, smart selection and document archiving still submit text and bounded evidence. In the main conversation, DSH-owned image blocks keep their attachment references when dsh-mnemon adds lifecycle guidance, while activity thresholds count text blocks only. Raw image bytes are never copied into runtime memory, documents or memory spaces.
+DSH's live catalog reports each model's input modalities, and the picker labels image-capable models **Image input**. Choosing one does not make Mnemon background jobs ingest images: Tidy names and descriptions, Ask Agent, Save to memory, smart selection and document archiving still submit text and bounded evidence. In the main conversation, DSH-owned image blocks keep their attachment references when dsh-mnemon adds lifecycle guidance, while activity thresholds count text blocks only. Raw image bytes are never copied into runtime memory, documents or memory spaces.
 
 ## Provider Requirements
 

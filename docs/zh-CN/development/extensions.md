@@ -203,7 +203,11 @@ Provider 使用 Memory Spaces SDK 的 `defineMemorySpaceProvider`。模块只收
 
 工作台负责外层页面边距、最小高度与页面滚动容器。嵌套的 `memoryPageStyles.page` 内容复用这一层框架，不再重复增加视口高度或边距，经过 DSH renderer 包装层时也一样。Source 保留业务布局，可以提供有界阅读区或弹窗。内部页面变化时，在绘制前调用可选的 `onResetScroll` 回调；它只重置所属工作台的 canvas，不应滚动 DSH 祖先节点或其他插件。记忆空间这类包含固定标题与 Tab 组合头部的 Source，通过 `navigation.stickyHeader: false` 避免 Host 同时固定下级标题，并由 Source 自己负责组合头部的 sticky 布局。
 
-需要在 Source 固定头部下方显示内容时，将 Source 自有 ref 中的元素及实测顶部留白传给可选的 `onRevealElement(element, topInset)` 回调。Host 只滚动所属 canvas，并忽略区域外的元素；不要使用全局 ID 或会移动 DSH 祖先节点的 `scrollIntoView`。关闭选择或卸载 Source 时取消待执行的动画帧。两个滚动回调均为可选：新 Source 仍支持现有 Root peer 最低版本，旧 Host 不提供回调时可手动滚动。
+需要显示某个元素时，将 Source 自有 ref 中的元素传给可选的 `onRevealElement(element, topInset)` 回调。不传 `topInset` 时，元素会停在锁定的页面标题下方；自己固定头部的 Source 则传入实测的头部高度。Host 只滚动所属 canvas，并忽略区域外的元素；不要使用全局 ID 或会移动 DSH 祖先节点的 `scrollIntoView`。关闭选择或卸载 Source 时取消待执行的动画帧。两个滚动回调均为可选：新 Source 仍支持现有 Root peer 最低版本，旧 Host 不提供回调时可手动滚动。
+
+用户每次点击工作区顶栏的**刷新**，`refreshKey` 都会变化；页面应在它变化时重新读取数据，而不是自己放置刷新或同步按钮。只有对话中的锚点（例如回合记忆栏里的一条内容）打开页面时，`navigationInput` 才是 `{ seed, nonce }`；点击标签页打开时没有它。默认 Source 把 seed 分别理解为档案 id（项目档案选中它）、召回查询（记忆空间打开后立即执行）或条目文本（运行时记忆高亮并滚动到它）。新的 `nonce` 表示对同一 seed 的又一次请求。
+
+`dsh-mnemon/client` 还导出默认 Source 使用的控件，让安装的 Source 与它们外观和行为一致：`SearchField`（带搜索图标的 DSH 输入框）、`SelectField`（带标签的 DSH 选择菜单，支持 `inline`、`size: 'sm'`、`hideLabel` 与 `ariaLabel`）、`WriteReceipt`（写入的结果、摘要与可选的查看操作）和 `TaskAgentTag`（任务 Agent 能否接手）。它们遵循[交互约定](../guides/ui-guide.md#交互约定)。导入这些控件或读取 `refreshKey` 的 Source，应把 `dsh-mnemon` peer 最低版本声明为首个导出它们的 Starter 0.5.18。
 
 ## 独立仓库验收
 
