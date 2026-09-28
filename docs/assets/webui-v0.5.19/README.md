@@ -1,4 +1,4 @@
-# v0.5.18 Light WebUI, live model / v0.5.18 浅色界面，真实模型
+# v0.5.19 Light WebUI, live model / v0.5.19 浅色界面，真实模型
 
 Captured on **2026-09-28 (Asia/Shanghai)** from a real local DSH WebUI in **light** appearance, in English and Chinese, with the **live DeepSeek model** answering. [English guide](../../en/guides/ui-guide.md) · [中文指南](../../zh-CN/guides/ui-guide.md) · [Media index](../README.md) · [Manifest](./manifest.json)
 
@@ -24,7 +24,7 @@ Frames are Chrome screencast frames played at their own timestamps (H.264, 30 fp
 
 | Item / 项目 | Capture environment / 采集环境 |
 |---|---|
-| Product / 产品 | dsh-mnemon at `0035dd5c`, the source of 0.5.18; the Plugins page shows the package version 0.5.17 it had before release / 即将发布为 0.5.18 的源码，插件页显示发布前的包版本 0.5.17 |
+| Product / 产品 | dsh-mnemon at `0035dd5c`, the source of 0.5.19; the Plugins page shows the package version 0.5.17 it had when captured / 即将发布为 0.5.19 的源码，插件页显示采集时的包版本 0.5.17 |
 | Host / 宿主 | Published DSH 0.1.7-rc.2; no Host source modifications / 正式 DSH 包，未修改宿主源码 |
 | Model / 模型 | DeepSeek API, `deepseek-flash` (DeepSeek-V41-Flash in the WebUI), for the conversation, the task Agent and the Agent answer / 对话、任务 Agent 与 Agent 查询均使用 |
 | Runtime / 运行环境 | macOS, Node.js 25.1.0, Mnemon CLI 0.2.7 |
