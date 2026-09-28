@@ -18,12 +18,15 @@ import { reviewEvidenceModel, scopedOverviewPlugin } from './fixtures/review-evi
 import { openVikingWriteModel } from './fixtures/openviking-write-model.mjs'
 import { idleReviewModel } from './fixtures/idle-review-model.mjs'
 import { generalStrategyModel } from './fixtures/general-strategy-model.mjs'
+import { DOCS_DEMO_LANGUAGES, docsDemoModel, seedDocsDemo } from './fixtures/docs-demo.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const flags = new Set(process.argv.slice(2))
 let betterSidebarRoot
 let electronExecutable
 let trustedHost
+// Documentation media: a seeded fictional project and a model that reads it through the real tools.
+let docsDemo
 for (const flag of flags) {
   if (flag === '--strategy-extensions') continue
   if (flag === '--document-protection') continue
@@ -40,6 +43,11 @@ for (const flag of flags) {
   if (flag === '--general-strategy') continue
   if (flag === '--without-mnemon-cli') continue
   if (flag === '--remote-management') continue
+  if (flag === '--docs-demo' || flag.startsWith('--docs-demo=')) {
+    docsDemo = flag === '--docs-demo' ? 'zh-CN' : flag.slice('--docs-demo='.length)
+    if (!DOCS_DEMO_LANGUAGES.includes(docsDemo)) throw new Error('--docs-demo accepts ' + DOCS_DEMO_LANGUAGES.join(' or '))
+    continue
+  }
   if (flag.startsWith('--electron=')) {
     const value = flag.slice('--electron='.length)
     if (value === '') throw new Error('--electron requires an Electron executable')
@@ -98,7 +106,8 @@ const scriptedModel = flags.has('--runtime-routing') ? runtimeRoutingModel(event
   : flags.has('--runtime-write-scope') ? runtimeWriteScopeModel(event => console.log('Runtime write scope: ' + JSON.stringify(event)))
   : flags.has('--result-tool-cache') ? resultToolCacheModel(event => console.log('Result tool cache: ' + JSON.stringify(event)))
   : flags.has('--legacy-session-replay') ? legacySessionReplayModel(event => console.log('Legacy replay: ' + JSON.stringify(event)))
-  : flags.has('--document-archive') ? documentArchiveModel(event => console.log('Document archive: ' + JSON.stringify(event))) : reviewModel ?? protectionModel
+  : flags.has('--document-archive') ? documentArchiveModel(event => console.log('Document archive: ' + JSON.stringify(event)))
+  : docsDemo !== undefined ? docsDemoModel(docsDemo, event => console.log('Docs demo: ' + JSON.stringify(event))) : reviewModel ?? protectionModel
 const reviewFailure = flags.has('--review-failure')
 /**
  * DSH's DeepSeek adapter speaks the Messages protocol. Scripted fixtures read
@@ -269,6 +278,10 @@ try {
     + (reviewModel === undefined ? '' : '- insert:\n    - id: review-evidence-fixture\n      name: ' + JSON.stringify(reviewFixture) + '\n')
     + (extensionsEnabled ? extensionNames.map(name => `- id: ${name.slice(4)}\n  disabled: false\n`).join('') : ''))
   await writeFile(join(workspace, 'README.md'), '# Mnemon isolated browser test\n\nNo production memory or credentials are used.\n')
+  if (docsDemo !== undefined) {
+    await seedDocsDemo({ dataDir, workspace, language: docsDemo })
+    console.log('Docs demo seeded (' + docsDemo + '); ask about checkout, then ask to remember a new target.')
+  }
   console.log('Fixture: ' + fixture)
   console.log('Workspace: ' + workspace)
   console.log('Fixture PID: ' + process.pid + ' (SIGUSR2 restarts WebUI, retaining test data)')
