@@ -283,6 +283,7 @@ HTTP 403 可能来自 Host/Origin 不匹配，或旧远程 Client 仍调用独�
 | DSH 0.2 安装或启动时提示 dsh-mnemon 不兼容 | 安装到的是 0.5.19 之前的版本；更新 dsh-mnemon，新版本发布 24 小时内按[安装与启动](./installation.md#常见问题)安装带版本号的包 |
 | DSH 运行期间更新 dsh-mnemon 后，启用组件提示 `ERR_PACKAGE_PATH_NOT_EXPORTED`（`Package subpath './starter'` 或 `'./bundle'`） | 正在运行的进程仍按旧版本的包信息加载；完全退出并重新启动 DSH（桌面版按 `Cmd+Q`）。使用 0.5.18 或 0.5.19 时不要关闭 `dsh-mnemon/starter`，见[安装与启动](./installation.md#更新后启用时提示-err_package_path_not_exported) |
 | `mnemon-bundle (cordis:group): pending (waiting for service: mnemonStarterReady)`，或桌面版启动失败并显示插件恢复页 | 0.5.18 或 0.5.19 的 `dsh-mnemon/starter` 被关闭；在**插件 → 可组合记忆**中打开它，或更新到 0.5.20（没有单独的就绪开关）。桌面版在恢复页卸载后重新添加 dsh-mnemon，见[安装与启动](./installation.md#dsh-提示waiting-for-service-mnemonstarterready) |
+| 更新后提示 `mnemon-bundle (dsh-mnemon/bundle): pending (waiting for service: mnemonStarterReady)` | 更新到 0.5.20 后没有重启，正在运行的 DSH 仍保留旧的组件组；完全退出并重新启动 DSH，见[安装与启动](./installation.md#更新后启用时提示-err_package_path_not_exported) |
 | DSH 重启或 authority 改变后 Mnemon RPC 返回 401 | 打开 `dsh web` 输出的启动 URL，让一次性 token 建立新的、与 authority 绑定的浏览器 Cookie |
 
 ## 已知限制

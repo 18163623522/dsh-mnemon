@@ -203,7 +203,7 @@ mnemon:
 Before DSH installs a plugin, and each time it starts, it checks which DSH versions the plugin declares support for. dsh-mnemon releases before 0.5.19 declare DSH 0.1.7 only, so DSH 0.2 refuses them.
 
 - Check that npm has 0.5.19 or later: `npm view dsh-mnemon version`.
-- For 24 hours after a release, pnpm does not pick the new version by default and installs the previous one instead, which leads to this message. Click **Edit**, type the version as well, for example `dsh-mnemon@0.5.19` (use the version `npm view` shows), and click **Install**; on the command line, run `dsh plugin --profile web add dsh-mnemon@0.5.19`. Or retry after 24 hours.
+- For 24 hours after a release, pnpm does not pick the new version by default and installs an earlier one instead, which leads to this message. After two releases within a day it falls back further, for example to 0.5.17. DSH 0.1.7 accepts such an earlier release without a message, so check the version on Status. Click **Edit**, type the version as well, for example `dsh-mnemon@0.5.19` (use the version `npm view` shows), and click **Install**; on the command line, run `dsh plugin --profile web add dsh-mnemon@0.5.19`. Or retry after 24 hours.
 - A versioned install pins the profile to that version. To upgrade later, run `dsh plugin --profile web update --latest dsh-mnemon`.
 - Do not accept the risk for an older release with `allow-version` or similar: it really has not been verified on DSH 0.2.
 
@@ -231,7 +231,7 @@ If dsh-mnemon was updated while DSH was running (for example on the desktop app'
 Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './starter' is not defined by "exports" in …/node_modules/dsh-mnemon/package.json
 ```
 
-The new version is installed, but the running DSH still loads it with the old version's package information, which lacks an entry point the new version added: `./starter` after an update from 0.5.17 or earlier, `./bundle` after an update from 0.5.18 or 0.5.19. Quit DSH completely and start it again: `Cmd+Q` for the desktop app on macOS, or `Ctrl+C` and then `dsh web` again on the command line.
+The new version is installed, but the running DSH still loads it with the old version's package information, which lacks an entry point the new version added: `./starter` after an update from 0.5.17 or earlier, `./bundle` after an update from 0.5.18 or 0.5.19. After an update from 0.5.18 or 0.5.19 the message can instead read `mnemon-bundle (dsh-mnemon/bundle): pending (waiting for service: mnemonStarterReady)`, because the running DSH keeps the old component group. Either way, quit DSH completely and start it again: `Cmd+Q` for the desktop app on macOS, or `Ctrl+C` and then `dsh web` again on the command line.
 
 On 0.5.18 or 0.5.19, do not turn off `dsh-mnemon/starter` to make the message go away; that leads to the next problem.
 
@@ -250,7 +250,7 @@ The sidebar has no **Memory System**, and every dsh-mnemon component on the Plug
 
 - Open **Plugins → dsh-mnemon** and turn on the `dsh-mnemon/starter` row. The Memory System appears right away; if it does not, restart DSH.
 - The desktop app treats this as a failed start and shows its plugin recovery page. Click **Remove this plugin and continue** (your memory data stays), and once the app is up, add dsh-mnemon again as in [step 3](#3-install-and-enable-dsh-mnemon). Reinstalling 0.5.18 or 0.5.19 keeps the switch off, because the profile saves it, so then turn it on as above.
-- From 0.5.20 this cannot happen: the group prepares dependency resolution itself, there is no separate switch, and a leftover setting for it is ignored.
+- From 0.5.20 there is no separate switch: the group prepares dependency resolution itself, and a leftover setting for it is ignored. If the message names `dsh-mnemon/bundle`, DSH was updated to 0.5.20 without a restart and still runs the old group; quit DSH completely and start it again.
 
 ### Moving DSH to 0.2
 
