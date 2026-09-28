@@ -31,7 +31,7 @@ DSH 在安装插件前，以及每次启动 profile 时，都会用自身版本�
 **首次安装时的宿主行为。**
 
 - 插件页的**添加插件**会在用户未选择过时测速，在中国大陆通常默认使用**中国大陆镜像源**，其他地区使用 **npm 官方源**。
-- pnpm 11 默认不选用发布不足 24 小时的版本。新版本发布当天，直接安装 `dsh-mnemon` 可能装上旧版本，并在 DSH 0.2 上被判为不兼容；此时安装带版本号的 `dsh-mnemon@<版本>`，或等待 24 小时，见[安装与启动](../guides/installation.md#常见问题)。带版本号安装会固定版本，之后用 `dsh plugin --profile web update --latest dsh-mnemon` 升级。
+- pnpm 11 默认不选用发布不足 24 小时的版本。新版本发布当天，直接安装 `dsh-mnemon` 可能装上旧版本，并在 DSH 0.2 上被判为不兼容；此时安装带版本号的 `dsh-mnemon@<版本>`，或等待 24 小时，见[安装与启动](../guides/installation.md#常见问题)。带版本号安装会固定版本，之后用 `dsh plugin --profile web update --latest dsh-mnemon` 升级。在同样的 24 小时内，`update` 与 `update --latest` 都会停留在已安装的版本，已有安装也要带版本号安装新版本。
 - 安装结果卡片显示软件包的英文简介；插件列表中的名称与说明跟随界面语言。
 - `desktop` profile 归桌面版所有，DSH 0.2 的命令行拒绝管理它；桌面版用户在应用的插件页中安装和管理插件。
 

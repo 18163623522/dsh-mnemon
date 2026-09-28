@@ -31,7 +31,7 @@ Before DSH installs a plugin, and each time a profile starts, it checks every `@
 **Host behavior on a first install.**
 
 - When nobody has chosen a registry yet, **Add plugin** measures which one answers faster: in mainland China it usually defaults to the **Mainland China mirror**, elsewhere to the **Official npm registry**.
-- pnpm 11 does not pick versions published less than 24 hours ago. On a release day, installing plain `dsh-mnemon` can install the previous release, which DSH 0.2 refuses as incompatible; install `dsh-mnemon@<version>` instead, or wait 24 hours, as [Install and start](../guides/installation.md#common-problems) describes. A versioned install pins the version; upgrade it later with `dsh plugin --profile web update --latest dsh-mnemon`.
+- pnpm 11 does not pick versions published less than 24 hours ago. On a release day, installing plain `dsh-mnemon` can install the previous release, which DSH 0.2 refuses as incompatible; install `dsh-mnemon@<version>` instead, or wait 24 hours, as [Install and start](../guides/installation.md#common-problems) describes. A versioned install pins the version; upgrade it later with `dsh plugin --profile web update --latest dsh-mnemon`. Within the same 24 hours, `update` and `update --latest` keep the installed version, so existing installations also add the new version by name.
 - The install result card shows the package's English description; the name and description in the plugin list follow the interface language.
 - The `desktop` profile belongs to the desktop app, and DSH 0.2's command line refuses to manage it; desktop users install and manage plugins on the app's Plugins page.
 

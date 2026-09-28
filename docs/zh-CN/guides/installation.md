@@ -130,7 +130,7 @@ dsh plugin --profile web update dsh-mnemon
 dsh plugin --profile web remove dsh-mnemon
 ```
 
-升级后重启 DSH。卸载只移除插件，不会删除任何记忆数据。开发检出、云端访问与 Headless 的更多说明见[快速开始](./getting-started.md#1-命令行安装与升级)。
+升级后重启 DSH。新版本发布后的 24 小时内，pnpm 11 的 `update` 会停留在已安装的版本，这时请带版本号安装新版本，例如 `dsh plugin --profile web add dsh-mnemon@0.5.20`。卸载只移除插件，不会删除任何记忆数据。开发检出、云端访问与 Headless 的更多说明见[快速开始](./getting-started.md#1-命令行安装与升级)。
 
 ## Mnemon CLI 的其他安装方式
 
@@ -206,7 +206,7 @@ DSH 在安装插件前，以及每次启动时，都会检查插件声明支持�
 
 - 先确认 npm 上已有 0.5.19 或更新的版本：`npm view dsh-mnemon version`。
 - 新版本发布后的 24 小时内，pnpm 默认不会选用刚发布的版本，会改装一个较早的版本，于是出现这个提示；一天内连续发布时会退得更早，例如 0.5.17。DSH 0.1.7 会直接装上这个较早的版本而不提示，请在状态页核对版本号。此时点击**编辑**，输入带版本号的 `dsh-mnemon@0.5.20`（以 `npm view` 显示的版本为准），再点击**安装**；命令行为 `dsh plugin --profile web add dsh-mnemon@0.5.20`。也可以等 24 小时后重试。
-- 用带版本号的方式安装后，profile 会固定在这个版本。之后升级请运行 `dsh plugin --profile web update --latest dsh-mnemon`。
+- 用带版本号的方式安装后，profile 会固定在这个版本。之后在新版本发布满一天后运行 `dsh plugin --profile web update --latest dsh-mnemon` 升级；一天之内同样带版本号安装新版本。
 - 不要为旧版本执行 `allow-version` 等“接受风险”的操作：旧版本确实没有在 DSH 0.2 上验证过。
 
 ### 插件页提示“没有找到 pnpm，无法安装”

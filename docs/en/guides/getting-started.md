@@ -58,7 +58,7 @@ dsh plugin --profile web update dsh-mnemon
 dsh plugin --profile web remove dsh-mnemon
 ```
 
-Uninstall removes the plugin registration, not memory data in global, workspace, or custom roots.
+Restart DSH after an update. For 24 hours after a release, pnpm 11 keeps `update` on the installed version; add the new version by name instead (`dsh plugin --profile web add dsh-mnemon@<version>`). Uninstall removes the plugin registration, not memory data in global, workspace, or custom roots.
 
 Profiles have independent plugin rosters. Install the package separately into Headless when one-shot tasks also need memory:
 

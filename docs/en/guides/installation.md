@@ -128,7 +128,7 @@ dsh plugin --profile web update dsh-mnemon
 dsh plugin --profile web remove dsh-mnemon
 ```
 
-Restart DSH after upgrading. Uninstalling removes the plugin, never your memory data. Development checkouts, cloud access and Headless details are in [Getting started](./getting-started.md#1-install-and-upgrade-from-the-command-line).
+Restart DSH after upgrading. For 24 hours after a release, pnpm 11 keeps `update` on the installed version; add the new version by name instead, for example `dsh plugin --profile web add dsh-mnemon@0.5.20`. Uninstalling removes the plugin, never your memory data. Development checkouts, cloud access and Headless details are in [Getting started](./getting-started.md#1-install-and-upgrade-from-the-command-line).
 
 ## Other ways to install the Mnemon CLI
 
@@ -204,7 +204,7 @@ Before DSH installs a plugin, and each time it starts, it checks which DSH versi
 
 - Check that npm has 0.5.19 or later: `npm view dsh-mnemon version`.
 - For 24 hours after a release, pnpm does not pick the new version by default and installs an earlier one instead, which leads to this message. After two releases within a day it falls back further, for example to 0.5.17. DSH 0.1.7 accepts such an earlier release without a message, so check the version on Status. Click **Edit**, type the version as well, for example `dsh-mnemon@0.5.20` (use the version `npm view` shows), and click **Install**; on the command line, run `dsh plugin --profile web add dsh-mnemon@0.5.20`. Or retry after 24 hours.
-- A versioned install pins the profile to that version. To upgrade later, run `dsh plugin --profile web update --latest dsh-mnemon`.
+- A versioned install pins the profile to that version. To upgrade later, run `dsh plugin --profile web update --latest dsh-mnemon` once the next release is a day old; within that day, add the new version by name the same way.
 - Do not accept the risk for an older release with `allow-version` or similar: it really has not been verified on DSH 0.2.
 
 ### The Plugins page says pnpm was not found
