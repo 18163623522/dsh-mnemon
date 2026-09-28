@@ -36,7 +36,7 @@ try {
     const directory = join(modules, name)
     await mkdir(directory, { recursive: true })
     await writeFile(join(directory, 'package.json'), JSON.stringify({ name, version: '0.0.0', type: 'module', main: './index.js',
-      ...(name === 'dsh-mnemon' ? { dependencies: manifest.dependencies, exports: { '.': './index.js', './starter': './starter.js' }, dsh: { bundle: { patch: './cordis.patch.yml' } } } : {}) }))
+      ...(name === 'dsh-mnemon' ? { dependencies: manifest.dependencies, exports: { '.': './index.js', './starter': './starter.js', './bundle': './bundle.js' }, dsh: { bundle: { patch: './cordis.patch.yml' } } } : {}) }))
     await writeFile(join(directory, 'index.js'), `
 export const name = ${JSON.stringify(name)}
 export const inject = ${JSON.stringify(name === 'dsh-mnemon' || name.startsWith('dsh-mnemon-provider-') ? [] : ['mnemonMemory'])}
@@ -52,7 +52,7 @@ export async function apply(ctx, config) {
 }
 `)
   }
-  for (const filename of ['starter.ts', 'starter-resolution.ts']) {
+  for (const filename of ['bundle.ts', 'starter.ts', 'starter-resolution.ts']) {
     let source = await readFile(join(root, 'src', filename), 'utf8')
     for (const name of ['@deepseek-ai/cordis', '@deepseek-ai/cordis-plugin-loader', '@deepseek-ai/dsh-app-boot']) {
       source = source.replaceAll(`'${name}'`, JSON.stringify(pathToFileURL(runtimeRequire.resolve(name)).href))
@@ -148,7 +148,7 @@ export async function apply(ctx, config) {
     // without making that upstream defect an accepted lifecycle contract.
     const groups = new Set([...ctx.loader.entries()].filter(entry => entry.options.group).map(entry => entry.options.id))
     const pluginComponents = components.filter(row => !groups.has(row.rowId))
-    assert.equal(pluginComponents.length, 10)
+    assert.equal(pluginComponents.length, 9)
     assert(pluginComponents.every(row => plugins.some(plugin => plugin.entryId === row.entryId)))
     if (process.argv.includes('--check-declared-rows')) {
       assert.deepEqual(components.filter(row => !plugins.some(plugin => plugin.entryId === row.entryId)), [],
@@ -200,15 +200,15 @@ export async function apply(ctx, config) {
     await stop(); await start(); check()
   }
   await stop()
-  // The published schema collector recognizes native Group/Include identities,
-  // not lookalike carriers. Keep every existing configuration target visible.
+  // The published schema collector walks only native Group/Include identities.
+  // It reports the Starter's group as an unrecognized carrier and skips its
+  // children, as it does for DSH's own agent presets; nothing else may fail.
   const loaded = app.loadProfileDirectory('dsh', profileDir, installAnchor)
   const schema = (await app.generateConfigSchema(loaded, [...loaded.layers.map(layer => layer.patches), loaded.patches], installAnchor))['x-cordis']
-  assert.equal(schema.complete, true, JSON.stringify(schema.diagnostics))
-  assert.equal(schema.entries.find(entry => entry.id === 'mnemon-bundle')?.tree, 'group')
-  for (const id of ['mnemon-starter', 'mnemon', ...names.filter(name => name.startsWith('dsh-mnemon-source-') || name.startsWith('dsh-mnemon-strategy-')).map(name => name.slice(4))]) {
-    assert(schema.entries.some(entry => entry.id === id), `Missing configuration schema for ${id}`)
-  }
+  const bundle = schema.entries.find(entry => entry.id === 'mnemon-bundle')
+  assert.equal(bundle?.name, 'dsh-mnemon/bundle')
+  assert.deepEqual(schema.diagnostics.filter(item => item.level === 'error'), [{ level: 'error', path: bundle.path,
+    message: 'unrecognized Loader tree carrier; use cordis:group or cordis:include for native child collection' }])
   console.log(JSON.stringify({ dsh: JSON.parse(await readFile(installAnchor, 'utf8')).version, packages: names.length,
     components: 9, manager: Boolean(Manager), result: 'passed' }))
 } finally {

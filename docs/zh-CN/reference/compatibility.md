@@ -55,15 +55,17 @@ Desktop 可能删除插件 generation 内的私有 `@deepseek-ai/*` 包，改用
 
 DSH `0.1.7-rc.2` 的 Desktop generation 目录和 pnpm 安装可能只在 profile 中暴露 `dsh-mnemon` 根包。各组件已在它的依赖树中安装，但如果宿主启动时未选中该 bundle，首次启用仍可能使用启动时的包解析表，导致 Runtime、Documents、Memory Spaces 和默认 Strategy 抛出 `ERR_MODULE_NOT_FOUND`。
 
-Starter 的 `dsh-mnemon/starter` 条目先准备依赖解析，再让原有 `cordis:group` 导入子组件。它调用宿主公开的包解析服务，保留其他 bundle 启动时的依赖路径，并由宿主拒绝不兼容的模块重绑定；不平铺组件包、不改写 profile 链接、不修改 DSH。已有 Entry ID、核心停用总开关、各组件的独立选择和记忆数据均保持不变。
+Starter 的组件组 `mnemon-bundle`（模块 `dsh-mnemon/bundle`）先准备依赖解析，再用 DSH 自己的 `cordis:group` 挂载子组件。它调用宿主公开的包解析服务，保留其他 bundle 启动时的依赖路径，并由宿主拒绝不兼容的模块重绑定；不平铺组件包、不改写 profile 链接、不修改 DSH。已有 Entry ID、核心停用总开关、各组件的独立选择和记忆数据均保持不变。0.5.18 与 0.5.19 由单独的就绪条目 `dsh-mnemon/starter`（`mnemon-starter`）完成这一步，组件组等它提供 `mnemonStarterReady`；0.5.20 起两者合为一个条目，插件页不再显示单独的就绪行，组件组也不会因为它被关闭而一直等待。
 
-Mnemon 同时在自己的传输注入作用域内注册 Web RPC，已运行的官方 Connection 无需重启。请保持 Starter 就绪组件启用，使用 bundle 或核心开关控制整套组合。关闭它时，`mnemon-bundle` 会一直等待 `mnemonStarterReady`：`dsh web` 照常启动但没有记忆系统，桌面版则按启动失败处理；在 DSH 0.1.7-rc.2 与 0.2.0-rc.1 上重新打开它，记忆系统无需重启即可恢复，见[安装与启动](../guides/installation.md#dsh-提示waiting-for-service-mnemonstarterready)。
+Mnemon 同时在自己的传输注入作用域内注册 Web RPC，已运行的官方 Connection 无需重启。使用 bundle 或核心开关控制整套组合。在 0.5.18 与 0.5.19 中关闭 `dsh-mnemon/starter`，`mnemon-bundle` 会一直等待 `mnemonStarterReady`：`dsh web` 照常启动但没有记忆系统，桌面版则按启动失败处理，见[安装与启动](../guides/installation.md#dsh-提示waiting-for-service-mnemonstarterready)。更新到 0.5.20 后，profile patch 中残留的 `- id: mnemon-starter` 不再对应任何条目，宿主会忽略它（桌面版日志提示 `patch: entry "mnemon-starter" not found`），可以删除这两行。
 
-官方 WebUI 首次安装后，可以在同一宿主进程中点击“立即启用”；已安装但停用的 bundle 也可直接启动。更新或卸载 Node 已加载过的包时，仍须遵循 DSH 的正常重启要求，本修复不替换已加载模块。例如从 0.5.17 或更早的版本原地更新后不重启就启用组件，会提示 `./starter` 未导出（`ERR_PACKAGE_PATH_NOT_EXPORTED`）。参见[安装与启用验收记录](../../pr-assets/desktop-live-activation/README.zh-CN.md)。
+代价在 DSH 的配置 schema 导出：`dsh web --dump-config-schema` 只识别原生 `cordis:group` 与 `cordis:include`，会把 `mnemon-bundle` 报告为无法识别的树载体，并略去其中各组件的 schema，与 DSH 自带的 agent preset 相同。运行时配置、插件页与 profile patch 不受影响。
+
+官方 WebUI 首次安装后，可以在同一宿主进程中点击“立即启用”；已安装但停用的 bundle 也可直接启动。更新或卸载 Node 已加载过的包时，仍须遵循 DSH 的正常重启要求，本修复不替换已加载模块。例如原地更新后不重启就启用组件，会提示新版本才有的入口未导出（`ERR_PACKAGE_PATH_NOT_EXPORTED`）：从 0.5.17 或更早的版本更新时是 `./starter`，从 0.5.18 或 0.5.19 更新时是 `./bundle`。参见[安装与启用验收记录](../../pr-assets/desktop-live-activation/README.zh-CN.md)与[组件组验收记录](../../pr-assets/starter-group-readiness/README.zh-CN.md)。
 
 ## DSH 0.1.7 bundle 组件列表
 
-DSH `0.1.7-rc.2` 的“插件 → dsh-mnemon”详情页会把 `cordis:group` / `mnemon-bundle` 内部容器列为“已关闭”的组件。旧版 Starter 在 9 个实际组件全部运行时，可能显示“共 10 个 · 9 运行中 · 1 已停用”。就绪条目新增了一个实际组件，因此现在的对应计数为“共 11 个 · 10 运行中 · 1 已停用”。点击容器开关会返回 `unknown-plugin`，中文界面提示“组件启用失败：找不到该插件”。参见[原始截图](../../pr-assets/sidebar-native-20260926/before-bundle-toggle-error.jpg)与[上游问题 #649](https://github.com/dsh-external/issues/issues/649)。
+DSH `0.1.7-rc.2` 的“插件 → dsh-mnemon”详情页会把 `mnemon-bundle` 内部容器列为“已关闭”的组件（0.5.20 起显示为 `dsh-mnemon/bundle`，此前为 `cordis:group`），DSH `0.2.0-rc.1` 的显示相同。9 个实际组件全部运行时，列表显示“共 10 个 · 9 运行中 · 1 已停用”；0.5.18 与 0.5.19 多一行就绪条目，对应为“共 11 个 · 10 运行中 · 1 已停用”。点击容器开关会返回 `unknown-plugin`，中文界面提示“组件启用失败：找不到该插件”。参见[原始截图](../../pr-assets/sidebar-native-20260926/before-bundle-toggle-error.jpg)与[上游问题 #649](https://github.com/dsh-external/issues/issues/649)。
 
 这是宿主的展示与管理清单不一致：bundle 声明列表包含原生 group，但可管理插件清单明确排除了 group。该行的“已关闭”不代表 Mnemon 核心或其子插件已停用，也不能据此判断记忆读写是否正常。
 

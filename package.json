@@ -93,6 +93,10 @@
     "./starter": {
       "types": "./lib/types/src/starter.d.ts",
       "default": "./lib/starter.js"
+    },
+    "./bundle": {
+      "types": "./lib/types/src/bundle.d.ts",
+      "default": "./lib/bundle.js"
     }
   },
   "files": [
