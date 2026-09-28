@@ -1,12 +1,13 @@
 # Product media / 产品素材
 
-The current product gallery is [v0.5.4 in Light appearance](./webui-v0.5.4/README.md): 60 bilingual screenshots and two recordings captured after importing a Mnemon Pack. Use it for README, onboarding, operations and configuration illustrations.
+The current product gallery is [v0.5.17 in Light appearance](./webui-v0.5.17/README.md): 42 bilingual screenshots and two recordings of a seeded, fictional project, captured from a real WebUI. Use it for the README, guides and configuration illustrations. Regenerate it with `node scripts/serve-e2e.mjs --docs-demo` (or `--docs-demo=en`) and the steps in its record.
 
-当前产品图集为 [v0.5.4 浅色模式](./webui-v0.5.4/README.md)：先导入 Mnemon Pack，再采集 60 张双语截图和两段录制，用于 README、入门、运维与配置说明。
+当前产品图集为 [v0.5.17 浅色界面](./webui-v0.5.17/README.md)：基于预置的虚构项目，从真实 WebUI 采集 42 张双语截图与两段录制，用于 README、指南与配置说明。可用 `node scripts/serve-e2e.mjs --docs-demo`（或 `--docs-demo=en`）按记录中的步骤重新生成。
 
 | Directory / 目录 | Purpose / 用途 |
 |---|---|
-| [webui-v0.5.4](./webui-v0.5.4/README.md) | Current Light UI, imported data, full provenance and hashes / 当前浅色界面、导入数据、完整来源与哈希 |
+| [webui-v0.5.17](./webui-v0.5.17/README.md) | Current Light UI, seeded fictional data, provenance and hashes / 当前浅色界面、预置虚构数据、来源与哈希 |
+| [webui-v0.5.4](./webui-v0.5.4/README.md) | Historical v0.5.4 Light UI with imported data / v0.5.4 浅色界面与导入数据（历史） |
 | [diagrams](./diagrams) | Code-authored architecture diagrams; current terminology retained / 代码绘制的架构图，已采用当前术语 |
 | [memory-space-terminology](./memory-space-terminology/README.md) | Historical pre-release terminology and layout evidence, based on v0.5.3 / 基于 v0.5.3 的版本化前用语与布局证据 |
 | [showcase](./showcase/README.md) | Historical v0.5.2 screenshots and demo / v0.5.2 历史截图与演示 |

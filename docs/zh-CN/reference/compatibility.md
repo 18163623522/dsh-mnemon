@@ -9,16 +9,16 @@ Starter 固定经过测试的官方插件组合。下表记录验证范围，不
 | DSH | `0.1.7-rc.2` | 唯一支持的宿主：锁定的开发基线与 Root 两个 peer 下限。正式发布的契约、WebUI 与隔离 Headless 激活、profile 设置与旧设置恢复、Session V4 中的生产者专属消息、插件管理器激活以及 Agent Teams 审查矩阵 |
 | Node.js | `22.19`、`24` | 分别用于源码 CI 与打包制品 CI；开发要求 `^22.19.0 || >=24.0.0` |
 | Node.js 20 | 仅公开包入口导入 | 不代表 DSH Host 能在 Node 20 运行 |
-| Mnemon Native CLI | `0.2.8` | 显式启用的真实 CLI 与临时数据测试；CLI 需要另外安装 |
+| Mnemon Native CLI | `0.2.9` | 显式启用的真实 CLI 与临时数据测试；CLI 需要另外安装 |
 | 三方 Provider | 适配契约与夹具 | 不代表真实云账号一致性或上游服务可用性已验证 |
 
-Root 的两个 DSH peer 范围均为 `^0.1.7-rc.2`；官方插件的 peer 范围不变。不再支持更早的 DSH：升级宿主前，请继续使用 dsh-mnemon `v0.5.16`，它是最后一个在 DSH `0.1.5-rc.1` 至 `0.1.7-alpha.1` 上验证的版本。较早的 Headless 和 WebUI 记录仅保留为历史证据。
+Root 的两个 DSH peer 范围均为 `^0.1.7-rc.2`。五个 Strategy 包使用新的扩展 SDK，要求 `dsh-mnemon ^0.5.17`；各 Source 保持 `^0.5.1`，Provider 则依赖记忆空间 Source。不再支持更早的 DSH：升级宿主前，请继续使用 dsh-mnemon `v0.5.16`，它是最后一个在 DSH `0.1.5-rc.1` 至 `0.1.7-alpha.1` 上验证的版本。较早的 Headless 和 WebUI 记录仅保留为历史证据。
 
-“本回合记忆”以稳定 ID 注册到 DSH 的 `conversation.chat.turnTail` list 插槽，并在读取或展示活动前检查回合是否已完成。Sidebar 与**插件 → 可组合记忆**页面跟随 DSH 公开的默认／主会话 binding；Builtin 和 Better Sidebar 保留显式所属会话。DSH 0.1.7 将动态设置保存在 profile Config 中，并在“插件”中每个插件的页面编辑其配置；Mnemon 的配置页通过它写入，并按下述流程恢复保留的旧偏好。记忆数据和 Provider 格式不变。
+“本回合记忆”以稳定 ID 注册到 DSH 的 `conversation.chat.turnTail` list 插槽，并在读取或展示活动前检查回合是否已完成。侧栏入口与**插件 → 可组合记忆**页面跟随 DSH 公开的默认／主会话 binding；会话标签页入口和 Better Sidebar 保留显式所属会话。DSH 0.1.7 将动态设置保存在 profile Config 中，并在“插件”中每个插件的页面编辑其配置；Mnemon 的配置页通过它写入，并按下述流程恢复保留的旧偏好。记忆数据和 Provider 格式不变。
 
 参见[DSH 0.1.7 设置验证](../../pr-assets/issue-267-settings-migration/README.zh-CN.md)、[RC/alpha 验证与前后对比截图](../../pr-assets/issue-261-dsh-slots/README.zh-CN.md)、[DSH 0.1.5 验证](../../pr-assets/issue-223-dsh-015/README.zh-CN.md)、[宿主兼容证据](../../pr-assets/dsh-rc1-compat/README.md)、[升级证据](../../pr-assets/main-rebase-20260904/README.md)与[当前开发检查](../development/README.md)。机制测试通过不是 LLM 质量评测通过；特定 OS 与真实 CLI 检查在没有对应环境时可能跳过。
 
-历史 v0.5.2 采集发现 390px 设置布局不可用，[失败证据](../../pr-assets/documentation-refresh/README.md)保留原版本身份。[v0.5.4 浅色采集](../../assets/webui-v0.5.4/README.md)覆盖双语桌面浏览，以及 390 × 844 下的记忆空间导航、创建与版本维护。长卡片名称和部分指标会截断；本次没有复测所有 Host 设置页或真实手机，因此不将早期设置限制标为已解决。
+[v0.5.17 浅色图集](../../assets/webui-v0.5.17/README.md)覆盖双语桌面页面、插件页，以及 390 × 844 下的记忆空间与记忆组合面板，该宽度下较长的名称会截断。它没有复测所有 Host 设置页或真实手机，因此不宣称完整支持手机；历史 v0.5.2 在 390px 下的布局问题保留[原版本证据](../../pr-assets/documentation-refresh/README.md)。
 
 ## Desktop profile generation
 
@@ -42,7 +42,7 @@ DSH `0.1.7-rc.2` 的“插件 → dsh-mnemon”详情页会把 `cordis:group` / 
 
 Starter 保留稳定的 group ID 和已有 `mnemon` 配置目标。停用核心会停止其 Source、Strategy 和私有 Provider 子项；重新启用后，各组件恢复各自的独立选择。移除 group 会让仍启用的依赖项等待缺失的核心；将 group 改为匿名条目则可能在 profile 重载后留下旧实例。不要通过删除容器、稳定 ID 或修改分组声明来隐藏这一行。[正式宿主生命周期回归](../development/README.md#测试归属与覆盖)在不修改已安装宿主的前提下，验证管理器持久化、重启及旧版字面值／表达式停用标志。
 
-已在独立环境验证的[上游候选补丁](../../pr-assets/sidebar-native-20260926/upstream-fix.patch)会过滤容器展示并保留实际子插件；它未包含在正式 DSH `0.1.7-rc.2` 或 Mnemon `v0.5.16` 中。本地管理适配器方案需要接管 DSH 全局插件管理服务，把它内置于 Mnemon 会影响 Mnemon 的独立停用，因此未随插件提供。修复进展以 [#649](https://github.com/dsh-external/issues/issues/649) 及后续 DSH 发布说明为准；候选环境的截图不代表正式宿主已修复。
+已在独立环境验证的[上游候选补丁](../../pr-assets/sidebar-native-20260926/upstream-fix.patch)会过滤容器展示并保留实际子插件；它未包含在正式 DSH `0.1.7-rc.2` 或 Mnemon `v0.5.17` 中。本地管理适配器方案需要接管 DSH 全局插件管理服务，把它内置于 Mnemon 会影响 Mnemon 的独立停用，因此未随插件提供。修复进展以 [#649](https://github.com/dsh-external/issues/issues/649) 及后续 DSH 发布说明为准；候选环境的截图不代表正式宿主已修复。
 
 ## DSH 0.1.7 设置恢复
 
@@ -63,6 +63,6 @@ Mnemon 消息使用 Session V3、V4 均接受的生产者专属来源 `dsh-mnemo
 3. 安装新包代码后重启 DSH。检查“记忆系统 → 状态”，再读取一条已有 Runtime、档案及已激活记忆空间。
 4. 写入前确认存储范围。切换范围只是选择另一份数据权威，不会迁移数据。
 
-v0.5 保留默认 v0.4 的存储、配置与 Sidebar 工作流。可选的 `builtin` 使用同一组 Source 页面，旧 `buildin` 拼写会规范化。三个记忆增强默认关闭；本版没有 View 页或通用记忆插件管理器。
+v0.5 保留默认 v0.4 的存储、配置与侧栏工作流。可选的会话标签页入口（`builtin`）使用同一组 Source 页面，旧 `buildin` 拼写会规范化。通用策略与三个记忆增强默认关闭。插件页中的记忆组合负责列出、开关和配置已安装的组件；没有单独的 View 页。
 
 独立插件作者使用声明的 peer 范围与公开出口；旧的私有控制器导入不属于受支持的升级表面。自定义组合需要独立于 Starter 验证，参见[插件开发](../development/extensions.md)与[v0.5.0 发布边界](../releases/v0.5.0.md)。
