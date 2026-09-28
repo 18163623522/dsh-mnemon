@@ -2,26 +2,27 @@
 
 [简体中文](../../zh-CN/guides/getting-started.md) | **English** | [Documentation hub](../README.md)
 
-This guide takes you from a blank environment to memory that a conversation actually uses. It keeps the defaults: the Memory System in the sidebar, global storage and the Layered strategy. You do not need to know about Views or Strategies for everyday use.
+This guide starts from a DSH with dsh-mnemon installed and ends with memory that a conversation actually uses. It keeps the defaults: the Memory System in the sidebar, global storage and the Layered strategy. You do not need to know about Views or Strategies for everyday use.
 
-Already installed? Jump to [Open the Memory System](#4-open-the-memory-system). Upgrading? Follow [compatibility and upgrades](../reference/compatibility.md).
+First time? Start with [Install and start](./installation.md): from installing Node.js to installing and enabling dsh-mnemon on the Plugins page and your first memory, with a screenshot for every step. Already installed? Jump to [Open the Memory System](#2-open-the-memory-system). Upgrading? Follow [compatibility and upgrades](../reference/compatibility.md).
 
-## 1. Prerequisites
+## 1. Install and upgrade from the command line
 
-- Node.js `^22.19.0 || >=24.0.0`, which the DSH 0.1.7-rc.2 profile requires;
-- a DSH Web or Headless profile that starts;
+This section is for command-line users and also covers development checkouts, cloud access and Headless. You need:
+
+- DSH `0.1.7-rc.2` (npm `latest`) or `0.2.0-rc.1` (npm `next`), Node.js `^22.19.0 || >=24.0.0`, and pnpm;
 - a DSH model route that can create independent task Agents;
-- for Mnemon Native only, a local `mnemon` CLI. The other Providers connect to their own services.
+- for Mnemon Native only, a local `mnemon` CLI; [Install and start](./installation.md#other-ways-to-install-the-mnemon-cli) covers each platform. The other Providers connect to their own services.
 
-Install and check the tested DSH release:
+Install and check DSH:
 
 ```sh
-npm install -g @deepseek-ai/dsh@0.1.7-rc.2
+npm install -g @deepseek-ai/dsh
 dsh --version
 npm view @deepseek-ai/dsh dist-tags
 ```
 
-The Starter pins a tested combination of the official plugins; the [v0.5.17 release notes](../releases/v0.5.17.md) and the [compatibility matrix](../reference/compatibility.md) list it. Mnemon's Node 20 entry checks do not establish full Host compatibility.
+The Starter pins a tested combination of the official plugins; the [compatibility matrix](../reference/compatibility.md) lists it. Mnemon's Node 20 entry checks do not establish full Host compatibility.
 
 <details>
 <summary>How task Agents are started</summary>
@@ -29,85 +30,6 @@ The Starter pins a tested combination of the official plugins; the [v0.5.17 rele
 Semantic work prefers a DSH provider named `spawn` with `toolFilter`, `persona` and `depthLimit`. Mnemon keeps one stable `mnemon_subagent_result` tool and issues a revocable `requestId` for each child. The child returns `{ requestId, result }`; the Host validates `result` against that operation's schema and rejects stale or foreign submissions. Optional background review defaults to a guarded `spawn` child with a bounded checkpoint; a full-context `fork` is opt-in. See [review compatibility and limits](../reference/configuration.md#provider-requirements).
 
 </details>
-
-## 2. Install the Mnemon CLI
-
-Only Mnemon Native uses the Mnemon CLI. Skip this step if your Memory Spaces use another Provider; you can install it later. npm is recommended on macOS, Linux, and Windows (Node.js 22+). Run these commands on the machine running DSH:
-
-```sh
-npm install --global @mnemon-dev/mnemon@latest
-mnemon --version
-```
-
-For later npm updates, run `mnemon update`, or use **Status → Check versions** when the page recognizes the owning npm installation. If migrating from Homebrew, Go, or a downloaded binary, put npm's global bin directory before the old command on PATH and update any `MNEMON_CLI_PATH` / `mnemon.cliPath` override. Restart DSH after changing its environment, then recheck the executable path on Status.
-
-Homebrew Cask remains an alternative on macOS:
-
-```sh
-brew install --cask mnemon-dev/tap/mnemon
-```
-
-Go works on macOS and Linux:
-
-```sh
-go install github.com/mnemon-dev/mnemon@latest
-```
-
-Verify the binary:
-
-```sh
-mnemon --version
-```
-
-For a manual installation on Windows, the official release provides ZIP archives for AMD64 and ARM64. The following PowerShell installs v0.2.9 under the auto-discovered per-user Programs directory and verifies it against the published checksum:
-
-```powershell
-$version = '0.2.9'
-$arch = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'Arm64') { 'arm64' } else { 'amd64' }
-$archiveName = "mnemon_${version}_windows_${arch}.zip"
-$releaseBase = "https://github.com/mnemon-dev/mnemon/releases/download/v${version}"
-$archive = Join-Path $env:TEMP $archiveName
-$checksumFile = Join-Path $env:TEMP "mnemon_${version}_checksums.txt"
-Invoke-WebRequest "${releaseBase}/${archiveName}" -OutFile $archive
-Invoke-WebRequest "${releaseBase}/checksums.txt" -OutFile $checksumFile
-$line = Get-Content $checksumFile | Where-Object { $_.EndsWith("  $archiveName") } | Select-Object -First 1
-if (-not $line) { throw "Checksum entry not found for $archiveName" }
-$expected = (($line -split '\s+')[0]).ToLowerInvariant()
-$actual = (Get-FileHash -Path $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-if ($actual -ne $expected) { throw "Checksum mismatch for $archiveName" }
-$installDir = Join-Path $env:LOCALAPPDATA 'Programs\mnemon'
-New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-Expand-Archive -Path $archive -DestinationPath $installDir -Force
-$mnemon = Join-Path $installDir 'mnemon.exe'
-& $mnemon --version
-```
-
-Go remains an alternative when a Go toolchain is already available:
-
-```powershell
-go install github.com/mnemon-dev/mnemon@latest
-$mnemonBin = go env GOBIN
-if (-not $mnemonBin) {
-  $mnemonBin = Join-Path (((go env GOPATH) -split ';')[0]) 'bin'
-}
-$mnemon = Join-Path $mnemonBin 'mnemon.exe'
-& $mnemon --version
-```
-
-On Windows, dsh-mnemon discovers native `mnemon.exe` from `PATH`, an exported `GOBIN` or `GOPATH`, the default `%USERPROFILE%\go\bin`, `%LOCALAPPDATA%\Programs\mnemon`, and Program Files. The official npm `mnemon.cmd` launcher is also supported: dsh-mnemon validates its package and invokes its JavaScript entry with Node, without a shell. Other `.cmd` and `.bat` wrappers remain unsupported.
-
-When DSH runs inside an Electron desktop main process, verified npm launchers run with `ELECTRON_RUN_AS_NODE=1` in the child process. This covers memory commands, version checks, and npm updates, while preserving saved embedding settings. The desktop application's own environment is unchanged. If the shell disables Electron's `runAsNode` fuse, point `mnemon.cliPath` at the platform's native Mnemon binary instead; see [Troubleshooting](./operations.md#troubleshooting).
-
-If DSH still cannot find the binary, set `MNEMON_CLI_PATH`, or set `mnemon.cliPath` as a user setting rather than replacing the plugin's profile patch (see [Configuration](../reference/configuration.md)):
-
-```yaml
-mnemon:
-  cliPath: 'C:\Users\alice\AppData\Local\Programs\mnemon\mnemon.exe'
-```
-
-`mnemon status` opens the effective Store and may initialize data or run upstream migrations, so it is not a side-effect-free installation probe.
-
-## 3. Install dsh-mnemon
 
 Install into the Web profile for the complete workbench:
 
@@ -149,7 +71,7 @@ For a development checkout, replace the package name with `"link:/absolute/path/
 
 With `storageScope=workspace`, Headless resolves `<invocation cwd>/.mnemon`; no Web workspace registry is required. The one-shot runner exits when its Agent becomes idle, so shutdown cancels any delayed score-based background review that has not started. Explicit or model-guided writes that finish during the task are durable.
 
-## 4. Open the Memory System
+## 2. Open the Memory System
 
 Click **Memory System** in the sidebar. It opens on **Status**.
 
@@ -164,7 +86,7 @@ Check that:
 
 Project Documents needs a DSH workspace even with global storage. Select a workspace for the conversation; "Waiting for workspace" means the project context is missing, not the CLI. If the Mnemon CLI is missing, run `command -v mnemon` and `mnemon --version` on macOS or Linux, or `Get-Command mnemon` on Windows. See [troubleshooting](./operations.md#troubleshooting) for other symptoms.
 
-## 5. Store your first memories
+## 3. Store your first memories
 
 **Runtime memory.** Open **Runtime memory**, choose **Add memory** and save a preference in the user profile or a project fact in working memory. It is injected into every later turn.
 
@@ -189,7 +111,7 @@ You can also use conversation commands:
 /mnemon recall <focused query>
 ```
 
-## 6. Use memory in a conversation
+## 4. Use memory in a conversation
 
 Ask a question that depends on what you stored, and let the Agent decide whether it needs memory. After the reply:
 
@@ -200,7 +122,7 @@ Ask a question that depends on what you stored, and let the Agent decide whether
 
 Ordinary conversation does not force recall. Current requests, repository files and live tool results outrank remembered history.
 
-## 7. Choose how memory is composed
+## 5. Choose how memory is composed
 
 Open **Plugins → dsh-mnemon**, or the gear in the Memory System header.
 
@@ -214,7 +136,7 @@ Open **Plugins → dsh-mnemon**, or the gear in the Memory System header.
 
 Switches and selectors apply at once; storage changes wait for **Apply**. The [UI guide](./ui-guide.md#on-the-plugins-page) covers every page, and [Configuration](../reference/configuration.md) lists the settings behind them.
 
-## 8. Next steps
+## 6. Next steps
 
 - Learn every page in the [UI guide](./ui-guide.md).
 - Decide what belongs in runtime memory, documents or memory spaces with the [storage model](../reference/storage-model.md).

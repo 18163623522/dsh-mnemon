@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/getting-started.md"><strong>快速开始</strong></a> ·
+  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/installation.md"><strong>安装与启动</strong></a> ·
   <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/assets/webui-v0.5.19/README.md">观看演示</a> ·
   <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/README.md">文档中心</a> ·
   <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/development/extensions.md">制作插件</a>
@@ -76,20 +76,24 @@
 
 ## 快速开始
 
-需要 DSH `0.1.7-rc.2` 宿主与 Node.js `^22.19.0 || >=24.0.0`。
+第一次使用 DSH？[安装与启动](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/installation.md)从一台空白电脑一直带你到第一条记忆，每一步都有截图。简要步骤如下，需要 [Node.js](https://nodejs.org/) 22.19 或更高：
 
 ```sh
-dsh plugin --profile web add dsh-mnemon
-dsh web
+npm install --global pnpm
+npx @deepseek-ai/dsh web
 ```
 
-1. 在侧栏打开**记忆系统**，“状态”页列出每个记忆组件和 Provider。
-2. 添加一条运行时记忆；创建项目档案前先选择 DSH 工作区。
-3. 使用记忆空间时，可用 `npm install --global @mnemon-dev/mnemon` 安装 Mnemon Native 所需的 CLI，或在记忆空间页面启用其他 Provider。
-4. 在对话中，回复下方的回合记忆栏列出这一轮读到和写入的记忆，脑形图标可以把回复存入记忆。
+<p align="center">
+  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/installation.md"><img src="https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/install-v0.5.19/zh-CN/install.gif" alt="在插件页点击添加插件，输入 dsh-mnemon，安装后立即启用，侧栏出现记忆系统" width="880" /></a>
+</p>
+
+1. 在打开的页面中点击**插件 → 添加插件**，输入 `dsh-mnemon`，点击**安装**，再点击**立即启用**。
+2. 在侧栏打开**记忆系统**，“状态”页列出每个记忆组件和 Provider。
+3. 在对话中说一句需要记住的话。回复下方的回合记忆栏列出这一轮读到和写入的记忆，脑形图标可以把回复存入记忆。
+4. 使用记忆空间时，可用 `npm install --global @mnemon-dev/mnemon` 安装 Mnemon Native 所需的 CLI，或在记忆空间页面启用其他 Provider。
 5. 在**插件 → 可组合记忆**中选择主策略与增强。
 
-Headless 使用同一个包：`dsh plugin --profile headless add dsh-mnemon`。更早的宿主请继续使用 `v0.5.16`。各平台步骤见[快速开始](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/getting-started.md)，已有安装的升级见[兼容性与升级](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/reference/compatibility.md)。
+dsh-mnemon 支持 DSH `0.1.7-rc.2`（npm `latest`）与 `0.2.0-rc.1`（npm `next`，用 `npx @deepseek-ai/dsh@next web` 启动）。同一个包也用于桌面版的插件页、命令行 `dsh plugin --profile web add dsh-mnemon`，以及 Headless：`dsh plugin --profile headless add dsh-mnemon`；更早的宿主请继续使用 `v0.5.16`。接下来可以看[快速开始](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/guides/getting-started.md)，已有安装的升级见[兼容性与升级](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/zh-CN/reference/compatibility.md)。
 
 ## 工作原理
 

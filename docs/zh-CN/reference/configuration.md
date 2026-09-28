@@ -198,7 +198,7 @@ WebUI 从实时管理目录读取 Source 实例，新增 Source 无须修改前�
 
 ### 浏览器认证
 
-DSH 负责浏览器认证或配对，以及 Host/Origin 校验。远程页面使用命名空间 API Gateway，本地回环客户端使用各自的通道。Mnemon 网关映射单独执行 `remoteAccess`：`read-only` 允许普通读取、小范围激活和设置查看，但拒绝写入、ZIP 操作、View 变更与设置修改；没有 `trusted-host` 授权时，设置快照报告 `writable: false`。修改这项仅在启动时读取的策略后请重启 DSH。DSH `trustedHosts` 不能代替 HTTPS 或部署层访问控制。`writeEnabled=false` 是产品级只读模式，不能代替传输层认证。
+DSH 负责浏览器认证或配对，以及 Host/Origin 校验。远程页面使用命名空间 API Gateway，本地回环客户端与 DSH 桌面版窗口（`dsh-app://app/`）使用各自的通道；只有 DSH 为页面声明了不持有 Host 的传输方式时，应用页面才按远程页面处理。Mnemon 网关映射单独执行 `remoteAccess`：`read-only` 允许普通读取、小范围激活和设置查看，但拒绝写入、ZIP 操作、View 变更与设置修改；没有 `trusted-host` 授权时，设置快照报告 `writable: false`。修改这项仅在启动时读取的策略后请重启 DSH。DSH `trustedHosts` 不能代替 HTTPS 或部署层访问控制。`writeEnabled=false` 是产品级只读模式，不能代替传输层认证。
 
 完整的代理、启动 token、可信 authority、重启与验证流程见[云端 WebUI](../guides/operations.md#cloud-hosted-webui)。
 

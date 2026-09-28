@@ -6,19 +6,42 @@ The Starter pins a tested combination of official plugins. The table records ver
 
 | Component | Baseline | What is verified |
 |---|---|---|
-| DSH | `0.1.7-rc.2` | The only supported host: pinned development baseline and both root peer floors. Published contracts, WebUI and isolated Headless activation, profile settings and retained-settings recovery, producer-owned Session V4 messages, plugin manager activation and the Agent Teams review matrix |
+| DSH | `0.1.7-rc.2` (npm `latest`), `0.2.0-rc.1` (npm `next`) | The two supported hosts. 0.1.7-rc.2 is the pinned development baseline: published contracts, WebUI and isolated Headless activation, profile settings and retained-settings recovery, producer-owned Session V4 messages, plugin manager activation and the Agent Teams review matrix. For 0.2.0-rc.1 see [below](#dsh-02) |
 | Node.js | `22.19` and `24` | Source CI and packed-artifact CI respectively; development requires `^22.19.0 || >=24.0.0` |
 | Node.js 20 | Public package imports only | Does not establish that the DSH Host runs on Node 20 |
 | Mnemon Native CLI | `0.2.9` | Opt-in tests against a real CLI and disposable data; install the CLI separately |
 | Third-party Providers | Adapter contracts and fixtures | Does not establish live cloud-account conformance or upstream availability |
 
-Both root DSH peer ranges are `^0.1.7-rc.2`. The five Strategy packages require `dsh-mnemon ^0.5.17`, whose extension SDK they use; the Sources keep `^0.5.1`, and the Providers depend on the Memory Spaces Source instead. Older DSH releases are no longer supported: keep dsh-mnemon `v0.5.16`, the last release verified with DSH `0.1.5-rc.1` through `0.1.7-alpha.1`, until the host is upgraded. Earlier Headless and WebUI records remain historical evidence.
+The root DSH peers (`dsh-app-boot` is optional) and the Memory Spaces Source's `dsh-client-ui-primitives` peer are all `^0.1.7-rc.2 || ^0.2.0-rc.1`. The five Strategy packages require `dsh-mnemon ^0.5.17`, whose extension SDK they use; the Sources keep `^0.5.1`, and the Providers depend on the Memory Spaces Source instead. Older DSH releases are no longer supported: keep dsh-mnemon `v0.5.16`, the last release verified with DSH `0.1.5-rc.1` through `0.1.7-alpha.1`, until the host is upgraded. Earlier Headless and WebUI records remain historical evidence.
 
 Turn memory registers with a stable ID in DSH's `conversation.chat.turnTail` list slot and checks that the turn is complete before reading or showing activity. The sidebar placement and the `dsh-mnemon` page under Plugins follow DSH's public default/main session binding; the conversation-tab placement and Better Sidebar keep their explicit owning session. DSH 0.1.7 keeps live settings in profile Config and edits a plugin's configuration on its page under Plugins; Mnemon's configuration page writes through it and recover retained legacy preferences as described below. Memory data and Provider formats do not change.
 
 See [DSH 0.1.7 settings verification](../../pr-assets/issue-267-settings-migration/README.md), [RC/alpha verification and before/after screenshots](../../pr-assets/issue-261-dsh-slots/README.md), [DSH 0.1.5 verification](../../pr-assets/issue-223-dsh-015/README.md), [Host compatibility evidence](../../pr-assets/dsh-rc1-compat/README.md), [upgrade evidence](../../pr-assets/main-rebase-20260904/README.md), and [current development checks](../development/README.md). A passing mechanism test is not an LLM quality benchmark. OS-specific and real-CLI checks may be skipped unless their environment is explicitly available.
 
 The [v0.5.19 Light gallery](../../assets/webui-v0.5.19/README.md) covers the bilingual desktop pages, the Plugins page, and a conversation, Memory Spaces and the composition board at 390 × 844, where long names truncate. It does not retest every Host settings surface or physical phones, so phone support is not declared complete; the historical v0.5.2 layout failure at 390 px keeps its [versioned evidence](../../pr-assets/documentation-refresh/README.md).
+
+## DSH 0.2
+
+Before DSH installs a plugin, and each time a profile starts, it checks every `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` peer range against its own version, prereleases included. `^0.1.7-rc.2` excludes 0.2.0, so DSH 0.2 refuses to install dsh-mnemon 0.5.18 and earlier as incompatible and turns an installed one off at startup. From 0.5.19 these peers also accept `^0.2.0-rc.1`; `tests/dsh-host-compatibility.spec.ts` runs DSH's own check over all 18 package manifests for both supported runtimes.
+
+**Upgrade order.** Update dsh-mnemon to 0.5.19 or later on your current DSH first, then upgrade DSH. If DSH was upgraded first, the older release is turned off and memory data is untouched; updating the plugin brings it back. Do not use `allow-version` to let an older release through.
+
+**Verified on 0.2.0-rc.1.** With the published DSH 0.2.0-rc.1 installed globally, starting from an empty profile: installing from the command line and from the Plugins page, Enable now without a restart, Status, runtime memory writes, a first live-model conversation with Save to memory, a Headless job, and the read and write routes of desktop windows and remote pages. With every DSH development dependency moved to 0.2.0-rc.1, type checking, the builds, all plugin tests and the Headless verification pass, and among the root tests only the assertion about the pinned development baseline itself differs. The [installation gallery](../../assets/install-v0.5.19/README.md) has the screenshots.
+
+**Host behavior on a first install.**
+
+- When nobody has chosen a registry yet, **Add plugin** measures which one answers faster: in mainland China it usually defaults to the **Mainland China mirror**, elsewhere to the **Official npm registry**.
+- pnpm 11 does not pick versions published less than 24 hours ago. On a release day, installing plain `dsh-mnemon` can install the previous release, which DSH 0.2 refuses as incompatible; install `dsh-mnemon@<version>` instead, or wait 24 hours, as [Install and start](../guides/installation.md#common-problems) describes. A versioned install pins the version; upgrade it later with `dsh plugin --profile web update --latest dsh-mnemon`.
+- The install result card shows the package's English description; the name and description in the plugin list follow the interface language.
+- The `desktop` profile belongs to the desktop app, and DSH 0.2's command line refuses to manage it; desktop users install and manage plugins on the app's Plugins page.
+
+## Desktop windows
+
+DSH desktop windows load from the app's own `dsh-app://app/` address instead of a loopback URL, and the DSH 0.1.7 desktop app declares no transport for the page. dsh-mnemon 0.5.18 and earlier therefore treated desktop windows as remote pages: every call went through the API Gateway, and the default `remoteAccess: read-only` made runtime memory, Memory Spaces and the plugin settings read only in the interface while agent tools could still write ([#310](https://github.com/omdsh-dev/dsh-mnemon/issues/310)).
+
+From 0.5.19, a page the application serves itself (an address other than `http:` or `https:`) uses Mnemon's local channels; it still counts as remote only when DSH declares a transport for it that does not own the Host. The DSH 0.2 desktop app declares `ownsHost: true` and uses the local channels as well. Pages opened from another device keep the API Gateway and its read-only default, and the Memory System and the plugin settings now say that `remoteAccess: trusted-host` and a DSH restart are needed. The local channels and `/api` share DSH's Host/Origin checks and browser-session authentication.
+
+How it was verified: an Electron window standing in for the desktop shell registers the same standard, secure `dsh-app` scheme as the official app and proxies to a Host that listens only on 127.0.0.1. The published 0.5.18 reproduced the read-only state on DSH 0.1.7-rc.2 (all 13 Mnemon calls through the API Gateway); with the fix, both DSH 0.1.7-rc.2 and 0.2.0-rc.1 (`ownsHost: true`) add runtime memory through the local `/dsh-mnemon-write` channel, and Memory Spaces and the plugin settings are editable, while a remote page opened through a trusted authority stays read only and says why.
 
 ## Desktop profile generations
 

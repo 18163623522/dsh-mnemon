@@ -10,7 +10,8 @@ dsh-mnemon 为 DeepSeek Harness 提供三类记忆：每一轮都会用到的**�
 
 | 要完成的事 | 指南 |
 |---|---|
-| 安装，然后保存并用上第一批记忆 | [快速开始](./guides/getting-started.md) |
+| 从零安装并启动：网页、桌面版或命令行，到第一条记忆 | [安装与启动](./guides/installation.md) |
+| 保存并用上第一批记忆 | [快速开始](./guides/getting-started.md) |
 | 熟悉对话、记忆系统与插件页 | [界面指南](./guides/ui-guide.md) |
 | 了解每个组件与策略能做什么 | [能力地图](./guides/capabilities.md) |
 | 选择并接入长期记忆后端 | [Provider 指南](./guides/memory-providers.md) |
@@ -40,4 +41,4 @@ dsh-mnemon 为 DeepSeek Harness 提供三类记忆：每一轮都会用到的**�
 
 [v0.5.17](./releases/v0.5.17.md) 新增通用策略；插件页根据组件声明组合记忆；每个组件都有自己的设置页；数据目录改为明确的“默认 / 自定义”选择。[全部版本](./releases/README.md) · [路线图](./roadmap.md) · [历史验收证据](../pr-assets/README.md)
 
-指南描述当前版本。截图与录屏来自 [v0.5.19 图集](../assets/webui-v0.5.19/README.md)；带日期的 PR 记录只证明其标注的代码修订与环境。内部 Host RPC 不属于对外插件 SDK。
+指南描述当前版本。截图与录屏来自 [v0.5.19 图集](../assets/webui-v0.5.19/README.md)，安装步骤来自[安装图集](../assets/install-v0.5.19/README.md)；带日期的 PR 记录只证明其标注的代码修订与环境。内部 Host RPC 不属于对外插件 SDK。

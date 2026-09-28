@@ -2,26 +2,27 @@
 
 **简体中文** | [English](../../en/guides/getting-started.md) | [文档中心](../README.md)
 
-本页从空白环境开始，一直走到对话真正用上记忆。全程使用默认设置：记忆系统位于侧栏、全局存储、分层策略。日常使用不需要了解 View 或 Strategy。
+本页从装好 dsh-mnemon 的 DSH 开始，一直走到对话真正用上记忆。全程使用默认设置：记忆系统位于侧栏、全局存储、分层策略。日常使用不需要了解 View 或 Strategy。
 
-已经安装好了？直接跳到[打开记忆系统](#4-打开记忆系统)。准备升级？请按[兼容性与升级](../reference/compatibility.md)操作。
+第一次使用？先看[安装与启动](./installation.md)：从安装 Node.js 开始，到在插件页一键安装并启用 dsh-mnemon，再到第一条记忆，每一步都有截图。已经安装好了？直接跳到[打开记忆系统](#2-打开记忆系统)。准备升级？请按[兼容性与升级](../reference/compatibility.md)操作。
 
-## 1. 前置条件
+## 1. 命令行安装与升级
 
-- Node.js `^22.19.0 || >=24.0.0`，这是 DSH 0.1.7-rc.2 profile 的要求；
-- 一个可以启动的 DSH Web 或 Headless profile；
+本节写给熟悉命令行的用户，也包括开发检出、云端访问与 Headless。需要：
+
+- DSH `0.1.7-rc.2`（npm `latest`）或 `0.2.0-rc.1`（npm `next`），以及 Node.js `^22.19.0 || >=24.0.0` 与 pnpm；
 - 一个能够创建独立任务 Agent 的 DSH 模型路由；
-- 仅在使用 Mnemon Native 时需要本地的 `mnemon` CLI，其他 Provider 连接各自的服务。
+- 仅在使用 Mnemon Native 时需要本地的 `mnemon` CLI，各平台的安装方式见[安装与启动](./installation.md#mnemon-cli-的其他安装方式)；其他 Provider 连接各自的服务。
 
-安装并核对经过测试的 DSH 版本：
+安装并核对 DSH：
 
 ```sh
-npm install -g @deepseek-ai/dsh@0.1.7-rc.2
+npm install -g @deepseek-ai/dsh
 dsh --version
 npm view @deepseek-ai/dsh dist-tags
 ```
 
-Starter 固定一组经过测试的官方插件组合，详见 [v0.5.17 发布说明](../releases/v0.5.17.md)与[兼容性矩阵](../reference/compatibility.md)。Mnemon 的 Node 20 入口检查不代表完整的 Host 兼容。
+Starter 固定一组经过测试的官方插件组合，详见[兼容性矩阵](../reference/compatibility.md)。Mnemon 的 Node 20 入口检查不代表完整的 Host 兼容。
 
 <details>
 <summary>任务 Agent 如何启动</summary>
@@ -29,85 +30,6 @@ Starter 固定一组经过测试的官方插件组合，详见 [v0.5.17 发布�
 语义任务优先使用名为 `spawn` 的 DSH Provider，并要求 `toolFilter`、`persona` 与 `depthLimit`。Mnemon 固定注册一个 `mnemon_subagent_result` 工具，并为每个子任务签发可撤销的 `requestId`。子任务返回 `{ requestId, result }`；Host 按该操作的 schema 校验 `result`，拒绝过期或其他子任务提交的结果。可选的后台审查默认通过受保护的 `spawn` 子 Agent 读取有界检查点，完整上下文 `fork` 需要显式选择。参见[审查兼容性与限制](../reference/configuration.md#provider-要求)。
 
 </details>
-
-## 2. 安装 Mnemon CLI
-
-只有 Mnemon Native 使用 Mnemon CLI。记忆空间使用其他 Provider 时可跳过这一步，以后再安装。macOS、Linux 和 Windows 均推荐使用 npm（Node.js 22+）。在运行 DSH 的宿主机器上执行：
-
-```sh
-npm install --global @mnemon-dev/mnemon@latest
-mnemon --version
-```
-
-后续通过 `mnemon update` 更新；状态页识别到所属 npm 安装时，也可使用“检查版本”中的更新操作。若从 Homebrew、Go 或下载的二进制迁移，请让 npm 全局命令目录在 PATH 中优先于旧命令，并同步调整 `MNEMON_CLI_PATH` / `mnemon.cliPath`。改变宿主环境后重启 DSH，再在状态页核对可执行文件路径。
-
-macOS 也可选择 Homebrew Cask：
-
-```sh
-brew install --cask mnemon-dev/tap/mnemon
-```
-
-macOS 和 Linux 可通过 Go 安装：
-
-```sh
-go install github.com/mnemon-dev/mnemon@latest
-```
-
-验证二进制：
-
-```sh
-mnemon --version
-```
-
-如果选择在 Windows 手工安装，官方发行包同时提供 AMD64 与 ARM64 ZIP。下面的 PowerShell 会把 v0.2.9 安装到可自动发现的用户 Programs 目录，并使用官方 checksum 校验下载内容：
-
-```powershell
-$version = '0.2.9'
-$arch = if ([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'Arm64') { 'arm64' } else { 'amd64' }
-$archiveName = "mnemon_${version}_windows_${arch}.zip"
-$releaseBase = "https://github.com/mnemon-dev/mnemon/releases/download/v${version}"
-$archive = Join-Path $env:TEMP $archiveName
-$checksumFile = Join-Path $env:TEMP "mnemon_${version}_checksums.txt"
-Invoke-WebRequest "${releaseBase}/${archiveName}" -OutFile $archive
-Invoke-WebRequest "${releaseBase}/checksums.txt" -OutFile $checksumFile
-$line = Get-Content $checksumFile | Where-Object { $_.EndsWith("  $archiveName") } | Select-Object -First 1
-if (-not $line) { throw "Checksum entry not found for $archiveName" }
-$expected = (($line -split '\s+')[0]).ToLowerInvariant()
-$actual = (Get-FileHash -Path $archive -Algorithm SHA256).Hash.ToLowerInvariant()
-if ($actual -ne $expected) { throw "Checksum mismatch for $archiveName" }
-$installDir = Join-Path $env:LOCALAPPDATA 'Programs\mnemon'
-New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-Expand-Archive -Path $archive -DestinationPath $installDir -Force
-$mnemon = Join-Path $installDir 'mnemon.exe'
-& $mnemon --version
-```
-
-如果已经安装 Go 工具链，也可以继续使用 Go：
-
-```powershell
-go install github.com/mnemon-dev/mnemon@latest
-$mnemonBin = go env GOBIN
-if (-not $mnemonBin) {
-  $mnemonBin = Join-Path (((go env GOPATH) -split ';')[0]) 'bin'
-}
-$mnemon = Join-Path $mnemonBin 'mnemon.exe'
-& $mnemon --version
-```
-
-Windows 上，dsh-mnemon 会从 `PATH`、导出的 `GOBIN` 或 `GOPATH`、默认 `%USERPROFILE%\go\bin`、`%LOCALAPPDATA%\Programs\mnemon` 和 Program Files 中发现原生 `mnemon.exe`。同时支持官方 npm 的 `mnemon.cmd` 启动器：验证包身份后通过 Node 调用其 JavaScript 入口，全程不使用 shell。其他 `.cmd` 与 `.bat` wrapper 仍不受支持。
-
-DSH 内嵌在 Electron 桌面主进程时，经过验证的 npm 启动器会在子进程中以 `ELECTRON_RUN_AS_NODE=1` 运行，覆盖记忆命令、版本检查和 npm 更新，并保留已保存的 embedding 设置。桌面应用自身的环境变量不变。如果桌面壳关闭了 Electron 的 `runAsNode` fuse，请将 `mnemon.cliPath` 指向当前平台的 Mnemon 原生二进制，详见[故障排查](./operations.md#故障排查)。
-
-如果 DSH 仍无法找到二进制，请设置 `MNEMON_CLI_PATH`，或把 `mnemon.cliPath` 写入用户设置；不要为此整体替换插件的 profile patch（参见[配置参考](../reference/configuration.md)）：
-
-```yaml
-mnemon:
-  cliPath: 'C:\Users\alice\AppData\Local\Programs\mnemon\mnemon.exe'
-```
-
-`mnemon status` 会打开有效 Store，可能初始化数据或执行上游迁移，不要把它当作完全无副作用的安装探测。
-
-## 3. 安装 dsh-mnemon
 
 需要完整工作台时安装到 Web profile：
 
@@ -149,7 +71,7 @@ dsh --profile headless "回答前先检查持久化的项目上下文。"
 
 `storageScope=workspace` 时，Headless 直接解析 `<启动命令 cwd>/.mnemon`，不需要 Web 工作区目录。一次性 runner 会在 Agent 进入 idle 后退出，因此尚未开始的评分后台审查会在关闭时取消；任务内已经完成的显式或模型引导写入仍会持久化。
 
-## 4. 打开记忆系统
+## 2. 打开记忆系统
 
 在侧栏点击**记忆系统**，默认进入**状态**页。
 
@@ -164,7 +86,7 @@ dsh --profile headless "回答前先检查持久化的项目上下文。"
 
 即使使用全局存储，项目档案也需要 DSH 工作区。请为对话选择工作区；“等待工作区”表示缺少项目上下文，而不是缺少 CLI。如果缺少 Mnemon CLI，可在 macOS 或 Linux 上运行 `command -v mnemon` 与 `mnemon --version`，在 Windows 上运行 `Get-Command mnemon`。其他问题见[故障排查](./operations.md#故障排查)。
 
-## 5. 保存第一批记忆
+## 3. 保存第一批记忆
 
 **运行时记忆。** 打开**运行时记忆**，点击**添加记忆**，在用户画像中写一条偏好，或在工作记忆中写一条项目事实。之后的每一轮都会注入它。
 
@@ -189,7 +111,7 @@ dsh --profile headless "回答前先检查持久化的项目上下文。"
 /mnemon recall <具体的问题>
 ```
 
-## 6. 在对话中使用记忆
+## 4. 在对话中使用记忆
 
 提一个依赖已保存内容的问题，让 Agent 自己判断是否需要记忆。回复完成后：
 
@@ -200,7 +122,7 @@ dsh --profile headless "回答前先检查持久化的项目上下文。"
 
 普通对话不会强制召回。当前请求、仓库文件与实时工具结果的优先级高于历史记忆。
 
-## 7. 选择记忆的组合方式
+## 5. 选择记忆的组合方式
 
 打开**插件 → 可组合记忆**，或点击记忆系统顶栏的齿轮。
 
@@ -214,7 +136,7 @@ dsh --profile headless "回答前先检查持久化的项目上下文。"
 
 开关与选择器立即生效，存储的改动需要点击**应用**。[界面指南](./ui-guide.md#在插件页中)介绍了每个页面，[配置参考](../reference/configuration.md)列出了它们背后的设置项。
 
-## 8. 下一步
+## 6. 下一步
 
 - 在[界面指南](./ui-guide.md)中熟悉每个页面。
 - 用[存储模型](../reference/storage-model.md)判断内容该放进运行时记忆、项目档案还是记忆空间。

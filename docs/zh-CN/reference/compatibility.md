@@ -6,19 +6,42 @@ Starter 固定经过测试的官方插件组合。下表记录验证范围，不
 
 | 组件 | 基线 | 已验证的范围 |
 |---|---|---|
-| DSH | `0.1.7-rc.2` | 唯一支持的宿主：锁定的开发基线与 Root 两个 peer 下限。正式发布的契约、WebUI 与隔离 Headless 激活、profile 设置与旧设置恢复、Session V4 中的生产者专属消息、插件管理器激活以及 Agent Teams 审查矩阵 |
+| DSH | `0.1.7-rc.2`（npm `latest`）、`0.2.0-rc.1`（npm `next`） | 两个受支持的宿主。0.1.7-rc.2 是锁定的开发基线：正式发布的契约、WebUI 与隔离 Headless 激活、profile 设置与旧设置恢复、Session V4 中的生产者专属消息、插件管理器激活以及 Agent Teams 审查矩阵。0.2.0-rc.1 的验证范围见[下文](#dsh-02) |
 | Node.js | `22.19`、`24` | 分别用于源码 CI 与打包制品 CI；开发要求 `^22.19.0 || >=24.0.0` |
 | Node.js 20 | 仅公开包入口导入 | 不代表 DSH Host 能在 Node 20 运行 |
 | Mnemon Native CLI | `0.2.9` | 显式启用的真实 CLI 与临时数据测试；CLI 需要另外安装 |
 | 三方 Provider | 适配契约与夹具 | 不代表真实云账号一致性或上游服务可用性已验证 |
 
-Root 的两个 DSH peer 范围均为 `^0.1.7-rc.2`。五个 Strategy 包使用新的扩展 SDK，要求 `dsh-mnemon ^0.5.17`；各 Source 保持 `^0.5.1`，Provider 则依赖记忆空间 Source。不再支持更早的 DSH：升级宿主前，请继续使用 dsh-mnemon `v0.5.16`，它是最后一个在 DSH `0.1.5-rc.1` 至 `0.1.7-alpha.1` 上验证的版本。较早的 Headless 和 WebUI 记录仅保留为历史证据。
+Root 的 DSH peer（`dsh-app-boot` 为可选）与记忆空间 Source 的 `dsh-client-ui-primitives` peer 均为 `^0.1.7-rc.2 || ^0.2.0-rc.1`。五个 Strategy 包使用新的扩展 SDK，要求 `dsh-mnemon ^0.5.17`；各 Source 保持 `^0.5.1`，Provider 则依赖记忆空间 Source。不再支持更早的 DSH：升级宿主前，请继续使用 dsh-mnemon `v0.5.16`，它是最后一个在 DSH `0.1.5-rc.1` 至 `0.1.7-alpha.1` 上验证的版本。较早的 Headless 和 WebUI 记录仅保留为历史证据。
 
 “本回合记忆”以稳定 ID 注册到 DSH 的 `conversation.chat.turnTail` list 插槽，并在读取或展示活动前检查回合是否已完成。侧栏入口与**插件 → 可组合记忆**页面跟随 DSH 公开的默认／主会话 binding；会话标签页入口和 Better Sidebar 保留显式所属会话。DSH 0.1.7 将动态设置保存在 profile Config 中，并在“插件”中每个插件的页面编辑其配置；Mnemon 的配置页通过它写入，并按下述流程恢复保留的旧偏好。记忆数据和 Provider 格式不变。
 
 参见[DSH 0.1.7 设置验证](../../pr-assets/issue-267-settings-migration/README.zh-CN.md)、[RC/alpha 验证与前后对比截图](../../pr-assets/issue-261-dsh-slots/README.zh-CN.md)、[DSH 0.1.5 验证](../../pr-assets/issue-223-dsh-015/README.zh-CN.md)、[宿主兼容证据](../../pr-assets/dsh-rc1-compat/README.md)、[升级证据](../../pr-assets/main-rebase-20260904/README.md)与[当前开发检查](../development/README.md)。机制测试通过不是 LLM 质量评测通过；特定 OS 与真实 CLI 检查在没有对应环境时可能跳过。
 
 [v0.5.19 浅色图集](../../assets/webui-v0.5.19/README.md)覆盖双语桌面页面、插件页，以及 390 × 844 下的对话、记忆空间与记忆组合面板，该宽度下较长的名称会截断。它没有复测所有 Host 设置页或真实手机，因此不宣称完整支持手机；历史 v0.5.2 在 390px 下的布局问题保留[原版本证据](../../pr-assets/documentation-refresh/README.md)。
+
+## DSH 0.2
+
+DSH 在安装插件前，以及每次启动 profile 时，都会用自身版本检查插件所有 `@deepseek-ai/dsh` 与 `@deepseek-ai/dsh-*` peer 范围，预发布版本也参与比较。`^0.1.7-rc.2` 不包含 0.2.0，因此 dsh-mnemon 0.5.18 及更早的版本在 DSH 0.2 上安装时会被判为不兼容而拒绝，已安装的会在启动时停用。0.5.19 起，这些 peer 同时接受 `^0.2.0-rc.1`；`tests/dsh-host-compatibility.spec.ts` 对全部 18 个包的清单执行 DSH 自己的检查，覆盖两个受支持的运行时。
+
+**升级顺序。** 先在现有 DSH 中把 dsh-mnemon 更新到 0.5.19 或更新的版本，再升级 DSH。若先升级了 DSH，旧版本会被停用，记忆数据不受影响；更新插件后即可恢复。不要用 `allow-version` 为旧版本放行。
+
+**已验证的范围（0.2.0-rc.1）。** 全局安装正式 DSH 0.2.0-rc.1 后，从空白 profile 通过命令行与插件页两种方式安装、界面中“立即启用”无需重启、状态页、运行时记忆写入、真实模型的首轮对话与存入记忆、Headless 任务，以及桌面版窗口与远程页面的读写路由；另将全部 DSH 开发依赖切换到 0.2.0-rc.1：类型检查、构建、全部插件测试与 Headless 验证通过，根测试中只有核对锁定开发基线本身的断言不同。截图见[安装图集](../../assets/install-v0.5.19/README.md)。
+
+**首次安装时的宿主行为。**
+
+- 插件页的**添加插件**会在用户未选择过时测速，在中国大陆通常默认使用**中国大陆镜像源**，其他地区使用 **npm 官方源**。
+- pnpm 11 默认不选用发布不足 24 小时的版本。新版本发布当天，直接安装 `dsh-mnemon` 可能装上旧版本，并在 DSH 0.2 上被判为不兼容；此时安装带版本号的 `dsh-mnemon@<版本>`，或等待 24 小时，见[安装与启动](../guides/installation.md#常见问题)。带版本号安装会固定版本，之后用 `dsh plugin --profile web update --latest dsh-mnemon` 升级。
+- 安装结果卡片显示软件包的英文简介；插件列表中的名称与说明跟随界面语言。
+- `desktop` profile 归桌面版所有，DSH 0.2 的命令行拒绝管理它；桌面版用户在应用的插件页中安装和管理插件。
+
+## 桌面版窗口
+
+DSH 桌面版窗口从应用自己的 `dsh-app://app/` 地址加载，而不是回环地址；DSH 0.1.7 桌面版也不为页面声明传输方式。dsh-mnemon 0.5.18 及更早的版本因此把桌面窗口当成远程页面：所有调用经 API Gateway，默认的 `remoteAccess: read-only` 使运行时记忆、记忆空间与插件设置在界面中只读，而 Agent 工具仍可写入（[#310](https://github.com/omdsh-dev/dsh-mnemon/issues/310)）。
+
+0.5.19 起，应用自己提供的页面（非 `http:` / `https:` 地址）使用 Mnemon 的本地通道；只有 DSH 为页面声明了不持有 Host 的传输方式时，才仍按远程页面处理。DSH 0.2 桌面版声明 `ownsHost: true`，同样使用本地通道。从其他设备打开的页面继续经 API Gateway、默认只读，并在记忆系统与插件设置中写明需要 `remoteAccess: trusted-host` 与重启 DSH。本地通道与 `/api` 使用 DSH 相同的 Host/Origin 校验与浏览器会话认证。
+
+验证方式：模拟桌面壳的 Electron 窗口注册与官方桌面版相同的 `dsh-app` 标准安全协议，把请求代理到只监听 127.0.0.1 的 Host。已发布的 0.5.18 在 DSH 0.1.7-rc.2 上复现了只读（13 次 Mnemon 调用全部经 API Gateway）；修复后在 DSH 0.1.7-rc.2 与 0.2.0-rc.1（`ownsHost: true`）上均可添加运行时记忆，写入经本地 `/dsh-mnemon-write`，记忆空间与插件设置可编辑；通过可信 authority 打开的远程页面仍然只读并显示原因。
 
 ## Desktop profile generation
 
