@@ -8,6 +8,7 @@ import { consumeMnemonAnchor, subscribeMnemonAnchor, type MnemonAnchor } from ".
 import { type ClientConnectionHandle, type ClientSettingsScope, type Config, type JsonValue, type MemoryProviderRuntimeStatus, type MemorySourceManagementCatalog, type MemorySourceManagementInstance, type StatusView, type StorageAreaInventory, type StorageScopeInventory, type StorageScopeKind } from "../host/protocol.ts"
 import type { MemoryPluginEntryView, MemoryViewDashboard } from '../host/view-protocol.ts'
 import { MnemonClient } from "./api.ts"
+import { isRemoteConnection } from "./remote-rpc.ts"
 import { VersionDialog } from "./VersionDialog.tsx"
 import { translateZh, type MnemonKey, type MnemonTranslate } from "./locales.ts"
 
@@ -709,7 +710,9 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
     try {
       const summary = await client.statusSummary()
       if (request !== statusRequest.current) return
+      // A full status also reads the CLI version, which the summary has only after one did.
       const needsDeepStatus = summary.memoryBodies?.some(body => body.statusLoading === true) === true
+        || summary.commandFound === true && summary.version === undefined
       setStatusState({ contextKey: viewContextKey, value: summary, loading: needsDeepStatus, error: null })
       if (!needsDeepStatus) return
       try {
@@ -752,6 +755,8 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
   }, [settingsSnapshot.revision, viewContextKey, refreshAll])
   const activationEnabled = status?.writeEnabled === true
   const writeEnabled = activationEnabled && settingsSnapshot.status === 'ready' && settingsSnapshot.writable
+  // A remote page without the management grant says why it cannot write.
+  const remoteReadOnly = activationEnabled && settingsSnapshot.status === 'ready' && !settingsSnapshot.writable && isRemoteConnection(connection)
   const workspaceContext = status?.workspaceContext
   const storageMode = workspaceContext?.mode ?? status?.storage?.activeKind ?? configuredStorageScope(settingsSnapshot.value)
   const storageModeText = storageScopeLabel(t, storageMode)
@@ -880,6 +885,7 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
         {notice.detail}
       </Callout>}</Reveal>
       {workspaceToast.element}
+      {remoteReadOnly && <div className={css.alert} role="status">{t('workspace.remoteReadOnly')}</div>}
       {status?.lifecycle?.current?.idleReviewBlocked === 'agent-team' && <div className={css.alert} role="status">{t('status.reviewTeamPaused')}</div>}
       {status?.lifecycle?.current?.lastError !== undefined && <div className={css.alert} role="alert" aria-label={t('status.reviewFailed')}>
         <strong>{t('status.reviewFailed')}</strong>

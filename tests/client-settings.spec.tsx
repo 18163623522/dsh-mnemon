@@ -800,6 +800,19 @@ describe('MnemonSettingsCard', () => {
     expect(configuration.firstElementChild).toBe(notice)
   })
 
+  it('says a remote page needs the management grant instead of calling the deployment read-only', () => {
+    const snapshot = { status: 'ready' as const, value: { storageScope: 'global' as const }, base: {}, user: {}, revision: 0, writable: false, mode: 'host' as const }
+    const call = vi.fn(async () => ({ ok: false as const, error: { code: 'unavailable', message: 'offline', details: { issues: [] } } }))
+    vi.stubGlobal('location', { protocol: 'https:', hostname: 'memory.example' })
+    try {
+      render(<MnemonSettingsCard scope={settingsScope(snapshot)} connection={{ isLoopback: false, rpc: { call } } as never} />)
+      expect(screen.getByText(/^远程访问时插件设置为只读：/)).toBeTruthy()
+      expect(screen.queryByText('当前部署的插件设置为只读。')).toBeNull()
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
+
   it('does not present temporary defaults as read-only while settings load', () => {
     const snapshot = {
       status: 'loading' as const,

@@ -1,0 +1,8 @@
+---
+"dsh-mnemon": patch
+"dsh-mnemon-source-memory-spaces": patch
+---
+
+DSH 0.2.0-rc.1 (npm `next`) can install and load dsh-mnemon. DSH checks every `@deepseek-ai/dsh` and `@deepseek-ai/dsh-*` peer range against its own version before it installs a plugin and again when a profile starts, and `^0.1.7-rc.2` excludes 0.2.0, so earlier releases are refused there as incompatible. The Starter and the Memory Spaces Source now accept `^0.1.7-rc.2 || ^0.2.0-rc.1`, and a test runs DSH's own check against both supported runtimes. DSH 0.1.7-rc.2 (npm `latest`) remains supported, and no data or configuration changes. On a fresh install, Status now names the Mnemon CLI version instead of waiting for it indefinitely: Memory Spaces keeps the version a full status read for its later summaries while the same binary is installed, and the Memory System reads the full status once when a summary lacks it. A new installation guide in the README and the documentation walks from an empty machine to the first memory: Node.js and pnpm, starting DSH, installing and enabling dsh-mnemon from the Plugins page or the command line, the Desktop app, Headless, the optional Mnemon CLI and the problems a first install can meet.
+
+DSH 0.2.0-rc.1（npm `next`）现在可以安装并加载 dsh-mnemon。DSH 在安装插件前以及每次启动 profile 时，都会用自身版本检查所有 `@deepseek-ai/dsh` 与 `@deepseek-ai/dsh-*` peer 范围；`^0.1.7-rc.2` 不包含 0.2.0，因此此前的版本会在那里被判为不兼容而拒绝。Starter 与记忆空间 Source 现在接受 `^0.1.7-rc.2 || ^0.2.0-rc.1`，并由测试针对两个受支持的运行时执行 DSH 自己的检查。DSH 0.1.7-rc.2（npm `latest`）继续受支持，数据与配置无需改动。全新安装后，状态页会写出 Mnemon CLI 版本，而不再一直显示等待版本信息：记忆空间在同一个 CLI 文件未变时沿用完整状态读到的版本，记忆系统在摘要缺少版本时读取一次完整状态。README 与文档新增安装指南，从一台空白机器一直走到第一条记忆：Node.js 与 pnpm、启动 DSH、从插件页或命令行安装并启用 dsh-mnemon、桌面版、Headless、可选的 Mnemon CLI，以及首次安装可能遇到的问题。
