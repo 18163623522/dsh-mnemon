@@ -2,7 +2,8 @@
 // packages expose activation counters; actual Mnemon behavior belongs to the
 // packed Headless/WebUI checks, not these loader-focused sentinels.
 import assert from 'node:assert/strict'
-import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import ts from 'typescript'
+import { mkdtemp, mkdir, readFile, rm, writeFile, symlink } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -18,7 +19,10 @@ const temporary = await mkdtemp(join(tmpdir(), 'mnemon-bundle-activation-'))
 const profileDir = join(temporary, 'profile')
 const patchPath = join(profileDir, 'cordis.patch.yml')
 const configPath = join(profileDir, 'cordis.yml')
-const selected = ['dsh-mnemon']
+const isolated = process.argv.includes('--isolated')
+const otherBundle = process.argv.includes('--other-bundle')
+const selected = isolated ? (otherBundle ? ['fixture-other'] : []) : ['dsh-mnemon']
+const modules = isolated ? join(temporary, 'profiles/.generations/starter/node_modules') : join(profileDir, 'node_modules')
 const profile = { name: 'fixture', dir: profileDir, patchPath, installAnchor, cwd: temporary, home: temporary,
   startedBundles: selected, overlays: [], telemetryDisabledEnv: '1' }
 const state = { active: new Map(), configs: new Map() }
@@ -29,10 +33,10 @@ try {
   const names = ['dsh-mnemon', ...Object.keys(manifest.dependencies).filter(name => name.startsWith('dsh-mnemon-'))]
   assert.equal(names.length, 18)
   for (const name of names) {
-    const directory = join(profileDir, 'node_modules', name)
+    const directory = join(modules, name)
     await mkdir(directory, { recursive: true })
     await writeFile(join(directory, 'package.json'), JSON.stringify({ name, version: '0.0.0', type: 'module', main: './index.js',
-      ...(name === 'dsh-mnemon' ? { dsh: { bundle: { patch: './cordis.patch.yml' } } } : {}) }))
+      ...(name === 'dsh-mnemon' ? { dependencies: manifest.dependencies, exports: { '.': './index.js', './starter': './starter.js' }, dsh: { bundle: { patch: './cordis.patch.yml' } } } : {}) }))
     await writeFile(join(directory, 'index.js'), `
 export const name = ${JSON.stringify(name)}
 export const inject = ${JSON.stringify(name === 'dsh-mnemon' || name.startsWith('dsh-mnemon-provider-') ? [] : ['mnemonMemory'])}
@@ -48,9 +52,31 @@ export async function apply(ctx, config) {
 }
 `)
   }
+  for (const filename of ['starter.ts', 'starter-resolution.ts']) {
+    let source = await readFile(join(root, 'src', filename), 'utf8')
+    for (const name of ['@deepseek-ai/cordis', '@deepseek-ai/cordis-plugin-loader', '@deepseek-ai/dsh-app-boot']) {
+      source = source.replaceAll(`'${name}'`, JSON.stringify(pathToFileURL(runtimeRequire.resolve(name)).href))
+    }
+    source = source.replace('../package.json', './package.json').replace('./starter-resolution.ts', './starter-resolution.js')
+    await writeFile(join(modules, 'dsh-mnemon', filename.replace('.ts', '.js')), ts.transpile(source, { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext }))
+  }
+  if (otherBundle) {
+    const other = join(modules, 'fixture-other')
+    const leaf = join(modules, 'fixture-leaf')
+    await mkdir(other, { recursive: true }); await mkdir(leaf, { recursive: true })
+    await writeFile(join(other, 'package.json'), JSON.stringify({ name: 'fixture-other', version: '1.0.0', dependencies: { 'fixture-leaf': '1.0.0' }, dsh: { bundle: { patch: './cordis.patch.yml' } } }))
+    await writeFile(join(other, 'cordis.patch.yml'), '- insert:\n    - id: fixture-leaf\n      name: fixture-leaf\n')
+    await writeFile(join(leaf, 'package.json'), JSON.stringify({ name: 'fixture-leaf', version: '1.0.0', type: 'module', main: './index.js' }))
+    await writeFile(join(leaf, 'index.js'), 'export function apply(ctx) { ctx.provide("otherFixture", {}) }')
+  }
+  if (isolated) {
+    await mkdir(join(profileDir, 'node_modules'), { recursive: true })
+    await symlink(join(modules, 'dsh-mnemon'), join(profileDir, 'node_modules/dsh-mnemon'), process.platform === 'win32' ? 'junction' : 'dir')
+  }
+  if (otherBundle) await symlink(join(modules, 'fixture-other'), join(profileDir, 'node_modules/fixture-other'), process.platform === 'win32' ? 'junction' : 'dir')
   await writeFile(join(profileDir, 'node_modules/dsh-mnemon/cordis.patch.yml'), await readFile(join(root, 'cordis.patch.yml')))
-  await writeFile(join(profileDir, 'package.json'), JSON.stringify({ private: true, dependencies: { 'dsh-mnemon': '0.0.0' }, dsh: { profile: { bundles: selected } } }))
-  // The Starter's existing connection scope patch has a real addressable row.
+  await writeFile(join(profileDir, 'package.json'), JSON.stringify({ private: true, dependencies: { 'dsh-mnemon': '0.0.0', ...(otherBundle ? { 'fixture-other': '1.0.0' } : {}) }, dsh: { profile: { bundles: selected } } }))
+  // Keep the profile's Connection container independent from the Starter.
   await writeFile(configPath, '- id: connection\n  name: cordis:group\n  group: true\n  config: []\n')
   const retained = '# Operator comment\n- id: mnemon\n  config:\n    timeoutMs: 4321\n- id: mnemon-strategy-auto-capture\n  disabled: false\n- id: mnemon-source-documents\n  disabled: true\n'
   await writeFile(patchPath, retained)
@@ -59,6 +85,10 @@ export async function apply(ctx, config) {
   if (process.argv[3] === 'manager') Manager = (await load('@deepseek-ai/dsh-plugin-manager')).default
   const start = async () => {
     ctx = await app.boot('dsh', configPath, patches(), async context => {
+      if (isolated) {
+        const loaded = app.loadProfileDirectory('dsh', profileDir, installAnchor)
+        await context.plugin(app.PluginPackages, { resolution: await app.createRuntimeResolution({ installAnchor, profile: loaded, home: temporary }) }).await()
+      }
       context.provide('bundleFixture', state)
       context.provide('profileContext', profile)
       context.provide('webRuntime', {})
@@ -89,6 +119,25 @@ export async function apply(ctx, config) {
   }
   const reload = () => app.reconcileProfilePatches(ctx, patches(), 'dsh')
   await start()
+  if (isolated) {
+    assert.equal(state.active.size, 0)
+    let previousPackage
+    const parentUrl = pathToFileURL(join(profileDir, 'package.json')).href
+    if (otherBundle) {
+      previousPackage = ctx.pluginPackages.packageOf('fixture-leaf', parentUrl)
+      assert(previousPackage)
+      assert(ctx.get('otherFixture'))
+      assert.equal((await ctx.pluginManager.setBundleEnabled('fixture-other', false)).application, 'applied')
+      assert.equal(ctx.get('otherFixture'), undefined)
+    }
+    const result = await ctx.pluginManager.setBundleEnabled('dsh-mnemon', true)
+    assert.equal(result.application, 'applied', JSON.stringify(result))
+    if (otherBundle) {
+      assert.equal(ctx.pluginPackages.packageOf('fixture-leaf', parentUrl)?.dir, previousPackage.dir)
+      assert.equal((await ctx.pluginManager.setBundleEnabled('fixture-other', true)).application, 'applied')
+      assert(ctx.get('otherFixture'))
+    }
+  }
   assertEnabled()
   if (Manager) {
     const manager = ctx.pluginManager
@@ -99,7 +148,7 @@ export async function apply(ctx, config) {
     // without making that upstream defect an accepted lifecycle contract.
     const groups = new Set([...ctx.loader.entries()].filter(entry => entry.options.group).map(entry => entry.options.id))
     const pluginComponents = components.filter(row => !groups.has(row.rowId))
-    assert.equal(pluginComponents.length, 9)
+    assert.equal(pluginComponents.length, 10)
     assert(pluginComponents.every(row => plugins.some(plugin => plugin.entryId === row.entryId)))
     if (process.argv.includes('--check-declared-rows')) {
       assert.deepEqual(components.filter(row => !plugins.some(plugin => plugin.entryId === row.entryId)), [],
@@ -149,6 +198,16 @@ export async function apply(ctx, config) {
     const check = () => disabled.includes('true') ? assertActive([]) : assertEnabled()
     check()
     await stop(); await start(); check()
+  }
+  await stop()
+  // The published schema collector recognizes native Group/Include identities,
+  // not lookalike carriers. Keep every existing configuration target visible.
+  const loaded = app.loadProfileDirectory('dsh', profileDir, installAnchor)
+  const schema = (await app.generateConfigSchema(loaded, [...loaded.layers.map(layer => layer.patches), loaded.patches], installAnchor))['x-cordis']
+  assert.equal(schema.complete, true, JSON.stringify(schema.diagnostics))
+  assert.equal(schema.entries.find(entry => entry.id === 'mnemon-bundle')?.tree, 'group')
+  for (const id of ['mnemon-starter', 'mnemon', ...names.filter(name => name.startsWith('dsh-mnemon-source-') || name.startsWith('dsh-mnemon-strategy-')).map(name => name.slice(4))]) {
+    assert(schema.entries.some(entry => entry.id === id), `Missing configuration schema for ${id}`)
   }
   console.log(JSON.stringify({ dsh: JSON.parse(await readFile(installAnchor, 'utf8')).version, packages: names.length,
     components: 9, manager: Boolean(Manager), result: 'passed' }))

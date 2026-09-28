@@ -44,7 +44,7 @@ describe('explicit default Starter', () => {
       'dsh-mnemon-source-runtime', 'dsh-mnemon-source-documents', 'dsh-mnemon-source-memory-spaces', 'dsh-mnemon-strategy-default-three-tier',
     ])
     const patch = readFileSync(new URL('../cordis.patch.yml', import.meta.url), 'utf8')
-    expect(patch).toMatch(/    - id: mnemon-bundle\n      name: cordis:group\n      group: true/u)
+    expect(patch).toMatch(/    - id: mnemon-bundle\n      name: cordis:group\n      group: true\n      inject: \[mnemonStarterReady\]/u)
     expect(patch).toContain("[...loader.entries()].find(entry => entry.options.id === 'mnemon')")
     expect(patch).toContain('entry.evaluate(entry.options.disabled.__jsExpr)')
     expect(patch).toMatch(/        - id: mnemon\n          # Core\/Host/u)

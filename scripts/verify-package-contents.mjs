@@ -76,7 +76,9 @@ const relativeReadmeImages = readmeFiles.flatMap((path) => {
 // 1,458,675 bytes (+5,177). Component pages on DSH's row pages, with their
 // contribution boundary, bring it to 1,465,659 bytes (+6,984). Keep less
 // than 3 KB of headroom.
-const maximumUnpackedBytes = 1_468_000
+// Starter dependency preparation adds a small native group entry and its public
+// declarations: measured 1,471,089 bytes. Framework and component code stay external.
+const maximumUnpackedBytes = 1_473_000
 
 if (missing.length > 0 || unexpected.length > 0 || hostLeaks.length > 0 || relativeReadmeImages.length > 0 || pack.unpackedSize > maximumUnpackedBytes) {
   if (missing.length > 0) console.error(`Missing package files:\n${missing.map(path => `- ${path}`).join('\n')}`)

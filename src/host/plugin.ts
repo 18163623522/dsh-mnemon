@@ -111,13 +111,19 @@ export function apply(rawContext: unknown, rawConfig: MnemonConfig | LiveHostCon
   registerTools(ctx, runtime, coordinator)
   registerCommands(ctx.commands, runtime, coordinator)
   registerGuidance(ctx, resolved)
-  ctx.inject(['connection'], (webContext) => {
+  ctx.inject(['connection', 'webServer'], (webContext) => {
     // `inject` guarantees the service at runtime; retain the defensive guard
     // because HostContextShape also models profiles where it is absent.
-    if (webContext.connection === undefined) return
-    const rpc = registerRpc(webContext.connection, runtime, lifecycle)
-    const settings = registerSettingsRpc(webContext.connection, hostSettings)
-    const view = registerViewRpc(webContext.connection, runtime, extensions, memoryPlugins, lifecycle, pluginInstallation)
+    // Connection's RPC getter keeps its provider's injection scope. Carry
+    // the explicitly injected server on our own Context so late registration
+    // works without changing or restarting the shared Connection plugin.
+    const connection = Context.is(webContext)
+      ? webContext.extend({ webServer: webContext.get('webServer') }).connection
+      : webContext.connection
+    if (connection === undefined) return
+    const rpc = registerRpc(connection, runtime, lifecycle)
+    const settings = registerSettingsRpc(connection, hostSettings)
+    const view = registerViewRpc(connection, runtime, extensions, memoryPlugins, lifecycle, pluginInstallation)
     if (Context.is(webContext)) {
       new MnemonRemoteService(webContext, {
         ...rpc,

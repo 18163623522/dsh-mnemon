@@ -9,13 +9,23 @@ const fixture = fileURLToPath(new URL('./fixtures/bundle-activation.mjs', import
 const profile = process.env.MNEMON_BUNDLE_TEST_PROFILE ?? fileURLToPath(new URL('..', import.meta.url))
 
 describe('published Starter activation contracts', () => {
+  it('activates isolated transitive components after a cold start without the bundle selected', async () => {
+    const { stdout } = await run(process.execPath, ['--expose-internals', fixture, profile, 'manager', '--isolated'], { timeout: 30_000 })
+    expect(stdout).toContain('"manager":true,"result":"passed"')
+  }, 30_000)
+
+  it('retains dependency routes of another bundle disabled since startup', async () => {
+    const { stdout } = await run(process.execPath, ['--expose-internals', fixture, profile, 'manager', '--isolated', '--other-bundle'], { timeout: 30_000 })
+    expect(stdout).toContain('"manager":true,"result":"passed"')
+  }, 30_000)
+
   it('retains the legacy mnemon gate and independent component choices on the pinned DSH', async () => {
     const { stdout } = await run(process.execPath, ['--expose-internals', fixture], { timeout: 30_000 })
     expect(stdout).toContain('"result":"passed"')
-  })
+  }, 30_000)
 
   it('persists real component and bundle toggles without bypassing the core gate', async () => {
     const { stdout } = await run(process.execPath, ['--expose-internals', fixture, profile, 'manager'], { timeout: 30_000 })
     expect(stdout).toContain('"manager":true,"result":"passed"')
-  })
+  }, 30_000)
 })
