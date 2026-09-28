@@ -573,6 +573,8 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
   const [sourceCatalogState, setSourceCatalogState] = useState<{ contextKey: string; value: MemorySourceManagementCatalog | null; error: string | null }>(() => ({ contextKey: viewContextKey, value: null, error: null }))
   const [selectedSourceInstances, setSelectedSourceInstances] = useState<Record<string, string>>({})
   const [navigationInput, setNavigationInput] = useState<{ page: string; value: JsonValue } | undefined>()
+  /** A tab opens its page fresh; only an anchor carries navigation into a page. */
+  const openTab = useCallback((next: Page) => { setNavigationInput(undefined); setPage(next) }, [])
 
   useEffect(() => {
     let active = true
@@ -891,7 +893,7 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
         {/CONTEXT_WINDOW_EXCEEDED|exceed(?:s|ed)? (?:the )?(?:available )?context (?:size|window)/iu.test(status.lifecycle.current.lastError) && <span>{t('status.reviewContextWindow')}</span>}
       </div>}
       <div className={css.workspace}>
-        <WorkspaceNavigation page={page} onSelect={selectPage} sourcePages={sourceNavigationEntries} disabledTypes={disabledTypes} memoryOff={memoryOff} />
+        <WorkspaceNavigation page={page} onSelect={openTab} sourcePages={sourceNavigationEntries} disabledTypes={disabledTypes} memoryOff={memoryOff} />
         <section key={viewContextKey} className={appearanceClass(css.canvas, sidebarCss.canvas)} ref={canvasRef} data-testid="mnemon-canvas" data-lock-page-header={(activeSourcePage?.navigation?.stickyHeader !== false) ? '' : undefined}>
           {page === 'status' && <WorkbenchStatusContext.Provider value={status}>
             <StatusPage client={client} status={status} loading={statusLoading} writeEnabled={writeEnabled} attention={notice !== undefined}

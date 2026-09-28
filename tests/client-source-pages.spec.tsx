@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { SlotCore } from '@deepseek-ai/dsh-client-ui-slots'
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ReactNode } from 'react'
 import type { Config } from "../src/host/config.ts"
@@ -10,6 +10,7 @@ import { MnemonWorkbench } from '../src/client/MnemonWorkbench.tsx'
 import { MNEMON_COMPONENT_STATUS_SLOT } from '../src/client/component-ui.tsx'
 import { translateEn } from '../src/client/locales.ts'
 import { PageHeader } from '../src/client/page-kit.tsx'
+import { dispatchMnemonAnchor } from '../src/client/anchor.ts'
 import {
   createMemorySourcePageDirectory,
   installMemorySourceUI,
@@ -378,6 +379,24 @@ describe('Source Client presentation conformance', () => {
     canvas.scrollTop = 500
     owner?.onRevealElement?.(target, 20)
     expect(canvas.scrollTop).toBe(500 + 400 - 80 - 20)
+  })
+
+  it('carries a conversation anchor into its page, while a tab opens the page fresh', async () => {
+    const source = { sourceInstanceKey: 'source:git', sourceTypeId: 'git', packageName: 'dsh-mnemon-source-git', role: 'repository', availability: 'ready', revision: 'r1', capabilities: ['read'], management: { label: 'Repository' } }
+    const connection = { rpc: { call: vi.fn(async (_channel: string, endpoint: string) => ({ ok: true, value: endpoint === 'source-management-catalog' ? { generationId: 'g1', sources: [source] } : status })) }, isLoopback: true }
+    const pages = [
+      { id: 'git/repository', sourceTypeId: 'git', pageId: 'repository', label: 'Repository', order: 1 },
+      { id: 'git/refs', sourceTypeId: 'git', pageId: 'refs', label: 'Refs', order: 2, navigation: { primary: false } },
+    ]
+    const received: Array<{ page: string; input: unknown }> = []
+    const renderSlot = ((_name: string, props: MemorySourcePageProps, options: { only: string }) => { received.push({ page: options.only, input: props.navigationInput }); return <div>Source content</div> }) as never
+    render(<MnemonWorkbench connection={connection as never} settingsScope={settings} t={translateEn} locale="en" sourcePageDirectory={{ getSnapshot: () => pages, subscribe: () => () => {} }} renderSlot={renderSlot} />)
+    await screen.findByRole('tab', { name: 'Repository' })
+    act(() => dispatchMnemonAnchor({ page: 'git/repository', seed: 'main' }))
+    await waitFor(() => expect(received.at(-1)).toMatchObject({ page: 'git/repository', input: { seed: 'main' } }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Status' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Repository' }))
+    await waitFor(() => expect(received.at(-1)).toEqual({ page: 'git/repository', input: undefined }))
   })
 
   it('selects additional built-in Source instances without injecting a hidden default page', async () => {
