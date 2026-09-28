@@ -39,6 +39,6 @@ dsh-mnemon gives DeepSeek Harness three kinds of memory: **runtime memory** in e
 
 ## What is new
 
-[v0.5.17](./releases/v0.5.17.md) adds the General strategy, composes memory from component declarations on the Plugins page, gives every component its own settings page and makes the data directory an explicit Default or Custom choice. [All releases](./releases/README.md) · [Roadmap](./roadmap.md) · [Historical evidence](../pr-assets/README.md)
+[v0.5.19](./releases/v0.5.19.md) supports DSH 0.2.0-rc.1, lets the DSH desktop app manage memory, makes memory interactions consistent across surfaces and adds a guide from an empty machine to the first memory. [All releases](./releases/README.md) · [Roadmap](./roadmap.md) · [Historical evidence](../pr-assets/README.md)
 
 Guides describe the current release. Screenshots and recordings come from the [v0.5.19 gallery](../assets/webui-v0.5.19/README.md), and the installation steps from the [installation gallery](../assets/install-v0.5.19/README.md); dated PR records establish only their named revisions and environments. Internal Host RPCs are not an external plugin SDK.
