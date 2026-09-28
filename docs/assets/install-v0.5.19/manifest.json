@@ -13,6 +13,7 @@
   "model": "DeepSeek API, deepseek-flash (shown as DeepSeek-V41-Flash)",
   "browser": "Headless Google Chrome driven over the DevTools protocol",
   "packages": "The 18 packages `pnpm release:version` produces from this revision (dsh-mnemon 0.5.19 and its pinned plugins), served before they were on npm by a local registry that adds them to npm's real metadata as the newest release; the Add plugin dialog showed the install source DSH chose (Chinese: its speed check picked the mainland China mirror; English: npm's own registry, the choice a user outside mainland China gets), and a small pnpm wrapper sent that source's requests to the local registry. The refused-install screens used npm's real metadata only.",
+  "starterOffScreens": "Captured 2026-09-29 02:22 (Asia/Shanghai) on the same published DSH 0.2.0-rc.1 with npm's published dsh-mnemon 0.5.19, installed with `dsh plugin --profile web add dsh-mnemon@0.5.19` into a fresh DSH home, after the `mnemon-starter` row was turned off in the profile patch (`disabled: true`, as the Plugins page stores it). DSH started with the warning `mnemon-bundle (cordis:group): pending (waiting for service: mnemonStarterReady)` and no Memory System; turning the switch back on brought the Memory System up without a restart, on DSH 0.1.7-rc.2 as well.",
   "conversation": "The first message is typed; the live model decides to write runtime memory, and the reply and entries are the model's own. Another run words them differently.",
   "recordingNote": "Chrome screencast frames played at their own timestamps (H.264 CRF 27, 30 fps, no audio; GIF 880 px, 8 fps). The install wait plays 4x and the reply wait 4x, with an on-screen badge; pauses while screenshots were taken are left out. A drawn cursor ring shows where each click lands.",
   "data": {
@@ -165,6 +166,18 @@
       "height": 1200,
       "bytes": 101469,
       "sha256": "33416266852e81efab53fcc82c683cca38749077258d3a3f17233cea0ff8fb93"
+    },
+    {
+      "file": "zh-CN/trouble-starter-off.jpg",
+      "kind": "screenshot",
+      "locale": "zh-CN",
+      "theme": "light",
+      "viewport": "1280x800",
+      "deviceScaleFactor": 2,
+      "width": 1920,
+      "height": 1200,
+      "bytes": 105452,
+      "sha256": "2f9bead7d1c853a0347e144edf97f634eddf2386f98c88c64630d5d180330238"
     },
     {
       "file": "zh-CN/install.mp4",
@@ -334,6 +347,18 @@
       "height": 1200,
       "bytes": 110193,
       "sha256": "45fa1193bbb9169b908d19b1edb7b58b4b5f222fd757f965ff11beddcfab26bc"
+    },
+    {
+      "file": "en/trouble-starter-off.jpg",
+      "kind": "screenshot",
+      "locale": "en",
+      "theme": "light",
+      "viewport": "1280x800",
+      "deviceScaleFactor": 2,
+      "width": 1920,
+      "height": 1200,
+      "bytes": 111225,
+      "sha256": "b6705164ac4bbca00840f17d474f70decd8e3d41f81f203d3dd5f6e2f2d29d8d"
     },
     {
       "file": "en/install.mp4",

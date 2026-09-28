@@ -281,6 +281,8 @@ HTTP 403 可能来自 Host/Origin 不匹配，或旧远程 Client 仍调用独�
 | 已认证远程页面能读取或激活记忆空间，但不能保存设置或执行其他写入 | 默认管理限制；确需远程管理时，保留当前配置、在本地设置 `remoteAccess: trusted-host` 并重启 DSH |
 | DSH 桌面版中运行时记忆、记忆空间与插件设置均为只读，而 Agent 工具仍能写入 | dsh-mnemon 0.5.18 及更早版本把桌面窗口当成远程页面（[#310](https://github.com/omdsh-dev/dsh-mnemon/issues/310)）；在桌面版插件页更新到 0.5.19 或更新版本，无需修改 `remoteAccess` |
 | DSH 0.2 安装或启动时提示 dsh-mnemon 不兼容 | 安装到的是 0.5.19 之前的版本；更新 dsh-mnemon，新版本发布 24 小时内按[安装与启动](./installation.md#常见问题)安装带版本号的包 |
+| DSH 运行期间从 0.5.17 或更早的版本更新后，启用组件提示 `ERR_PACKAGE_PATH_NOT_EXPORTED`（`Package subpath './starter'`） | 正在运行的进程仍按旧版本的包信息加载；完全退出并重新启动 DSH（桌面版按 `Cmd+Q`）。不要关闭 `dsh-mnemon/starter`，见[安装与启动](./installation.md#更新后启用时提示package-subpath-starter-is-not-defined) |
+| `mnemon-bundle (cordis:group): pending (waiting for service: mnemonStarterReady)`，或桌面版启动失败并显示插件恢复页 | `dsh-mnemon/starter` 被关闭；在**插件 → 可组合记忆**中打开它。桌面版在恢复页卸载后重新添加 dsh-mnemon，再打开该开关，见[安装与启动](./installation.md#dsh-提示waiting-for-service-mnemonstarterready) |
 | DSH 重启或 authority 改变后 Mnemon RPC 返回 401 | 打开 `dsh web` 输出的启动 URL，让一次性 token 建立新的、与 authority 绑定的浏览器 Cookie |
 
 ## 已知限制

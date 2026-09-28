@@ -104,6 +104,7 @@ DeepSeek Harness 桌面版的**插件**页与网页相同：**插件 → 添加�
 
 - 桌面版使用它自己的 `desktop` profile。从 DSH 0.2 起，命令行不再管理这个 profile，请在桌面版的插件页中安装和管理插件。
 - 桌面版窗口从应用自己的 `dsh-app://app/` 地址加载。dsh-mnemon 0.5.18 及更早的版本会把它当成远程页面，于是记忆系统和插件设置变为只读（[#310](https://github.com/omdsh-dev/dsh-mnemon/issues/310)）。0.5.19 已修复，更新 dsh-mnemon 即可，不需要修改配置。
+- 在桌面版中更新 dsh-mnemon 后，完全退出应用再重新打开（macOS 上按 `Cmd+Q`），新版本才会加载。更新后出现报错时不要关闭 `dsh-mnemon/starter`，处理方法见[常见问题](#常见问题)。
 
 ## 7. 命令行与 Headless
 
@@ -223,6 +224,34 @@ DSH 在安装插件前，以及每次启动时，都会检查插件声明支持�
 ### 在另一台设备上打开时，记忆系统是只读的
 
 从另一台设备访问 DSH 时（例如通过 `--trusted-host` 配置的地址），记忆系统默认只读，页面会写明原因。确实需要远程管理时，按[运维指南](./operations.md#remote-management)设置 `remoteAccess: trusted-host` 并重启 DSH。桌面版窗口和本机浏览器都不属于远程页面。
+
+### 更新后启用时提示“Package subpath './starter' is not defined”
+
+在 DSH 运行期间把 dsh-mnemon 从 0.5.17 或更早的版本更新到新版本（例如在桌面版的插件页中更新），接着启用组件，可能看到：
+
+```text
+Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './starter' is not defined by "exports" in …/node_modules/dsh-mnemon/package.json
+```
+
+新版本已经装好，但正在运行的 DSH 仍按旧版本的包信息加载，而 `dsh-mnemon/starter` 从 0.5.18 起才有。完全退出 DSH 再重新打开即可：桌面版在 macOS 上按 `Cmd+Q`；命令行按 `Ctrl+C`，再重新运行 `dsh web`。
+
+不要为了消除这条提示而关闭 `dsh-mnemon/starter`，否则会遇到下一条问题。
+
+### DSH 提示“waiting for service: mnemonStarterReady”
+
+![插件页中 dsh-mnemon 的详情：包含的组件共 11 个、11 个已停用，第一行 dsh-mnemon/starter 显示“已关闭”；侧栏没有记忆系统](../../assets/install-v0.5.19/zh-CN/trouble-starter-off.jpg)
+
+DSH 启动时在终端中打印，或在插件页启用时弹出提示：
+
+```text
+dsh: warning: 1 entry did not activate
+mnemon-bundle (cordis:group): pending (waiting for service: mnemonStarterReady)
+```
+
+侧栏没有**记忆系统**，插件页中 dsh-mnemon 的组件全部显示“已关闭”。这是因为 `dsh-mnemon/starter` 被关闭了：它在记忆组件加载前准备依赖解析，其余组件都要等它就绪。
+
+- 点击**插件 → 可组合记忆**，打开 `dsh-mnemon/starter` 一行的开关。记忆系统随即出现；没有出现时重启 DSH。
+- 桌面版会把它当作启动失败，显示插件恢复页。点击**卸载此插件并继续检测**（记忆数据保留），应用启动后按[第 3 步](#3-安装并启用-dsh-mnemon)重新添加 dsh-mnemon。这个开关保存在 profile 中，重新安装后仍然是关闭的，因此接着按上一条打开它。
 
 ### 准备把 DSH 升级到 0.2
 
