@@ -72,7 +72,7 @@ const CONTENT = {
     ].filter(Boolean).join('\n'),
     saved: '已更新工作记忆：结账页目标改为 p75 LCP 低于 2.2 秒。',
     idle: '可以问我 Lumen 的目标、决策或流程，我会先查记忆再回答。',
-    assistant: { name: 'Lumen 助手', description: 'Lumen 项目的工程助手（演示数据）。', persona: '你是 Lumen 项目的工程助手。用户用什么语言提问，就用什么语言回答。' },
+    assistant: { name: 'Lumen 助手', description: 'Lumen 项目的工程助手（演示数据）。', persona: '你是 Lumen 项目的工程助手。用户用什么语言提问，就用什么语言回答。提到档案或记忆时，用标题或内容称呼，不要写出 id。' },
   },
   en: {
     user: [
@@ -136,7 +136,7 @@ const CONTENT = {
     ].filter(Boolean).join('\n'),
     saved: 'Working memory updated: the checkout target is now p75 LCP under 2.2 s.',
     idle: 'Ask me about Lumen’s goals, decisions or process; I check memory before answering.',
-    assistant: { name: 'Lumen assistant', description: 'Engineering assistant for the Lumen project (demo data).', persona: 'You are the engineering assistant for the Lumen project. Answer in the language the user writes in.' },
+    assistant: { name: 'Lumen assistant', description: 'Engineering assistant for the Lumen project (demo data).', persona: 'You are the engineering assistant for the Lumen project. Answer in the language the user writes in. Refer to documents and memories by title or content, never by id.' },
   },
 }
 
