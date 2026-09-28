@@ -58,7 +58,7 @@ dsh plugin --profile web update dsh-mnemon
 dsh plugin --profile web remove dsh-mnemon
 ```
 
-卸载只移除插件注册，不删除全局、工作区或自定义目录中的记忆数据。
+更新后重启 DSH。新版本发布后的 24 小时内，pnpm 11 的 `update` 会停留在已安装的版本，这时请带版本号安装新版本（`dsh plugin --profile web add dsh-mnemon@<版本>`）。卸载只移除插件注册，不删除全局、工作区或自定义目录中的记忆数据。
 
 不同 profile 的插件清单彼此独立。一次性任务也需要记忆时，应另行安装到 Headless：
 
