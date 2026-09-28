@@ -41,6 +41,8 @@ Checking is read-only and never installs automatically. Update appears only when
 
 npm updates require the active launcher to belong to the global root reported by the current npm. A different Node/npm installation or a broken launcher shows repair guidance instead. Use `npm install --global @mnemon-dev/mnemon@latest` to install or migrate, then `mnemon update` for later updates. The commands run on the DSH Host and need Node.js 22+. After changing PATH or a CLI override, recheck the executable path shown in the dialog.
 
+On Windows desktop Hosts, memory operations and version checks use the native binary pinned by a recognized official Mnemon npm installation directly. This avoids the npm launcher's additional console window while retaining hidden subprocesses, timeouts, cancellation, and saved embedding settings. The displayed installation path and npm update ownership still refer to the original launcher. Unknown package layouts or missing native dependencies retain the launcher fallback and its repair diagnostics.
+
 Expand dsh-mnemon's subpackage list to inspect Sources, Strategies, and Providers. Starter pins update with the Starter. Only independently installed packages in the owning Profile can update individually; source links are preserved. Package writes are serialized, and restart reminders survive subsequent checks and reopening the dialog. Read-only connections retain checks and command copying; page updates require management authority and `writeEnabled`.
 
 ![Expanded subpackages with installed versions, Starter pins and local-source maintenance](../../assets/webui-v0.5.4/en/versions-expanded.jpg)

@@ -333,6 +333,34 @@ describe('VersionUpdateManager', () => {
     expect(f.run).toHaveBeenCalledWith(process.execPath, [realpathSync(f.launcher), 'update'], expect.objectContaining({ timeoutMs: 600_000 }))
   })
 
+  it('probes the npm native binary directly while retaining launcher ownership and npm updates', async () => {
+    const f = cliNpmFixture()
+    const target = `${process.platform}-${process.arch}`
+    const alias = `@mnemon-dev/mnemon-${target}`
+    const packageRoot = join(f.state.globalRoot, '@mnemon-dev/mnemon')
+    const nativeRoot = join(f.state.globalRoot, alias)
+    const binary = join(nativeRoot, 'bin', process.platform === 'win32' ? 'mnemon.exe' : 'mnemon')
+    mkdirSync(join(nativeRoot, 'bin'), { recursive: true })
+    writeFileSync(binary, 'fixture')
+    chmodSync(binary, 0o755)
+    const install = (version: string) => {
+      json(join(packageRoot, 'package.json'), { name: '@mnemon-dev/mnemon', version, optionalDependencies: { [alias]: `npm:@mnemon-dev/mnemon@${version}-${target}` } })
+      json(join(nativeRoot, 'package.json'), { name: '@mnemon-dev/mnemon', version: `${version}-${target}` })
+    }
+    install(f.state.current)
+    const execute = f.run.getMockImplementation()!
+    f.run.mockImplementation(async (command, args, options) => {
+      const result = await execute(command, args, options)
+      if (args.includes('update')) install(f.state.current)
+      return result
+    })
+    expect((await f.manager.check()).components.find(item => item.id === 'mnemon')).toMatchObject({ installMode: 'npm', updateSupported: true, current: '0.2.8', executablePath: f.command })
+    expect(f.run).toHaveBeenCalledWith(realpathSync(binary), ['--version'], expect.objectContaining({ timeoutMs: 10_000 }))
+    await expect(f.manager.update('mnemon')).resolves.toMatchObject({ currentVersion: '0.2.9', updated: true })
+    expect(f.run).toHaveBeenCalledWith(process.execPath, [realpathSync(f.launcher), 'update'], expect.objectContaining({ env: expect.objectContaining({ ELECTRON_RUN_AS_NODE: '1' }) }))
+    expect(f.run.mock.calls.filter(([, args]) => args.includes('--version')).every(([command]) => command === realpathSync(binary))).toBe(true)
+  })
+
   it('does not update a different Node/npm installation', async () => {
     const f = cliNpmFixture()
     f.state.globalRoot = directory('other-npm')
