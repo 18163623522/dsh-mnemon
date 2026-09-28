@@ -32,6 +32,7 @@
 }
 
 .mark {
+  display: inline-flex;
   flex: none;
 }
 
@@ -88,18 +89,27 @@
   gap: 4px;
 }
 
-/* A neutral DSH Tag; tool names stay in the code face. */
+/* A neutral DSH Tag naming what the tool did; the tool itself shows on hover. */
 .toolChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   border: none;
   border-radius: 999px;
   padding: 1px 8px;
   cursor: pointer;
   background: var(--dsw-alias-bg-module-platform);
   color: var(--dsw-alias-label-secondary);
-  font-family: var(--ds-font-family-code, Consolas, monospace);
+  font: inherit;
   font-size: 11px;
+  font-weight: 500;
   line-height: 17px;
   white-space: nowrap;
+}
+
+.toolCount {
+  color: var(--dsw-alias-label-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 .toolChip:hover {
   background: var(--dsw-alias-interactive-bg-active);

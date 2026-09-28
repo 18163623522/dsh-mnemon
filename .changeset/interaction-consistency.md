@@ -1,0 +1,11 @@
+---
+"dsh-mnemon": patch
+"dsh-mnemon-source-runtime": patch
+"dsh-mnemon-source-documents": patch
+"dsh-mnemon-source-memory-spaces": patch
+"dsh-mnemon-provider-mnemon-native": patch
+---
+
+Memory surfaces behave the same everywhere. The turn memory bar and Save to memory in conversations carry the Memory System's brain mark instead of DSH's token-usage icon, and the bar names what each tool did (Memory Spaces recall ×2, Document search). Save to memory in a conversation and on the Memory Spaces page is one dialog: the same title, a task Agent readiness tag, the Agent's receipt in the language of the candidate with a link to what was written, and a second send only after an edit. Search boxes, choices and dialog buttons use DSH's input, selector and outlined Cancel; menus and tooltips open above Mnemon dialogs, which now sit on DSH's modal layer. The workspace refresh reloads the open page, so pages drop their own refresh and sync buttons; Status lists the Providers that run and sums up the rest; cards no longer show raw ids or paths; the Native Provider is named Mnemon Native; page descriptions fit one line. The Source-page SDK in `dsh-mnemon/client` gains `SearchField`, `SelectField`, `WriteReceipt`, `TaskAgentTag` and `MemorySourcePageProps.refreshKey`; the release that ships them raises the three Sources' `dsh-mnemon` peer floor to that Starter version.
+
+记忆相关界面在各处表现一致。对话中的回合记忆栏与“存入记忆”改用记忆系统的脑形标识，不再使用 DSH 表示用量的数据库图标；回合记忆栏直接写出每个工具做了什么（记忆空间召回 ×2、项目档案检索）。对话中与记忆空间页的“存入记忆”是同一个对话框：相同的标题、任务 Agent 就绪标签、以候选内容的语言写出的任务 Agent 回执及查看入口，内容修改后才能再次提交。搜索框、选择项与对话框按钮统一使用 DSH 的输入框、选择器与描边“取消”；Mnemon 对话框移到 DSH 的弹窗层级，菜单与提示会显示在其上方。工作区的刷新会重新加载当前页面，各页面不再单独放置刷新或同步按钮；状态页只列出正在运行的 Provider，其余汇总为一行；卡片不再显示原始 id 或路径；Native Provider 统一称为 Mnemon Native；各页说明缩为一行。`dsh-mnemon/client` 的 Source 页面 SDK 新增 `SearchField`、`SelectField`、`WriteReceipt`、`TaskAgentTag` 与 `MemorySourcePageProps.refreshKey`；发布这些导出的版本需把三个 Source 的 `dsh-mnemon` peer 下限提高到该 Starter 版本。

@@ -435,7 +435,7 @@ describe('MemorySpacesService', () => {
       })]),
     })
     expect(service.memorySpaces.list()).toEqual([expect.objectContaining({ provider: expect.objectContaining({
-      id: 'mnemon-native', label: 'mnemon', kind: 'local', origin: 'native',
+      id: 'mnemon-native', label: 'Mnemon Native', kind: 'local', origin: 'native',
       location: expect.any(String), apiKeyConfigured: false, settings: {}, configuredSecrets: [], capabilities: expect.any(Object),
     }) })])
     await expect(service.search({ query: 'anything', memoryBodyIds: [body.id] })).rejects.toThrow('unknown memory space')

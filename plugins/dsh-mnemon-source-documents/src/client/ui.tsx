@@ -1,4 +1,4 @@
-import { useMemo, useState, type JSX, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type JSX, type ReactNode } from 'react'
 import {
   createMemorySourcePageClient, installMemorySourceUI, MemorySourcePageFrame, translateEn,
   type MemorySourcePageProps, type MnemonSourceManagementClient, type MnemonTranslate,
@@ -20,6 +20,13 @@ export function documentsPageClient(management: MnemonSourceManagementClient): D
 function DocumentsSourceView(props: MemorySourcePageProps): JSX.Element | null {
   const client = useMemo(() => props.management === undefined ? undefined : documentsPageClient(props.management), [props.management])
   const [revision, setRevision] = useState(0)
+  // The workspace's refresh reloads this page as well.
+  const refreshKey = useRef(props.refreshKey)
+  useEffect(() => {
+    if (refreshKey.current === props.refreshKey) return
+    refreshKey.current = props.refreshKey
+    setRevision(value => value + 1)
+  }, [props.refreshKey])
   if (client === undefined) return null
   return <DocumentsPage canCreate client={client} revision={revision} writeEnabled={props.writable === true} onMutate={() => { setRevision(value => value + 1); props.onRefresh?.() }} />
 }

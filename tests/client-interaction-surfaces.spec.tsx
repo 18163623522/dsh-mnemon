@@ -5,7 +5,7 @@ import type { ClientConnectionHandle } from "../src/host/dsh.ts"
 import type { TurnMemoryActivitySnapshot } from '../src/host/protocol.ts'
 import type { Config } from "../src/host/config.ts"
 import { MnemonSaveAction } from '../src/client/MnemonSaveAction.tsx'
-import { MnemonTurnTail, memoryPageForTool } from '../src/client/MnemonTurnTail.tsx'
+import { MnemonTurnTail, memoryPageForTool, turnTools } from '../src/client/MnemonTurnTail.tsx'
 import { consumeMnemonAnchor, dispatchMnemonAnchor, subscribeMnemonAnchor } from '../src/client/anchor.ts'
 import { settingsScope } from './helpers/settings-scope.ts'
 
@@ -177,6 +177,67 @@ describe('conversation interaction surfaces', () => {
     expect(received).toEqual(['documents/library'])
     expect(memoryPageForTool('mnemon_runtime_memory')).toBe('runtime/entries')
     unsubscribe()
+  })
+
+  it('names each memory tool once with how often the turn used it, and keeps the tool name on hover', async () => {
+    const rpcCall = vi.fn(async () => ({ ok: true as const, value: {
+      cursor: 12,
+      activities: [{ turn: 2, count: 3, names: ['mnemon_document_search', 'mnemon_recall', 'mnemon_recall'], recalls: 2, writes: 0, documentSearches: 1, inspections: 0, failures: 0 }],
+    } }))
+    render(<MnemonTurnTail turn={{ turn: 2, status: 'closed' }} seq={12} openFile={vi.fn()} sessionId="session-a" connection={{ rpc: { call: rpcCall }, isLoopback: true } as ClientConnectionHandle} localeRuntime={localeRuntime} t={translate as never} />)
+    const bar = await screen.findByRole('button', { name: /turnTail\.label/ })
+    expect(bar.querySelector('svg path')).not.toBeNull()
+    fireEvent.click(bar)
+    const chips = screen.getAllByRole('button', { name: 'turnTail.openTool' })
+    expect(chips.map(chip => chip.textContent)).toEqual(['turnTail.tool.documentSearch', 'turnTail.tool.recall×2'])
+    fireEvent.mouseEnter(chips[1]!)
+    expect(screen.getByRole('tooltip').textContent).toBe('mnemon_recall')
+    expect(turnTools(['a', 'b', 'a', 'c'])).toEqual([{ name: 'a', count: 2 }, { name: 'b', count: 1 }, { name: 'c', count: 1 }])
+  })
+
+  it('shows the task Agent receipt, leads to what was written, and waits for an edit before sending again', async () => {
+    const rpcCall = vi.fn(async (_channel: string, endpoint: string) => {
+      if (endpoint === 'status') return { ok: true as const, value: { writeEnabled: true, lifecycle: { taskAgentAvailable: true } } }
+      if (endpoint === 'assistant-message') return { ok: true as const, value: { messageId: 'message-1', text: 'Checkout loads the payment SDK after interaction.' } }
+      if (endpoint === 'supervise') return { ok: true as const, value: { summary: 'Saved to Lumen project.', action: 'stored', memoryBodyIds: ['lumen'] } }
+      throw new Error(`unexpected endpoint: ${endpoint}`)
+    })
+    const received: string[] = []
+    const unsubscribe = subscribeMnemonAnchor('session-a', anchor => received.push(anchor.page))
+    render(<MnemonSaveAction messageId="message-1" sessionId="session-a" connection={{ rpc: { call: rpcCall }, isLoopback: true } as ClientConnectionHandle} settingsScope={writableSettingsScope} localeRuntime={localeRuntime} t={translate as never} />)
+    const action = screen.getByRole('button', { name: 'saveAction.button' })
+    expect(action.querySelector('svg path')).not.toBeNull()
+    fireEvent.click(action)
+    await screen.findByText('taskAgent.ready')
+    const submit = screen.getByRole('button', { name: 'saveAction.submit' }) as HTMLButtonElement
+    await waitFor(() => expect(submit.disabled).toBe(false))
+    fireEvent.click(submit)
+
+    await screen.findByText('receipt.written')
+    expect(screen.getByText('Saved to Lumen project.')).toBeTruthy()
+    const footerClose = screen.getAllByRole('button', { name: 'saveAction.close' })
+    expect(footerClose.length).toBeGreaterThan(1)
+    expect((screen.getByRole('button', { name: 'saveAction.submit' }) as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.change(screen.getByRole('textbox', { name: 'saveAction.candidate' }), { target: { value: 'Checkout loads the payment SDK after interaction; p75 LCP is 2.4 s.' } })
+    expect((screen.getByRole('button', { name: 'saveAction.submit' }) as HTMLButtonElement).disabled).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: 'receipt.view' }))
+    expect(received).toEqual(['memory-spaces/content'])
+    await waitFor(() => expect(screen.queryByRole('dialog', { name: 'saveAction.title' })).toBeNull())
+    expect(rpcCall.mock.calls.filter(call => call[1] === 'supervise')).toHaveLength(1)
+    unsubscribe()
+  })
+
+  it('keeps sending closed while no task Agent can take the write', async () => {
+    const rpcCall = vi.fn(async (_channel: string, endpoint: string) => {
+      if (endpoint === 'status') return { ok: true as const, value: { writeEnabled: true, lifecycle: { taskAgentAvailable: false } } }
+      if (endpoint === 'assistant-message') return { ok: true as const, value: { messageId: 'message-1', text: 'A durable project decision.' } }
+      throw new Error(`unexpected endpoint: ${endpoint}`)
+    })
+    render(<MnemonSaveAction messageId="message-1" sessionId="session-a" connection={{ rpc: { call: rpcCall }, isLoopback: true } as ClientConnectionHandle} settingsScope={writableSettingsScope} localeRuntime={localeRuntime} t={translate as never} />)
+    fireEvent.click(screen.getByRole('button', { name: 'saveAction.button' }))
+    await screen.findByText('taskAgent.unavailable')
+    expect((screen.getByRole('button', { name: 'saveAction.submit' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('opens a centered modal and prevents a second supervised write while it is closed', async () => {

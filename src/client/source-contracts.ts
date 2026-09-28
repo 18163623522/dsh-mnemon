@@ -32,6 +32,8 @@ export interface MemorySourcePageProps {
   /** Opaque navigation data owned by this Source page. */
   navigationInput?: MemoryJsonValue
   onRefresh?(): void
+  /** Changes each time the user refreshes the workspace; reload this page's data when it does. */
+  refreshKey?: number
   /** Reset only this workbench's page scroll when Source-owned navigation changes. */
   onResetScroll?(): void
   /** Reveal a descendant in this canvas only, below the Source's measured sticky header. */

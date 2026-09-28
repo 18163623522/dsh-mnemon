@@ -5,8 +5,8 @@ import { dispatchMnemonAnchor, type MnemonAnchorPage } from './anchor.ts'
 import type { MnemonKey } from './locales.ts'
 import type { MnemonClientContext } from './dsh-context.ts'
 import css from './MnemonTurnTail.module.css'
-import { IconChevronDownOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
-import { IconDataOutline16 } from './ui-icons.ts'
+import { IconChevronDownOutlineRegular, Tooltip } from '@deepseek-ai/dsh-client-ui-primitives'
+import { MemoryIcon } from './memory-icon.tsx'
 
 interface MnemonTurnTailProps {
   /** Engine-owned closing Turn boundary (TurnLocation on the wire). */
@@ -36,6 +36,33 @@ export function memoryPageForTool(name: string): MnemonAnchorPage {
   if (name === 'mnemon_recall' || name === 'mnemon_related') return 'memory-spaces/explore'
   if (name === 'mnemon_status') return 'status'
   return 'memory-spaces/spaces'
+}
+
+/** What each memory tool did, as its chip says it; another tool keeps its own name. */
+const TOOL_LABELS: Readonly<Record<string, MnemonKey>> = {
+  mnemon_recall: 'turnTail.tool.recall',
+  mnemon_related: 'turnTail.tool.related',
+  mnemon_document_search: 'turnTail.tool.documentSearch',
+  mnemon_document_manage: 'turnTail.tool.documentManage',
+  mnemon_document_create: 'turnTail.tool.documentCreate',
+  mnemon_runtime_memory: 'turnTail.tool.runtime',
+  mnemon_remember: 'turnTail.tool.remember',
+  mnemon_link: 'turnTail.tool.link',
+  mnemon_forget: 'turnTail.tool.forget',
+  mnemon_status: 'turnTail.tool.status',
+  mnemon_memory_bodies: 'turnTail.tool.spaces',
+  mnemon_memory_body_create: 'turnTail.tool.spaceCreate',
+  mnemon_memory_body_update: 'turnTail.tool.spaceUpdate',
+  mnemon_memory_body_merge: 'turnTail.tool.spaceMerge',
+  mnemon_view_route: 'turnTail.tool.viewRoute',
+  mnemon_view_action: 'turnTail.tool.viewAction',
+}
+
+/** One chip per tool, in the order the turn first used it, with how many times it did. */
+export function turnTools(names: readonly string[]): Array<{ name: string; count: number }> {
+  const counts = new Map<string, number>()
+  for (const name of names) counts.set(name, (counts.get(name) ?? 0) + 1)
+  return [...counts].map(([name, count]) => ({ name, count }))
 }
 
 /** One-line memory-activity bar under a completed turn; hides when the turn touched no memory. */
@@ -73,7 +100,7 @@ export const MnemonTurnTail = memo(function MnemonTurnTail({ turn, seq, sessionI
   return (
     <div className={css.root} data-open={open || undefined}>
       <button type="button" className={css.bar} aria-expanded={open} onClick={() => setOpen(value => !value)}>
-        <IconDataOutline16 size={14} className={css.mark} />
+        <span className={css.mark}><MemoryIcon size={14} /></span>
         <span className={css.label}>{t('turnTail.label')}</span>
         <span className={css.metrics}>
           {activity.recalls > 0 && <span>{t('turnTail.recall', { count: activity.recalls })}</span>}
@@ -88,17 +115,21 @@ export const MnemonTurnTail = memo(function MnemonTurnTail({ turn, seq, sessionI
         <div className={css.details}>
           <span className={css.detailLabel}>{t('turnTail.toolList')}</span>
           <div className={css.tools}>
-            {activity.names.map((name, index) => (
-              <button
-                key={`${name}-${index}`}
-                type="button"
-                className={css.toolChip}
-                aria-label={t('turnTail.openTool', { tool: name })}
-                onClick={event => openTool(name, event)}
-              >
-                {name}
-              </button>
-            ))}
+            {turnTools(activity.names).map(({ name, count }) => {
+              const label = TOOL_LABELS[name] === undefined ? name : t(TOOL_LABELS[name])
+              return (
+                <Tooltip key={name} label={name} side="bottom">
+                  <button
+                    type="button"
+                    className={css.toolChip}
+                    aria-label={t('turnTail.openTool', { tool: label })}
+                    onClick={event => openTool(name, event)}
+                  >
+                    {label}{count > 1 && <span className={css.toolCount}>×{count}</span>}
+                  </button>
+                </Tooltip>
+              )
+            })}
           </div>
         </div>
       )}

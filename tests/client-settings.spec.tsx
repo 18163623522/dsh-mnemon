@@ -146,13 +146,13 @@ describe('MnemonSettingsCard', () => {
     const endpoint = await screen.findByRole('textbox', { name: '嵌入 Endpoint' }) as HTMLInputElement
     const model = screen.getByRole('textbox', { name: '嵌入模型' }) as HTMLInputElement
     const apiKey = screen.getByLabelText('API Key（可选，OpenAI 兼容服务）') as HTMLInputElement
-    const protocol = screen.getByRole('combobox', { name: '协议' }) as HTMLSelectElement
+    const protocol = screen.getByRole('button', { name: /^协议/ })
     expect(checked(screen.getByRole('switch', { name: '由 DSH 管理嵌入配置' }))).toBe(true)
     expect(endpoint.value).toBe('http://localhost:11434')
     expect(model.value).toBe('nomic-embed-text')
     expect(apiKey.value).toBe('')
     expect(apiKey.type).toBe('password')
-    expect(protocol.value).toBe('auto')
+    expect(protocol.textContent).toBe('自动（按 /v1 探测）')
     expect(screen.queryByRole('button', { name: '应用' })).toBeNull()
 
     fireEvent.change(endpoint, { target: { value: 'ftp://invalid.example' } })
@@ -165,7 +165,8 @@ describe('MnemonSettingsCard', () => {
     fireEvent.change(endpoint, { target: { value: ' http://127.0.0.1:8080/api/// ' } })
     fireEvent.change(model, { target: { value: ' qwen3-embedding:0.6b ' } })
     fireEvent.change(apiKey, { target: { value: '  sk-secret  ' } })
-    fireEvent.change(protocol, { target: { value: 'openai' } })
+    fireEvent.click(protocol)
+    fireEvent.click(screen.getByRole('menuitem', { name: 'OpenAI 兼容' }))
     fireEvent.click(apply())
 
     await waitFor(() => expect(mutate).toHaveBeenLastCalledWith([{
