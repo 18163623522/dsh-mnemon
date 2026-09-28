@@ -102,7 +102,7 @@ The **Plugins** page of the DeepSeek Harness desktop app works like the web page
 
 - The desktop app uses its own `desktop` profile. From DSH 0.2 the command line no longer manages that profile, so install and manage plugins on the app's Plugins page.
 - Desktop windows load from the app's own `dsh-app://app/` address. dsh-mnemon 0.5.18 and earlier treated them as remote pages, which made the Memory System and the plugin settings read only ([#310](https://github.com/omdsh-dev/dsh-mnemon/issues/310)). 0.5.19 fixes this; update dsh-mnemon, with no configuration change.
-- After updating dsh-mnemon in the desktop app, quit the app completely and open it again (`Cmd+Q` on macOS) so the new version loads. If an error appears after an update, do not turn off `dsh-mnemon/starter`; see [Common problems](#common-problems).
+- After updating dsh-mnemon in the desktop app, quit the app completely and open it again (`Cmd+Q` on macOS) so the new version loads. If an error appears after an update, see [Common problems](#common-problems).
 
 ## 7. Command line and Headless
 
@@ -223,17 +223,17 @@ Install the CLI as in [step 1](#1-get-nodejs-pnpm-and-the-mnemon-cli) and restar
 
 When DSH is opened from another device (for example through an address set up with `--trusted-host`), the Memory System is read only by default and says why. If you do need remote management, set `remoteAccess: trusted-host` and restart DSH as the [operations guide](./operations.md#remote-management) describes. Desktop app windows and a browser on the same computer are not remote pages.
 
-### After an update, enabling says "Package subpath './starter' is not defined"
+### ERR_PACKAGE_PATH_NOT_EXPORTED after an update
 
-If dsh-mnemon 0.5.17 or earlier was updated while DSH was running (for example on the desktop app's Plugins page), enabling a component can then show:
+If dsh-mnemon was updated while DSH was running (for example on the desktop app's Plugins page), enabling a component can then show:
 
 ```text
 Error [ERR_PACKAGE_PATH_NOT_EXPORTED]: Package subpath './starter' is not defined by "exports" in …/node_modules/dsh-mnemon/package.json
 ```
 
-The new version is installed, but the running DSH still loads it with the old version's package information, and `dsh-mnemon/starter` only exists from 0.5.18. Quit DSH completely and start it again: `Cmd+Q` for the desktop app on macOS, or `Ctrl+C` and then `dsh web` again on the command line.
+The new version is installed, but the running DSH still loads it with the old version's package information, which lacks an entry point the new version added: `./starter` after an update from 0.5.17 or earlier, `./bundle` after an update from 0.5.18 or 0.5.19. Quit DSH completely and start it again: `Cmd+Q` for the desktop app on macOS, or `Ctrl+C` and then `dsh web` again on the command line.
 
-Do not turn off `dsh-mnemon/starter` to make the message go away; that leads to the next problem.
+On 0.5.18 or 0.5.19, do not turn off `dsh-mnemon/starter` to make the message go away; that leads to the next problem.
 
 ### DSH says "waiting for service: mnemonStarterReady"
 
@@ -246,10 +246,11 @@ dsh: warning: 1 entry did not activate
 mnemon-bundle (cordis:group): pending (waiting for service: mnemonStarterReady)
 ```
 
-The sidebar has no **Memory System**, and every dsh-mnemon component on the Plugins page reads Off. `dsh-mnemon/starter` has been turned off: it prepares dependency resolution before the memory components load, and the others wait for it.
+The sidebar has no **Memory System**, and every dsh-mnemon component on the Plugins page reads Off. `dsh-mnemon/starter` has been turned off: in 0.5.18 and 0.5.19 this separate row prepares dependency resolution before the memory components load, and the others wait for it.
 
 - Open **Plugins → dsh-mnemon** and turn on the `dsh-mnemon/starter` row. The Memory System appears right away; if it does not, restart DSH.
-- The desktop app treats this as a failed start and shows its plugin recovery page. Click **Remove this plugin and continue** (your memory data stays), and once the app is up, add dsh-mnemon again as in [step 3](#3-install-and-enable-dsh-mnemon). The switch is saved in the profile and is still off after reinstalling, so then turn it on as above.
+- The desktop app treats this as a failed start and shows its plugin recovery page. Click **Remove this plugin and continue** (your memory data stays), and once the app is up, add dsh-mnemon again as in [step 3](#3-install-and-enable-dsh-mnemon). Reinstalling 0.5.18 or 0.5.19 keeps the switch off, because the profile saves it, so then turn it on as above.
+- From 0.5.20 this cannot happen: the group prepares dependency resolution itself, there is no separate switch, and a leftover setting for it is ignored.
 
 ### Moving DSH to 0.2
 

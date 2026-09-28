@@ -235,7 +235,7 @@ DSH 0.1.7 把插件配置放在“插件”中该插件自己的页面里。“�
 
 ![DSH 组件列表：每个组件以自己声明的名称显示](../../assets/webui-v0.5.19/zh-CN/plugin-rows.jpg)
 
-配置下方，DSH 以组件声明的名称和说明列出 Starter 所含的组件。`cordis:group` 是 Starter 的分组条目，它显示“已关闭”不影响任何功能。点击组件名称会打开 DSH 为它提供的页面，其中是与记忆组合面板相同的组件页。
+配置下方，DSH 以组件声明的名称和说明列出 Starter 所含的组件。`mnemon-bundle` 是 Starter 的分组条目（0.5.20 起显示为 `dsh-mnemon/bundle`；上图来自 0.5.19，当时名为 `cordis:group`，其上方的 `dsh-mnemon/starter` 是当时单独的就绪条目），它显示“已关闭”不影响任何功能。点击组件名称会打开 DSH 为它提供的页面，其中是与记忆组合面板相同的组件页。
 
 ![DSH 为分层策略提供的页面](../../assets/webui-v0.5.19/zh-CN/plugin-row-page.jpg)
 

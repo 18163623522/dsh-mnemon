@@ -235,7 +235,7 @@ Expand the Mnemon Native card. **Manage embedding settings in DSH** makes the sa
 
 ![DSH's component list: each component named as it declares itself](../../assets/webui-v0.5.19/en/plugin-rows.jpg)
 
-Below the configuration, DSH lists the components the Starter includes under the names and descriptions they declare. The `cordis:group` row is the Starter's group entry; its "Off" state does not affect anything. A component's name opens DSH's page for it, which carries the same component page as the board.
+Below the configuration, DSH lists the components the Starter includes under the names and descriptions they declare. The `mnemon-bundle` row is the Starter's group entry (shown as `dsh-mnemon/bundle` from 0.5.20; the picture above is from 0.5.19, where it read `cordis:group` below the separate `dsh-mnemon/starter` readiness row); its "Off" state does not affect anything. A component's name opens DSH's page for it, which carries the same component page as the board.
 
 ![DSH's own page for the Layered strategy](../../assets/webui-v0.5.19/en/plugin-row-page.jpg)
 

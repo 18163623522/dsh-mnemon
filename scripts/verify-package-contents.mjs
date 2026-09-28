@@ -85,7 +85,8 @@ const relativeReadmeImages = readmeFiles.flatMap((path) => {
 // Desktop windows on the local channels, the remote read-only reasons in both
 // languages and the Status version read measure 1,491,026 bytes. The README's
 // installation quick start with its recording brings it to 1,492,741 bytes.
-const maximumUnpackedBytes = 1_494_000
+// The Starter's component group entry (`dsh-mnemon/bundle`) measures 1,494,791 bytes.
+const maximumUnpackedBytes = 1_497_000
 
 if (missing.length > 0 || unexpected.length > 0 || hostLeaks.length > 0 || relativeReadmeImages.length > 0 || pack.unpackedSize > maximumUnpackedBytes) {
   if (missing.length > 0) console.error(`Missing package files:\n${missing.map(path => `- ${path}`).join('\n')}`)
