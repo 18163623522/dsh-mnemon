@@ -72,6 +72,7 @@ const CONTENT = {
     ].filter(Boolean).join('\n'),
     saved: '已更新工作记忆：结账页目标改为 p75 LCP 低于 2.2 秒。',
     idle: '可以问我 Lumen 的目标、决策或流程，我会先查记忆再回答。',
+    assistant: { name: 'Lumen 助手', description: 'Lumen 项目的工程助手（演示数据）。', persona: '你是 Lumen 项目的工程助手。用户用什么语言提问，就用什么语言回答。' },
   },
   en: {
     user: [
@@ -135,10 +136,18 @@ const CONTENT = {
     ].filter(Boolean).join('\n'),
     saved: 'Working memory updated: the checkout target is now p75 LCP under 2.2 s.',
     idle: 'Ask me about Lumen’s goals, decisions or process; I check memory before answering.',
+    assistant: { name: 'Lumen assistant', description: 'Engineering assistant for the Lumen project (demo data).', persona: 'You are the engineering assistant for the Lumen project. Answer in the language the user writes in.' },
   },
 }
 
 export const DOCS_DEMO_LANGUAGES = Object.keys(CONTENT)
+
+/** The conversation preset the demo shows in place of the test preset. */
+export function docsDemoAssistant(language) {
+  const content = CONTENT[language]
+  if (content === undefined) throw new Error('Unknown docs demo language: ' + language)
+  return content.assistant
+}
 
 /**
  * Seed the demo into a disposable data root before the Host starts, through
