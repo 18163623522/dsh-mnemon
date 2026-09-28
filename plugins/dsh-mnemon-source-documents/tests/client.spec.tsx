@@ -59,13 +59,13 @@ describe('independent Documents Source client', () => {
     expect(list.getByText('Document 1').closest('button')?.querySelector('time')?.dateTime).toBe('2026-08-01T08:00:00.000Z')
     fireEvent.change(screen.getByLabelText(t('documents.searchAria')), { target: { value: 'Searchable evidence' } })
     fireEvent.click(screen.getByText(t('documents.search')))
-    await waitFor(() => expect(screen.getByText(t('documents.refresh')).hasAttribute('disabled')).toBe(false))
+    await waitFor(() => expect(screen.queryByText(t('common.loading'))).toBeNull())
     expect(titles()).toEqual([10, 9, 8, 7, 6, 5, 4, 3].map(day => `Document ${day}`))
     fireEvent.click(within(screen.getByLabelText(t('documents.scope'))).getByText(t('documents.archivedCount')))
     await waitFor(() => expect(titles()).toEqual(['Document 12', 'Document 11']))
     fireEvent.change(screen.getByLabelText(t('documents.searchAria')), { target: { value: '' } })
     fireEvent.click(screen.getByText(t('documents.search')))
-    await waitFor(() => expect(screen.getByText(t('documents.refresh')).hasAttribute('disabled')).toBe(false))
+    await waitFor(() => expect(screen.queryByText(t('common.loading'))).toBeNull())
     expect(titles()).toEqual(['Document 12', 'Document 11'])
     view.rerender(page(true))
     fireEvent.click(within(screen.getByLabelText(t('documents.scope'))).getByText(t('documents.active')))
@@ -94,6 +94,26 @@ describe('independent Documents Source client', () => {
       fireEvent.click(screen.getByRole('button', { name: t('documents.save') }))
       expect(await screen.findByText('Edited through Source management')).not.toBeNull()
       expect((await management.read('snapshot')).value).toMatchObject({ total: 1 })
+    } finally { cleanup(); await runner.dispose(); rmSync(directory, { recursive: true, force: true }) }
+  })
+
+  it('opens the document a conversation turn names', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'mnemon-documents-focus-'))
+    const workspace = join(directory, 'workspace')
+    mkdirSync(workspace)
+    const runner = new MemoryCompositionRunner()
+    try {
+      await runner.mount(strategy, { instanceId: 'strategy' })
+      await runner.mount(plugin, { instanceId: 'notes', config: { dataDir: join(directory, 'data') } })
+      const management = await runner.managementClient('source:notes', { storage: 'custom', workspaceId: workspace })
+      const created: string[] = []
+      for (const title of ['Queue decision', 'Release checklist']) {
+        const result = await management.mutate('mutate', { action: 'create', title, description: '', content: `${title} body` }, { confirmed: true })
+        created.push((result.value as { document: { id: string } }).document.id)
+      }
+      render(<DocumentsSourcePage sourceTypeId="documents" sourceInstanceKey="source:notes" sourceInstances={[]} locale="en" management={management} navigationInput={{ seed: created[0]!, nonce: 1 }} />)
+      expect(await within(await screen.findByLabelText(t('documents.reader'))).findByRole('heading', { name: 'Queue decision' })).not.toBeNull()
+      expect(screen.getByRole('button', { name: /Queue decision/, pressed: true })).not.toBeNull()
     } finally { cleanup(); await runner.dispose(); rmSync(directory, { recursive: true, force: true }) }
   })
 

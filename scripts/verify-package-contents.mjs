@@ -78,7 +78,11 @@ const relativeReadmeImages = readmeFiles.flatMap((path) => {
 // than 3 KB of headroom.
 // Starter dependency preparation adds a small native group entry and its public
 // declarations: measured 1,471,089 bytes. Framework and component code stay external.
-const maximumUnpackedBytes = 1_473_000
+// The shared page controls (search, select, write receipt, task Agent tag), one
+// Save to memory dialog with its receipt, the turn memory bar's items and their
+// bilingual copy, and the README's live showcase bring the measured package to
+// 1,488,847 bytes (+17,758). Keep less than 3 KB of headroom.
+const maximumUnpackedBytes = 1_491_000
 
 if (missing.length > 0 || unexpected.length > 0 || hostLeaks.length > 0 || relativeReadmeImages.length > 0 || pack.unpackedSize > maximumUnpackedBytes) {
   if (missing.length > 0) console.error(`Missing package files:\n${missing.map(path => `- ${path}`).join('\n')}`)
