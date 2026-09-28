@@ -419,7 +419,10 @@ describe('VersionUpdateManager', () => {
     await expect(manager.update('mnemon')).resolves.toMatchObject({ previousVersion: '0.2.8', currentVersion: '0.2.9', updated: true })
     const launcher = windowsShims ? f.launcher : realpathSync(f.launcher)
     const nodeCalls = f.run.mock.calls.filter(([command]) => command === process.execPath)
-      .map(([, args, options]) => ({ args, timeoutMs: options.timeoutMs, runAsNode: options.env?.ELECTRON_RUN_AS_NODE, prefix: options.env?.npm_config_prefix }))
+      // Windows preserves an inherited environment key's original casing.
+      .map(([, args, options]) => ({ args, timeoutMs: options.timeoutMs, runAsNode: options.env?.ELECTRON_RUN_AS_NODE,
+        prefix: Object.entries(options.env ?? {}).find(([key]) => key.toLowerCase() === 'npm_config_prefix')?.[1],
+      }))
     expect(nodeCalls).toContainEqual({ args: [launcher, '--version'], timeoutMs: 10_000, runAsNode: '1', prefix: f.root })
     expect(nodeCalls).toContainEqual({ args: [launcher, 'update'], timeoutMs: 600_000, runAsNode: '1', prefix: f.root })
     if (windowsShims) expect(nodeCalls).toContainEqual({ args: [npmCli, 'root', '--global'], timeoutMs: 10_000, runAsNode: '1', prefix: f.root })
