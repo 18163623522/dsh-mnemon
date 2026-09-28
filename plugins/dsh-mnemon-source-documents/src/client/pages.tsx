@@ -38,7 +38,7 @@ function DocumentMarkdown(props: { content: string }): JSX.Element {
 
 type DocumentListItem = DocumentRecord & { healthy?: boolean; excerpt: string }
 
-export function DocumentsPage(props: { client: DocumentsPageClient; revision: number; writeEnabled: boolean; sessionId?: string; canCreate?: boolean; onMutate: () => void }): JSX.Element {
+export function DocumentsPage(props: { client: DocumentsPageClient; revision: number; writeEnabled: boolean; sessionId?: string; canCreate?: boolean; documentId?: string; onMutate: () => void }): JSX.Element {
   const t = useT()
   const locale = useLocale()
   const documentCreateFormId = useId()
@@ -48,7 +48,7 @@ export function DocumentsPage(props: { client: DocumentsPageClient; revision: nu
   const [snapshot, setSnapshot] = useState<DocumentSnapshot | null>(null)
   const [items, setItems] = useState<DocumentListItem[]>([])
   const [visibleLimit, setVisibleLimit] = useState(pageSize)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(props.documentId ?? null)
   const [selected, setSelected] = useState<DocumentView | null>(null)
   const [status, setStatus] = useState<'active' | 'archived'>('active')
   const [query, setQuery] = useState('')

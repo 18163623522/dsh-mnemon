@@ -28,7 +28,10 @@ function DocumentsSourceView(props: MemorySourcePageProps): JSX.Element | null {
     setRevision(value => value + 1)
   }, [props.refreshKey])
   if (client === undefined) return null
-  return <DocumentsPage canCreate client={client} revision={revision} writeEnabled={props.writable === true} onMutate={() => { setRevision(value => value + 1); props.onRefresh?.() }} />
+  // A conversation turn opens the document it read or wrote; each visit starts from that document.
+  const navigation = props.navigationInput
+  const focus = typeof navigation === 'object' && navigation !== null && !Array.isArray(navigation) && typeof navigation.seed === 'string' && navigation.seed !== '' ? navigation : undefined
+  return <DocumentsPage key={typeof focus?.nonce === 'number' ? focus.nonce : 0} {...(focus === undefined ? {} : { documentId: focus.seed as string })} canCreate client={client} revision={revision} writeEnabled={props.writable === true} onMutate={() => { setRevision(value => value + 1); props.onRefresh?.() }} />
 }
 
 export function DocumentsSourcePage(props: MemorySourcePageProps): ReactNode {

@@ -1,11 +1,16 @@
 import { css, sidebarCss, useT } from './presentation.ts'
 import type { JSX } from 'react'
-import { useCallback, useEffect, useId, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { type RuntimeMemoryEntry, type RuntimeMemoryImportance, type RuntimeMemorySnapshot, type RuntimeMemoryTarget } from '../contracts.ts'
 import type { RuntimePageClient } from './api.ts'
 import { type MnemonKey, appearanceClass, useLocale, humanBytes, message, parseBranchesInput, PageHeader, ProgressiveFooter, SidebarModal, SearchField, SelectField } from 'dsh-mnemon/client'
 
-export function RuntimePage(props: { client: RuntimePageClient; revision: number; writeEnabled: boolean; onMutate: () => void }): JSX.Element {
+/** Whitespace folded, as a conversation turn quotes an entry it wrote. */
+function fold(text: string): string {
+  return text.replace(/\s+/gu, ' ').trim()
+}
+
+export function RuntimePage(props: { client: RuntimePageClient; revision: number; writeEnabled: boolean; focusText?: string; onRevealElement?(element: HTMLElement): void; onMutate: () => void }): JSX.Element {
   const t = useT()
   const locale = useLocale()
   const runtimeAddFormId = useId()
@@ -30,6 +35,11 @@ export function RuntimePage(props: { client: RuntimePageClient; revision: number
   const [filterTarget, setFilterTarget] = useState<'all' | RuntimeMemoryTarget>('all')
   const [filterQuery, setFilterQuery] = useState('')
   const [visibleLimit, setVisibleLimit] = useState(pageSize)
+  const listRef = useRef<HTMLDivElement | null>(null)
+  const revealed = useRef(false)
+  // A turn quotes what it wrote, cut short with an ellipsis when long.
+  const focus = props.focusText === undefined ? '' : fold(props.focusText).replace(/…$/u, '')
+  const focused = (entry: RuntimeMemoryEntry) => focus !== '' && fold(entry.content).startsWith(focus)
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -37,6 +47,16 @@ export function RuntimePage(props: { client: RuntimePageClient; revision: number
   }, [props.client])
   useEffect(() => { void load() }, [load, props.revision])
   useEffect(() => { setVisibleLimit(pageSize) }, [filterQuery, filterTarget])
+  useEffect(() => {
+    if (focus === '' || snapshot === null) return
+    const index = filteredEntries.findIndex(focused)
+    if (index >= visibleLimit) { setVisibleLimit(Math.ceil((index + 1) / pageSize) * pageSize); return }
+    const element = listRef.current?.querySelector<HTMLElement>('[data-focused]')
+    if (element === null || element === undefined || revealed.current) return
+    revealed.current = true
+    if (props.onRevealElement !== undefined) props.onRevealElement(element)
+    else element.scrollIntoView?.({ block: 'nearest' })
+  }, [snapshot, visibleLimit])
 
   const entryKey = (entry: RuntimeMemoryEntry) => `${entry.target}:${entry.created_at}:${entry.content}`
   const mutate = async (request: Parameters<RuntimePageClient['mutateRuntimeMemory']>[0]) => {
@@ -88,7 +108,7 @@ export function RuntimePage(props: { client: RuntimePageClient; revision: number
   const runtimeEntry = (entry: RuntimeMemoryEntry, showTarget = false) => {
     const key = entryKey(entry)
     const isRemoving = removing === key
-    return <article key={key} className={css.runtimeEntry} data-importance={entry.importance} data-target={entry.target}>
+    return <article key={key} className={css.runtimeEntry} data-importance={entry.importance} data-target={entry.target} data-focused={focused(entry) || undefined}>
       <div className={css.runtimeEntryMeta}>{showTarget ? <div className={css.runtimeEntryBadges}><span className={css.runtimeEntryTarget}>{entry.target === 'user' ? 'USER.md' : 'MEMORY.md'}</span><span>{t(`runtime.importance.${entry.importance}` as MnemonKey)}</span>{entry.branches !== undefined && entry.branches.length > 0 && <span className={css.runtimeEntryBranch} title={t('runtime.branchBadge')}>{entry.branches.join(', ')}</span>}</div> : <><span>{t(`runtime.importance.${entry.importance}` as MnemonKey)}</span>{entry.branches !== undefined && entry.branches.length > 0 && <span className={css.runtimeEntryBranch} title={t('runtime.branchBadge')}>{entry.branches.join(', ')}</span>}</>}<time dateTime={entry.created_at}>{new Date(entry.created_at).toLocaleString(locale)}</time></div>
       {<p>{entry.content}</p>}
 
@@ -141,7 +161,7 @@ export function RuntimePage(props: { client: RuntimePageClient; revision: number
             <div className={css.runtimeScopeFilter} role="group" aria-label={t('runtime.scopeAria')}><button type="button" data-active={filterTarget === 'all' || undefined} onClick={() => setFilterTarget('all')}>{t('runtime.scopeAll')} <b>{snapshot?.entries.length ?? 0}</b></button><button type="button" data-active={filterTarget === 'user' || undefined} onClick={() => setFilterTarget('user')}>{t('runtime.target.user')} <b>{snapshot?.targets.user.entryCount ?? 0}</b></button><button type="button" data-active={filterTarget === 'memory' || undefined} onClick={() => setFilterTarget('memory')}>{t('runtime.target.memory')} <b>{snapshot?.targets.memory.entryCount ?? 0}</b></button></div>
             <SearchField className={css.runtimeFilterQuery} label={t('runtime.filterAria')} value={filterQuery} onChange={event => setFilterQuery(event.target.value)} placeholder={t('runtime.filterPlaceholder')} />
           </div>
-          <div className={css.runtimeUnifiedList}>{visibleEntries.map(entry => runtimeEntry(entry, true))}{!loading && filteredEntries.length === 0 && <div className={css.runtimeEmpty}><span>○</span><p>{t('runtime.noMatch')}</p></div>}</div>
+          <div ref={listRef} className={css.runtimeUnifiedList}>{visibleEntries.map(entry => runtimeEntry(entry, true))}{!loading && filteredEntries.length === 0 && <div className={css.runtimeEmpty}><span>○</span><p>{t('runtime.noMatch')}</p></div>}</div>
           {!loading && <ProgressiveFooter visible={visibleEntries.length} total={filteredEntries.length} pageSize={pageSize} onMore={() => setVisibleLimit(value => value + pageSize)} />}
         </section>
       </>}

@@ -5,7 +5,7 @@ import type { ClientConnectionHandle } from "../src/host/dsh.ts"
 import type { TurnMemoryActivitySnapshot } from '../src/host/protocol.ts'
 import type { Config } from "../src/host/config.ts"
 import { MnemonSaveAction } from '../src/client/MnemonSaveAction.tsx'
-import { MnemonTurnTail, memoryPageForTool, turnTools } from '../src/client/MnemonTurnTail.tsx'
+import { MnemonTurnTail, memoryPageForTool, turnItems, turnTools } from '../src/client/MnemonTurnTail.tsx'
 import { consumeMnemonAnchor, dispatchMnemonAnchor, subscribeMnemonAnchor } from '../src/client/anchor.ts'
 import { settingsScope } from './helpers/settings-scope.ts'
 
@@ -193,6 +193,61 @@ describe('conversation interaction surfaces', () => {
     fireEvent.mouseEnter(chips[1]!)
     expect(screen.getByRole('tooltip').textContent).toBe('mnemon_recall')
     expect(turnTools(['a', 'b', 'a', 'c'])).toEqual([{ name: 'a', count: 2 }, { name: 'b', count: 1 }, { name: 'c', count: 1 }])
+  })
+
+  it('lists what each tool read or wrote and opens each item where it lives', async () => {
+    const activity = {
+      turn: 2, count: 3, names: ['mnemon_document_search', 'mnemon_recall', 'mnemon_runtime_memory', 'mnemon_forget'],
+      recalls: 1, writes: 2, documentSearches: 1, inspections: 0, failures: 0,
+      retrieved: [
+        { callId: 'read-1', toolName: 'mnemon_document_search', operationId: 'search', sourceTypeId: 'documents',
+          items: [{ id: 'doc-1', title: 'Decision: queue event ingestion', excerpt: 'Events go through Kafka first.' }] },
+        { callId: 'read-2', toolName: 'mnemon_recall', operationId: 'recall', sourceTypeId: 'memory-spaces',
+          items: [{ id: 'memory-1', title: 'Lumen', excerpt: 'Consumers dedupe by event_id.' }, { id: 'memory-2', title: 'Lumen', excerpt: 'Consumers dedupe by event_id.' }] },
+      ],
+      writebacks: [
+        { callId: 'write-1', toolName: 'mnemon_runtime_memory', operationId: 'mutate', sourceTypeId: 'runtime', item: { id: 'mutate', title: 'Checkout p75 LCP is 2.4 s.' } },
+        { callId: 'write-2', toolName: 'mnemon_forget', operationId: 'forget', sourceTypeId: 'memory-spaces', item: { id: 'memory-9', title: 'memory-9' } },
+      ],
+    }
+    const rpcCall = vi.fn(async () => ({ ok: true as const, value: { cursor: 12, activities: [activity] } }))
+    const received: Array<{ page: string; seed?: string }> = []
+    const unsubscribe = subscribeMnemonAnchor('session-a', anchor => received.push({ page: anchor.page, ...(anchor.seed === undefined ? {} : { seed: anchor.seed }) }))
+    render(<MnemonTurnTail turn={{ turn: 2, status: 'closed' }} seq={12} openFile={vi.fn()} sessionId="session-a" connection={{ rpc: { call: rpcCall }, isLoopback: true } as ClientConnectionHandle} localeRuntime={localeRuntime} t={translate as never} />)
+    fireEvent.click(await screen.findByRole('button', { name: /turnTail\.label/ }))
+
+    const list = screen.getByRole('list', { name: 'turnTail.toolList' })
+    expect([...list.querySelectorAll('li')].map(row => row.textContent)).toEqual([
+      'turnTail.tool.documentSearchDecision: queue event ingestion',
+      'turnTail.tool.recallConsumers dedupe by event_id.Lumen',
+      'turnTail.tool.runtimeCheckout p75 LCP is 2.4 s.',
+      'turnTail.tool.forget',
+    ])
+    fireEvent.click(screen.getByRole('button', { name: 'Decision: queue event ingestion' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Consumers dedupe by event_id. Lumen' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Checkout p75 LCP is 2.4 s.' }))
+    expect(received).toEqual([
+      { page: 'documents/library', seed: 'doc-1' },
+      { page: 'memory-spaces/explore', seed: 'Consumers dedupe by event_id.' },
+      { page: 'runtime/entries', seed: 'Checkout p75 LCP is 2.4 s.' },
+    ])
+    unsubscribe()
+  })
+
+  it('shows at most three items per tool and counts the rest', async () => {
+    const items = Array.from({ length: 5 }, (_, index) => ({ id: `doc-${index}`, title: `Document ${index}` }))
+    const retrieved = [{ callId: 'read', toolName: 'mnemon_document_search', operationId: 'search', sourceTypeId: 'documents', items }]
+    expect(turnItems({ retrieved }).get('mnemon_document_search')).toHaveLength(5)
+    expect(turnItems({})).toEqual(new Map())
+    const rpcCall = vi.fn(async () => ({ ok: true as const, value: { cursor: 12, activities: [{
+      turn: 2, count: 1, names: ['mnemon_document_search'], recalls: 0, writes: 0, documentSearches: 1, inspections: 0, failures: 0, retrieved, writebacks: [],
+    }] } }))
+    const t = (key: string, params?: Record<string, unknown>) => params?.count === undefined ? key : `${key}:${String(params.count)}`
+    render(<MnemonTurnTail turn={{ turn: 2, status: 'closed' }} seq={12} openFile={vi.fn()} sessionId="session-a" connection={{ rpc: { call: rpcCall }, isLoopback: true } as ClientConnectionHandle} localeRuntime={localeRuntime} t={t as never} />)
+    fireEvent.click(await screen.findByRole('button', { name: /turnTail\.label/ }))
+    const row = screen.getByRole('list', { name: 'turnTail.toolList' }).querySelector('li')!
+    expect([...row.querySelectorAll('button')].map(button => button.textContent)).toEqual(['turnTail.tool.documentSearch', 'Document 0', 'Document 1', 'Document 2'])
+    expect(row.textContent).toContain('turnTail.more:2')
   })
 
   it('shows the task Agent receipt, leads to what was written, and waits for an edit before sending again', async () => {

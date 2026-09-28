@@ -1059,6 +1059,14 @@ export function ExplorePage(props: { client: MemorySpacesPageClient; agentClient
   const relatedRequests = useRequestVersion()
 
   useEffect(() => { if (props.seed !== '') setQuery(props.seed) }, [props.seed])
+  // Opening Recall with a query runs it once, with the configured recall limit,
+  // whether a conversation turn or another page sent it.
+  const ranSeed = useRef('')
+  useEffect(() => {
+    if (props.seed === '' || props.status === null || ranSeed.current === props.seed) return
+    ranSeed.current = props.seed
+    void runSearch(false, props.seed)
+  }, [props.seed, props.status])
   useEffect(() => {
     if (relatedTo === null || props.onRevealElement === undefined) return
     const reveal = () => {
@@ -1069,12 +1077,12 @@ export function ExplorePage(props: { client: MemorySpacesPageClient; agentClient
     return () => { if (typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(frame) }
   }, [relatedTo, relatedRequests, props.onRevealElement])
 
-  const runSearch = async (withAgent: boolean) => {
-    if (query.trim() === '') return
+  const runSearch = async (withAgent: boolean, text = query) => {
+    if (text.trim() === '') return
     relatedRequests.begin()
     setSearchKind(withAgent ? 'agent' : 'direct'); setSearched(true); setError(null); setRelatedTo(null); setAgentAnswer(null); setVisibleResultLimit(pageSize); setVisibleRelatedLimit(pageSize)
     try {
-      const request = { query, mode, ...(category === '' ? {} : { category }), limit: props.status?.defaultRecallLimit ?? 10 }
+      const request = { query: text, mode, ...(category === '' ? {} : { category }), limit: props.status?.defaultRecallLimit ?? 10 }
       if (withAgent) {
         const response = await props.agentClient.agentSearch(request)
         setResults(response.results)

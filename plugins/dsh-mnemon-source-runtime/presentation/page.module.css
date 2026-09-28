@@ -47,6 +47,8 @@
 .runtimeEntry { --mn-provider-color: var(--mn-accent); position: relative; padding: 12px 14px 10px; border: .5px solid var(--mn-card-line); border-radius: var(--dsw-radius-md); }
 .runtimeEntry[data-importance="critical"] { --mn-provider-color: var(--mn-priority); }
 .runtimeEntry[data-importance="low"] { --mn-provider-color: var(--mn-faint); }
+/* The entry a conversation turn wrote, when the turn opened this page. */
+.runtimeEntry[data-focused] { border-color: color-mix(in srgb, var(--mn-accent) 60%, var(--mn-card-line)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--mn-accent) 14%, transparent); }
 .runtimeEntryMeta { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .runtimeEntryMeta > span,
 .runtimeEntryBadges > span { padding: 1px 8px; border-radius: 999px; color: var(--mn-muted); background: var(--mn-fill); font-size: 11px; font-weight: 500; line-height: 17px; }

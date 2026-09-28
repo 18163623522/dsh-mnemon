@@ -65,33 +65,27 @@
   transform: rotate(180deg);
 }
 
+/* One row per tool: what it did, then what it read or wrote. */
 .details {
-  display: flex;
+  display: grid;
   min-width: 0;
-  align-items: center;
-  gap: 8px;
+  gap: 4px;
   margin: 2px 0 4px;
   padding: 4px 6px;
+  list-style: none;
 }
 
-.detailLabel {
-  flex: none;
-  color: var(--dsw-alias-label-caption);
-  font-size: 12px;
-  line-height: 18px;
-}
-
-.tools {
+.toolRow {
   display: flex;
   min-width: 0;
-  flex: 1 1 auto;
-  flex-wrap: wrap;
-  gap: 4px;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 /* A neutral DSH Tag naming what the tool did; the tool itself shows on hover. */
 .toolChip {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 3px;
   border: none;
@@ -118,6 +112,61 @@
 .toolChip:focus-visible {
   outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
   outline-offset: 1px;
+}
+
+.items {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  justify-items: start;
+  gap: 2px;
+}
+
+/* A memory the tool read or wrote; it opens the page that shows it. */
+.item {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: baseline;
+  gap: 6px;
+  border: 0;
+  border-radius: var(--dsw-radius-sm);
+  padding: 0 4px;
+  cursor: pointer;
+  background: transparent;
+  color: var(--dsw-alias-label-secondary);
+  font: inherit;
+  font-size: 12px;
+  line-height: 19px;
+  text-align: left;
+}
+.item:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+.item:focus-visible {
+  outline: var(--dsw-focus-ring-width, 2px) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
+  outline-offset: 1px;
+}
+
+.itemText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.itemPlace {
+  flex: none;
+  color: var(--dsw-alias-label-tertiary);
+  white-space: nowrap;
+}
+
+.itemMore {
+  padding: 0 4px;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  line-height: 19px;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -549,9 +549,13 @@ function MnemonWorkspace({ connection, settingsScope, sessionId, workspaceId, wo
     const canvas = canvasRef.current
     if (canvas !== null) canvas.scrollTop = 0
   }, [])
-  const revealElement = useCallback((element: HTMLElement, topInset = 0) => {
+  const revealElement = useCallback((element: HTMLElement, topInset?: number) => {
     const canvas = canvasRef.current
-    if (canvas !== null && canvas.contains(element)) canvas.scrollTop = Math.max(0, canvas.scrollTop + element.getBoundingClientRect().top - canvas.getBoundingClientRect().top - topInset)
+    if (canvas === null || !canvas.contains(element)) return
+    // A locked page header covers the canvas top; a Source that pins its own header measures it.
+    const header = topInset === undefined && canvas.hasAttribute('data-lock-page-header') ? canvas.querySelector<HTMLElement>(`.${css.pageHeader}`) : null
+    const inset = topInset ?? (header === null ? 0 : header.getBoundingClientRect().height + 12)
+    canvas.scrollTop = Math.max(0, canvas.scrollTop + element.getBoundingClientRect().top - canvas.getBoundingClientRect().top - inset)
   }, [])
 
   // Reset before paint so a newly selected page never flashes at the previous

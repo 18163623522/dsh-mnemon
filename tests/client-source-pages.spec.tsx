@@ -9,6 +9,7 @@ import type { MnemonSourcePageOwnerProps } from "../src/client/dsh-context.ts"
 import { MnemonWorkbench } from '../src/client/MnemonWorkbench.tsx'
 import { MNEMON_COMPONENT_STATUS_SLOT } from '../src/client/component-ui.tsx'
 import { translateEn } from '../src/client/locales.ts'
+import { PageHeader } from '../src/client/page-kit.tsx'
 import {
   createMemorySourcePageDirectory,
   installMemorySourceUI,
@@ -355,6 +356,28 @@ describe('Source Client presentation conformance', () => {
     canvas.scrollTop = 250
     owner?.onRevealElement?.(target, 120)
     expect(canvas.scrollTop).toBe(250)
+  })
+
+  it('reveals an element below the locked page header unless the Source measures its own', async () => {
+    const source = { sourceInstanceKey: 'source:git', sourceTypeId: 'git', packageName: 'dsh-mnemon-source-git', role: 'repository', availability: 'ready', revision: 'r1', capabilities: ['read'], management: { label: 'Repository' } }
+    const connection = { rpc: { call: vi.fn(async (_channel: string, endpoint: string) => ({ ok: true, value: endpoint === 'source-management-catalog' ? { generationId: 'g1', sources: [source] } : status })) }, isLoopback: true }
+    const pages = [{ id: 'git/repository', sourceTypeId: 'git', pageId: 'repository', label: 'Repository', order: 1 }]
+    let owner: MemorySourcePageProps | undefined
+    const renderSlot = ((_name: string, props: MemorySourcePageProps) => { owner = props; return <div><PageHeader title="Repository" description="Refs and history." /><div data-testid="source-target">Source content</div></div> }) as never
+    render(<MnemonWorkbench connection={connection as never} settingsScope={settings} t={translateEn} locale="en" sourcePageDirectory={{ getSnapshot: () => pages, subscribe: () => () => {} }} renderSlot={renderSlot} />)
+    fireEvent.click(await screen.findByRole('tab', { name: 'Repository' }))
+    const target = await screen.findByTestId('source-target'), canvas = screen.getByTestId('mnemon-canvas')
+    const header = screen.getByRole('heading', { name: 'Repository', level: 2 }).parentElement!.parentElement!
+    expect(canvas.hasAttribute('data-lock-page-header')).toBe(true)
+    vi.spyOn(canvas, 'getBoundingClientRect').mockImplementation(() => new DOMRect(0, 80, 800, 600))
+    vi.spyOn(header, 'getBoundingClientRect').mockImplementation(() => new DOMRect(0, 80, 800, 60))
+    vi.spyOn(target, 'getBoundingClientRect').mockImplementation(() => new DOMRect(0, 400, 400, 100))
+    canvas.scrollTop = 500
+    owner?.onRevealElement?.(target)
+    expect(canvas.scrollTop).toBe(500 + 400 - 80 - 72)
+    canvas.scrollTop = 500
+    owner?.onRevealElement?.(target, 20)
+    expect(canvas.scrollTop).toBe(500 + 400 - 80 - 20)
   })
 
   it('selects additional built-in Source instances without injecting a hidden default page', async () => {

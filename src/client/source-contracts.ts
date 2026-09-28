@@ -36,7 +36,10 @@ export interface MemorySourcePageProps {
   refreshKey?: number
   /** Reset only this workbench's page scroll when Source-owned navigation changes. */
   onResetScroll?(): void
-  /** Reveal a descendant in this canvas only, below the Source's measured sticky header. */
+  /**
+   * Reveal a descendant in this canvas only, below the locked page header, or
+   * `topInset` below the top when the Source pins and measures its own header.
+   */
   onRevealElement?(element: HTMLElement, topInset?: number): void
   /** Optional, Source-bound product preferences; no raw settings service or secrets. */
   preferences?: { value: MemoryJsonValue; writable: boolean; replace(value: MemoryJsonValue): Promise<void> }
