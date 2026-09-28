@@ -138,7 +138,7 @@ async function installStarter(target: ReturnType<typeof context>) {
 }
 
 describe('dsh-mnemon plugin composition', () => {
-  it('registers and disposes Web RPC routes with the Starter connection scope', async () => {
+  it('registers and disposes Web RPC routes after the official Connection is already running', async () => {
     const root = new Context()
     releases.push(() => root.fiber.dispose())
     const stub = context()
@@ -150,10 +150,10 @@ describe('dsh-mnemon plugin composition', () => {
       } })
     } })
     for (const name of ['tools', 'commands', 'settings', 'agents', 'subagents'] as const) root.provide(name, stub.ctx[name])
-    const transportDependencies = bundlePatch.match(/- id: connection\n\s+inject: \[([^\]]+)\]/)?.[1]
-      ?.split(',').map(name => name.trim()) ?? []
     root.provide('webRuntime', {})
-    await root.plugin({ inject: transportDependencies, apply: ctx => { new HostConnectionService(ctx, [], { isAuthenticated: () => true } as never) } })
+    // Official Web profile scopes Connection to webRuntime; Mnemon must be
+    // installable after this fiber has already started, without restarting it.
+    await root.plugin({ inject: ['webRuntime'], apply: ctx => { new HostConnectionService(ctx, [], { isAuthenticated: () => true } as never) } })
     const host = await root.plugin({ inject, apply: ctx => apply(ctx, { dataDir: dataDir() }) })
     const connectionFiber = [...root.registry.values()].flatMap(runtime => [...runtime.fibers])
       .find(fiber => fiber.parent === host.ctx && Object.hasOwn(fiber.inject, 'connection'))

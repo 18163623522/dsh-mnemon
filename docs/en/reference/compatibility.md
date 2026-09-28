@@ -28,16 +28,26 @@ In the affected `0.5.13` install, Desktop's fallback hides a missing `createVola
 
 See the [original Desktop reproduction and verification](../../pr-assets/issue-274-profile-generation/README.md).
 
+## Installing and enabling the Starter without a restart
+
+On DSH `0.1.7-rc.2`, Desktop generation directories and pnpm installs can expose only the `dsh-mnemon` root in the profile. The component packages exist in its dependency tree, but a host started without the bundle selected may still use its startup package-resolution table. First activation then reports `ERR_MODULE_NOT_FOUND` for Runtime, Documents, Memory Spaces and the default Strategy.
+
+The Starter's `dsh-mnemon/starter` entry prepares dependency resolution before the unchanged `cordis:group` imports its children. It uses the host's public package-resolution service, preserves startup routes for other bundles, and lets the host reject incompatible module rebinding. It does not flatten packages, rewrite profile links or patch DSH. Existing Entry IDs, the core disable gate, independent component choices and memory data stay intact.
+
+Mnemon also registers Web RPC routes in its own injected transport scope, so an already-running official Connection does not need to restart. Keep the Starter readiness component enabled; use the bundle or core switch to control the composition.
+
+A fresh installation through the official WebUI can use **Enable now** in the same host process. A previously installed, disabled bundle can also start directly. Updating or removing packages that Node has already loaded remains subject to DSH's normal restart requirements; this fix does not replace loaded modules. See the [installation and activation evidence](../../pr-assets/desktop-live-activation/README.md).
+
 ## DSH 0.1.7 bundle component list
 
-In DSH `0.1.7-rc.2`, the **Plugins → dsh-mnemon** detail page lists the internal `cordis:group` / `mnemon-bundle` container as an off component. Even with all nine real components running, the count can read “10 total · 9 running · 1 off.” Clicking the container switch returns `unknown-plugin`; the Chinese UI reports “组件启用失败：找不到该插件”. See the [original screenshot](../../pr-assets/sidebar-native-20260926/before-bundle-toggle-error.jpg) and [upstream issue #649](https://github.com/dsh-external/issues/issues/649).
+In DSH `0.1.7-rc.2`, the **Plugins → dsh-mnemon** detail page lists the internal `cordis:group` / `mnemon-bundle` container as an off component. Earlier Starter versions could show “10 total · 9 running · 1 off” with all nine real components running. The readiness entry adds one real component, so the equivalent count is now “11 total · 10 running · 1 off.” Clicking the container switch returns `unknown-plugin`; the Chinese UI reports “组件启用失败：找不到该插件”. See the [original screenshot](../../pr-assets/sidebar-native-20260926/before-bundle-toggle-error.jpg) and [upstream issue #649](https://github.com/dsh-external/issues/issues/649).
 
 The host's display and management inventories disagree: its bundle declaration list includes native groups, but its manageable plugin inventory deliberately excludes them. This container's off state does not mean the Mnemon core or its children are disabled, and does not establish whether memory reads and writes work.
 
 When this happens:
 
 1. Inspect **Memory System → Status** and the actual Source and Strategy components. If only the container is incorrectly shown as off, while the required components and reads/writes work, you can continue using Mnemon. Actual component errors or failed operations still need separate investigation.
-2. Use the top-level `dsh-mnemon` bundle switch or the core component with entry ID `mnemon` to stop and restore the composition. Do not use the `cordis:group` row's switch. The `dsh-mnemon` configuration page says this right above the component list.
+2. Use the top-level `dsh-mnemon` bundle switch or the core component with entry ID `mnemon` to stop and restore the composition. Do not use the `mnemon-bundle` container row's switch. The `dsh-mnemon` configuration page says this right above the component list.
 3. Keep existing configuration and memory. This display issue requires neither a data reset nor configuration or memory migration.
 
 The Starter retains the stable group ID and the existing `mnemon` configuration target. Disabling the core stops its Sources, Strategies and private Provider children; re-enabling it restores their independent choices. Removing the group leaves enabled dependents waiting for the missing core, while making the group anonymous can leave old instances alive after a profile reload. Do not remove the container, its stable ID or alter the group declaration to hide the row. The [published lifecycle regression](../development/README.md#test-ownership-and-coverage) checks manager persistence, restarts and literal or expression-based legacy disable flags without changing the installed host.
