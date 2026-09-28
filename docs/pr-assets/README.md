@@ -12,6 +12,7 @@ For new evaluations, commit the reusable harness, workload generator, concise bi
 
 | Record / 记录 | Scope / 范围 |
 |---|---|
+| [Desktop windows manage memory — issue #310](./issue-310-desktop-window/README.md) / [中文](./issue-310-desktop-window/README.zh-CN.md) | Published 0.5.18 read only in a `dsh-app://app/` window, the fix on DSH 0.1.7 and 0.2 Desktop windows, and a remote page that stays read only and says why / 已发布的 0.5.18 在 `dsh-app://app/` 窗口中只读、修复在 DSH 0.1.7 与 0.2 桌面窗口中的表现，以及保持只读并写明原因的远程页面 |
 | [Component pages and one interaction rule](./component-pages-20260927/README.md) / [中文](./component-pages-20260927/README.zh-CN.md) | Settings on their components' pages, gears and names that open them, apply-at-once choices and Apply for typed values, storage location, component-named Memory System, DSH's list and row pages, dark and narrow / 设置位于各自组件页、打开它们的齿轮与名称、即时生效的选择与输入值的应用、存储位置、按组件命名的记忆系统、DSH 列表与行页面，深色与窄列 |
 | [Memory composition drawn from component declarations](./composition-board-20260927/README.md) / [中文](./composition-board-20260927/README.zh-CN.md) | Board groups by role, relation chips, component pages with declared options, cascades with Undo, problem line, off layers, dark and narrow / 按角色分组的面板、关联标签、带声明选项的组件详情、带撤销的连带开关、问题提示、已关闭的层，深色与窄列 |
 | [Component switches and linked UI](./plugin-linkage-20260927/README.md) / [中文](./plugin-linkage-20260927/README.zh-CN.md) | Main Strategy states, turns without memory, component notes on layers and Providers, stopped workspace layers in light and dark / 主策略状态、无记忆时的对话、记忆层与 Provider 的组件说明、工作台未运行的层，浅色与深色 |
