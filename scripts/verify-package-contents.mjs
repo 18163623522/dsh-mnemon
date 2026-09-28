@@ -82,7 +82,10 @@ const relativeReadmeImages = readmeFiles.flatMap((path) => {
 // Save to memory dialog with its receipt, the turn memory bar's items and their
 // bilingual copy, and the README's live showcase bring the measured package to
 // 1,488,847 bytes (+17,758). Keep less than 3 KB of headroom.
-const maximumUnpackedBytes = 1_491_000
+// Desktop windows on the local channels, the remote read-only reasons in both
+// languages and the Status version read measure 1,491,026 bytes. The README's
+// installation quick start with its recording brings it to 1,492,741 bytes.
+const maximumUnpackedBytes = 1_494_000
 
 if (missing.length > 0 || unexpected.length > 0 || hostLeaks.length > 0 || relativeReadmeImages.length > 0 || pack.unpackedSize > maximumUnpackedBytes) {
   if (missing.length > 0) console.error(`Missing package files:\n${missing.map(path => `- ${path}`).join('\n')}`)

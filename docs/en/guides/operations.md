@@ -51,7 +51,7 @@ The Host fixes update commands and arguments. The browser cannot supply either; 
 
 ## Legacy Session recovery
 
-DSH `0.1.7-rc.2` is the supported host; see the [compatibility matrix](../reference/compatibility.md). Restart the Web Profile after upgrading Mnemon: the Starter patch gives the owning `connection` entry both `webRuntime` and `webServer`. This restores all seven Mnemon RPC channels when **Memory System** or its configuration page previously returned HTTP 405. Custom profiles that install the Host without the Starter must apply the same dependency declaration to their connection entry, preserving any additional dependencies in their own composition. No DSH package source is changed; browser authentication and Mnemon grants still apply.
+DSH `0.1.7-rc.2` and `0.2.0-rc.1` are the supported hosts; see the [compatibility matrix](../reference/compatibility.md). Restart the Web Profile after upgrading Mnemon: the Starter patch gives the owning `connection` entry both `webRuntime` and `webServer`. This restores all seven Mnemon RPC channels when **Memory System** or its configuration page previously returned HTTP 405. Custom profiles that install the Host without the Starter must apply the same dependency declaration to their connection entry, preserving any additional dependencies in their own composition. No DSH package source is changed; browser authentication and Mnemon grants still apply.
 
 The separate error `source summary requires notice form; source v0 artifact remains unchanged` comes from older Mnemon messages in DSH Session logs. New recall/instruction messages omit that invalid summary. Updating the plugin does not rewrite an existing Session. To repair one affected log:
 
@@ -154,7 +154,7 @@ Existing turns and delegated child activations may still use the old runtime. Wa
 
 ## Cloud-hosted WebUI
 
-DSH 0.1.7-rc.2 is the supported registry target. It authenticates the page, every RPC, and every stream through an authority-bound browser session created from the launch-token URL printed by the Host. `--trusted-host` remains a Host/Origin fence; it does not replace HTTPS or deployment access controls.
+DSH 0.1.7-rc.2 and 0.2.0-rc.1 are the supported registry targets. It authenticates the page, every RPC, and every stream through an authority-bound browser session created from the launch-token URL printed by the Host. `--trusted-host` remains a Host/Origin fence; it does not replace HTTPS or deployment access controls.
 
 1. Terminate HTTPS at a reverse proxy or access gateway and protect the public entry for its intended users. Proxy the same-origin `/` and `/api` traffic, including streams, to `http://127.0.0.1:3080` while preserving the external `Host` authority.
 2. Start the loopback service with the external authority. Use a bare `host[:port]`, not a URL:
@@ -184,7 +184,7 @@ This disables the Core/Host, all three bundled Sources, both main Strategies, an
 
 ### Remote management
 
-For authenticated remote clients, `remoteAccess: trusted-host` grants management operations; remote reads and narrow activation do not need it. Configure management only for the intended authenticated users. To run an older DSH, keep the Mnemon release verified with it and its pre-upgrade Session backup; see the [compatibility matrix](../reference/compatibility.md).
+For authenticated remote clients, `remoteAccess: trusted-host` grants management operations; remote reads and narrow activation do not need it. Without it, a remote page's Memory System and plugin settings say why they are read only. A browser on the same computer and DSH desktop windows are not remote clients and do not need it. Configure management only for the intended authenticated users. To run an older DSH, keep the Mnemon release verified with it and its pre-upgrade Session backup; see the [compatibility matrix](../reference/compatibility.md).
 
 1. Open `~/.dsh/profiles/web/cordis.patch.yml`, or `$DSH_HOME/profiles/web/cordis.patch.yml` when `DSH_HOME` is set. Edit an existing top-level `- id: mnemon` entry instead of adding a duplicate. If the initialized file still ends in `[]`, replace that marker with the complete row below; otherwise append the row to the existing top-level YAML list:
 
@@ -237,7 +237,7 @@ For authenticated remote clients, `remoteAccess: trusted-host` grants management
 
 ### Web and model
 
-- DSH owns authentication or pairing for remote RPCs and streams. Mnemon's API Gateway projection additionally requires `remoteAccess: trusted-host` for management; local loopback clients use their own channels.
+- DSH owns authentication or pairing for remote RPCs and streams. Mnemon's API Gateway projection additionally requires `remoteAccess: trusted-host` for management; local loopback clients and DSH desktop windows (`dsh-app://app/`) use their own channels.
 - Provider catalogs and management responses are redacted; the UI receives configured field names, never saved credential values.
 - The WebUI follows the Host's writable settings snapshot instead of inferring capability from transport locality; an unavailable settings channel renders an explicit diagnostic rather than an empty page.
 - The WebUI neither reads SQLite, starts processes, calls remote providers, nor supplies arbitrary update commands; provider network access remains inside the Host.
@@ -279,6 +279,8 @@ Report vulnerabilities privately through [SECURITY.md](../../../SECURITY.md), no
 | ZIP import checksum/schema failure | The backup is damaged or incompatible; preserve the current root and never unzip over it manually |
 | No Update button | Already current, remote check failed, or the source is link/manual; follow panel guidance |
 | An authenticated remote page can read or activate a Memory Space but cannot save settings or perform other writes | Default management restriction; for intended remote management, preserve the current configuration, set `remoteAccess: trusted-host` locally, and restart DSH |
+| In the DSH desktop app, runtime memory, Memory Spaces and the plugin settings are read only while agent tools still write | dsh-mnemon 0.5.18 and earlier treated desktop windows as remote pages ([#310](https://github.com/omdsh-dev/dsh-mnemon/issues/310)); update to 0.5.19 or later on the app's Plugins page, with no `remoteAccess` change |
+| DSH 0.2 reports dsh-mnemon as incompatible when installing or starting | A release before 0.5.19 was installed; update dsh-mnemon, and within 24 hours of a release install the versioned package as [Install and start](./installation.md#common-problems) describes |
 | Mnemon RPC returns 401 after a DSH restart or authority change | Open the launch URL printed by `dsh web` so the one-time token can establish a fresh authority-bound browser cookie |
 
 ## Known limitations
@@ -301,7 +303,7 @@ Activity score, latest checkpoint, and retry state are not persisted. Host resta
 
 ### Versions and internationalization
 
-Only DSH 0.1.7-rc.2 is supported; see the [compatibility matrix](../reference/compatibility.md). The Web interface is bilingual, while commands, tool cards, compatibility metadata and some errors remain partly untranslated.
+DSH 0.1.7-rc.2 and 0.2.0-rc.1 are supported; see the [compatibility matrix](../reference/compatibility.md). The Web interface is bilingual, while commands, tool cards, compatibility metadata and some errors remain partly untranslated.
 
 ## Document archive recovery
 

@@ -33,7 +33,7 @@ describe('MnemonWorkbench', () => {
   const settingsScope = staticSettingsScope<Config>(settingsSnapshot)
   const readOnlySettingsScope = staticSettingsScope<Config>({ status: 'unavailable', writable: false, mode: 'host' })
 
-  function createConnection(options: { reviewPartial?: boolean; reviewTeam?: boolean; reviewError?: string; isLoopback?: boolean; withInactiveBody?: boolean; withSecondActiveBody?: boolean; metadataFailureBodyId?: string; withPlacement?: boolean; withProviderSources?: boolean; listCount?: number; searchCount?: number; entityCount?: number; entityInsightCount?: number; documentCount?: number; runtimeCount?: number; runtimeBranch?: boolean; longContent?: boolean; workspaceMismatch?: boolean; nativeUnhealthy?: boolean; graphPending?: boolean; statusPending?: boolean; directoryPending?: boolean; reconnectPending?: boolean; relatedDeferred?: boolean; versionsDeferred?: boolean; layerSwitches?: Record<'runtime' | 'documents' | 'memory-spaces', boolean>; componentsOff?: string[]; composition?: { serving: boolean; state: 'ready' | 'incomplete' | 'rejected'; diagnostics: Array<{ code: string; message: string }> } } = {}) {
+  function createConnection(options: { reviewPartial?: boolean; reviewTeam?: boolean; reviewError?: string; isLoopback?: boolean; withInactiveBody?: boolean; withSecondActiveBody?: boolean; metadataFailureBodyId?: string; withPlacement?: boolean; withProviderSources?: boolean; listCount?: number; searchCount?: number; entityCount?: number; entityInsightCount?: number; documentCount?: number; runtimeCount?: number; runtimeBranch?: boolean; longContent?: boolean; workspaceMismatch?: boolean; nativeUnhealthy?: boolean; graphPending?: boolean; statusPending?: boolean; summaryWithoutVersion?: boolean; directoryPending?: boolean; reconnectPending?: boolean; relatedDeferred?: boolean; versionsDeferred?: boolean; layerSwitches?: Record<'runtime' | 'documents' | 'memory-spaces', boolean>; componentsOff?: string[]; composition?: { serving: boolean; state: 'ready' | 'incomplete' | 'rejected'; diagnostics: Array<{ code: string; message: string }> } } = {}) {
     const body = {
       id: 'project',
       provider: MEMORY_PROVIDER_CATALOG.find(item => item.id === 'mnemon-native')!, providerId: 'mnemon-native', providerEnabled: true, providerSettings: {}, configuredSecrets: [],
@@ -246,6 +246,11 @@ describe('MnemonWorkbench', () => {
         return { ok: true, value: documents.find(document => document.id === payload?.id) }
       }
       if (endpoint === 'status-summary' && options.statusPending === true) return { ok: true, value: { ...status, memoryBodies: bodies.map(item => ({ ...item, statusLoading: true })) } }
+      // The Host's summary carries the CLI version only after a full status has read it.
+      if (endpoint === 'status-summary' && options.summaryWithoutVersion === true) {
+        const { version: _version, ...summary } = status
+        return { ok: true, value: { ...summary, memoryBodies: bodies } }
+      }
       if (endpoint === 'status' && options.statusPending === true) return await new Promise<never>(() => {})
       if (endpoint === 'status' || endpoint === 'status-summary') return { ok: true, value: { ...status, memoryBodies: bodies } }
       if (endpoint === 'dashboard') {
@@ -536,6 +541,15 @@ describe('MnemonWorkbench', () => {
     await waitFor(() => expect(statusReads()).toBe(initial + 2))
   })
 
+  it('reads the full status for the CLI version a summary does not carry yet', async () => {
+    // A fresh install has no memory space loading, so only the missing version asks for it.
+    const { connection, call } = createConnection({ summaryWithoutVersion: true })
+    render(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" />)
+    expect(await screen.findByText('Mnemon 0.1.2')).toBeTruthy()
+    expect(screen.queryByText('等待版本信息')).toBeNull()
+    expect(call).toHaveBeenCalledWith('/dsh-mnemon-read', 'status', expect.anything())
+  })
+
   it.each([true, false])('shows a background-review warning in writable=%s sessions', async writable => {
     const error = 'CONTEXT_WINDOW_EXCEEDED: request (145508 tokens) exceeds the available context size (98304 tokens)'
     const { connection } = createConnection({ reviewError: error })
@@ -736,6 +750,22 @@ describe('MnemonWorkbench', () => {
     await waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('true'))
     expect(call).toHaveBeenCalledWith('/api', 'body', { memoryBodyId: 'preferences', active: true, sessionId: 'session-1' })
     expect(call.mock.calls.some(([channel]) => channel === '/dsh-mnemon-write')).toBe(false)
+  })
+
+  it('says why a remote page is read only when the Host withholds the management grant', async () => {
+    const { connection } = createConnection({ isLoopback: false })
+    render(<MnemonWorkbench connection={connection} settingsScope={staticSettingsScope<Config>({ ...settingsSnapshot, writable: false })} sessionId="session-1" />)
+
+    await waitFor(() => expect(screen.getByText('已连接')).toBeTruthy())
+    expect(screen.getByText(/^远程访问为只读：在 profile 的 mnemon 配置中设置 remoteAccess: trusted-host/)).toBeTruthy()
+  })
+
+  it('does not show the remote read-only reason on a local page', async () => {
+    const { connection } = createConnection()
+    render(<MnemonWorkbench connection={connection} settingsScope={staticSettingsScope<Config>({ ...settingsSnapshot, writable: false })} sessionId="session-1" />)
+
+    await waitFor(() => expect(screen.getByText('已连接')).toBeTruthy())
+    expect(screen.queryByText(/^远程访问为只读/)).toBeNull()
   })
 
   it('enables memory management controls from a writable authenticated Host snapshot', async () => {

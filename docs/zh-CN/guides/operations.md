@@ -51,7 +51,7 @@ Go 更新还要求当前执行文件确实位于本机 Go 的安装输出位置�
 
 ## 旧会话恢复
 
-支持的宿主为 DSH `0.1.7-rc.2`，参见[兼容性矩阵](../reference/compatibility.md)。升级 Mnemon 后重启 Web Profile：Starter 补丁为拥有路由的 `connection` Entry 同时声明 `webRuntime` 和 `webServer`，恢复此前在“记忆系统”或其配置页返回 HTTP 405 的全部七个 RPC 通道。绕过 Starter 独立安装 Host 的自定义 Profile，也应在自己的 connection Entry 声明这两个依赖，并保留自定义组合原有的其他依赖。不修改 DSH 包源码；浏览器认证和 Mnemon grant 仍然生效。
+支持的宿主为 DSH `0.1.7-rc.2` 与 `0.2.0-rc.1`，参见[兼容性矩阵](../reference/compatibility.md)。升级 Mnemon 后重启 Web Profile：Starter 补丁为拥有路由的 `connection` Entry 同时声明 `webRuntime` 和 `webServer`，恢复此前在“记忆系统”或其配置页返回 HTTP 405 的全部七个 RPC 通道。绕过 Starter 独立安装 Host 的自定义 Profile，也应在自己的 connection Entry 声明这两个依赖，并保留自定义组合原有的其他依赖。不修改 DSH 包源码；浏览器认证和 Mnemon grant 仍然生效。
 
 另一项 `source summary requires notice form; source v0 artifact remains unchanged` 错误来自旧版 Mnemon 写入的 DSH 会话消息。新消息已移除 recall/instructions 中不合法的 summary；更新插件不会改写现有会话。修复单个受影响日志时：
 
@@ -154,7 +154,7 @@ DSH 以写权限打开旧会话时，会迁移为不可变的 v3 generation。Mn
 
 ## 云端 WebUI
 
-DSH 0.1.7-rc.2 是支持的 registry 安装目标。页面、每个 RPC 与每条 stream 都通过 Host 输出的启动 token URL 建立同一份、与 authority 绑定的浏览器会话。`--trusted-host` 仍只是 Host/Origin 防线，不能替代 HTTPS 或部署层访问控制。
+DSH 0.1.7-rc.2 与 0.2.0-rc.1 是支持的 registry 安装目标。页面、每个 RPC 与每条 stream 都通过 Host 输出的启动 token URL 建立同一份、与 authority 绑定的浏览器会话。`--trusted-host` 仍只是 Host/Origin 防线，不能替代 HTTPS 或部署层访问控制。
 
 1. 在反向代理或访问网关终止 HTTPS，并只向预期用户开放公网入口。把同源的 `/` 与 `/api` 流量（包括 stream）代理到 `http://127.0.0.1:3080`，同时保留外部 `Host` authority。
 2. 使用外部 authority 启动回环服务。参数应为裸 `host[:port]`，不是 URL：
@@ -184,7 +184,7 @@ HTTP 403 可能来自 Host/Origin 不匹配，或旧远程 Client 仍调用独�
 
 ### 远程管理
 
-对于已认证的远程客户端，`remoteAccess: trusted-host` 授予管理操作；远程读取与小范围激活不需要该授权。仅为预期的已认证用户配置远程管理权限。需要运行更早的 DSH 时，请配套使用针对它验证过的 Mnemon 版本及其升级前的会话备份，参见[兼容性矩阵](../reference/compatibility.md)。
+对于已认证的远程客户端，`remoteAccess: trusted-host` 授予管理操作；远程读取与小范围激活不需要该授权。没有该授权时，远程页面的记忆系统与插件设置会写明只读的原因。本机浏览器与 DSH 桌面版窗口不是远程客户端，不需要该授权。仅为预期的已认证用户配置远程管理权限。需要运行更早的 DSH 时，请配套使用针对它验证过的 Mnemon 版本及其升级前的会话备份，参见[兼容性矩阵](../reference/compatibility.md)。
 
 1. 打开 `~/.dsh/profiles/web/cordis.patch.yml`；如果设置了 `DSH_HOME`，则路径为 `$DSH_HOME/profiles/web/cordis.patch.yml`。如果已经有顶层 `- id: mnemon`，请直接修改该项，不要添加重复项。如果初始化文件仍以 `[]` 结尾，请用下面的完整配置行替换它；否则把该行追加到现有顶层 YAML 列表：
 
@@ -237,7 +237,7 @@ HTTP 403 可能来自 Host/Origin 不匹配，或旧远程 Client 仍调用独�
 
 ### Web 与模型
 
-- DSH 负责远程 RPC 与 stream 的认证或配对；Mnemon 的 API Gateway 映射对管理操作另行要求 `remoteAccess: trusted-host`，本地回环客户端使用各自的通道。
+- DSH 负责远程 RPC 与 stream 的认证或配对；Mnemon 的 API Gateway 映射对管理操作另行要求 `remoteAccess: trusted-host`，本地回环客户端与 DSH 桌面版窗口（`dsh-app://app/`）使用各自的通道。
 - Provider 目录和管理响应始终脱敏；界面只显示已配置字段名，不返回已保存凭据值。
 - WebUI 依据 Host 返回的可写 settings snapshot 判断产品能力，不再根据传输位置猜测权限；设置通道不可用时会显示明确诊断，而不是空白页。
 - WebUI 不直接读取 SQLite、启动进程、调用远程 Provider 或指定任意更新命令；Provider 网络访问只发生在 Host。
@@ -279,6 +279,8 @@ HTTP 403 可能来自 Host/Origin 不匹配，或旧远程 Client 仍调用独�
 | ZIP 导入 checksum / schema 失败 | 备份损坏或格式不兼容；保留当前根，不要手工解压覆盖 |
 | 更新按钮不出现 | 当前已是最新、远程检查失败，或安装来源是 link / 手工模式；按面板提示沿原方式更新 |
 | 已认证远程页面能读取或激活记忆空间，但不能保存设置或执行其他写入 | 默认管理限制；确需远程管理时，保留当前配置、在本地设置 `remoteAccess: trusted-host` 并重启 DSH |
+| DSH 桌面版中运行时记忆、记忆空间与插件设置均为只读，而 Agent 工具仍能写入 | dsh-mnemon 0.5.18 及更早版本把桌面窗口当成远程页面（[#310](https://github.com/omdsh-dev/dsh-mnemon/issues/310)）；在桌面版插件页更新到 0.5.19 或更新版本，无需修改 `remoteAccess` |
+| DSH 0.2 安装或启动时提示 dsh-mnemon 不兼容 | 安装到的是 0.5.19 之前的版本；更新 dsh-mnemon，新版本发布 24 小时内按[安装与启动](./installation.md#常见问题)安装带版本号的包 |
 | DSH 重启或 authority 改变后 Mnemon RPC 返回 401 | 打开 `dsh web` 输出的启动 URL，让一次性 token 建立新的、与 authority 绑定的浏览器 Cookie |
 
 ## 已知限制
@@ -301,7 +303,7 @@ HTTP 403 可能来自 Host/Origin 不匹配，或旧远程 Client 仍调用独�
 
 ### 版本与国际化
 
-只支持 DSH 0.1.7-rc.2，参见[兼容性矩阵](../reference/compatibility.md)。Web 界面为中英文双语，但命令、工具卡、兼容元数据和部分错误仍未完全国际化。
+支持 DSH 0.1.7-rc.2 与 0.2.0-rc.1，参见[兼容性矩阵](../reference/compatibility.md)。Web 界面为中英文双语，但命令、工具卡、兼容元数据和部分错误仍未完全国际化。
 
 ## 文档归档恢复
 

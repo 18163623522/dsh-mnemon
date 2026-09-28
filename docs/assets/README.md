@@ -7,6 +7,7 @@ The current product gallery is [v0.5.19 in Light appearance](./webui-v0.5.19/REA
 | Directory / 目录 | Purpose / 用途 |
 |---|---|
 | [webui-v0.5.19](./webui-v0.5.19/README.md) | Current Light UI, seeded fictional data, live model, provenance and hashes / 当前浅色界面、预置虚构数据、真实模型、来源与哈希 |
+| [install-v0.5.19](./install-v0.5.19/README.md) | A new user's first run on DSH 0.2: first-run dialogs, Add plugin, Enable now, Status, the first memory with the live model, and a refused older release / 新用户在 DSH 0.2 上的首次使用：首次打开的对话框、添加插件、立即启用、状态页、真实模型写入的第一条记忆，以及被拒绝的旧版本 |
 | [webui-v0.5.4](./webui-v0.5.4/README.md) | Historical v0.5.4 Light UI with imported data / v0.5.4 浅色界面与导入数据（历史） |
 | [diagrams](./diagrams) | Code-authored architecture diagrams; current terminology retained / 代码绘制的架构图，已采用当前术语 |
 | [memory-space-terminology](./memory-space-terminology/README.md) | Historical pre-release terminology and layout evidence, based on v0.5.3 / 基于 v0.5.3 的版本化前用语与布局证据 |

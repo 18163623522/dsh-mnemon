@@ -22,7 +22,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/getting-started.md"><strong>Get started</strong></a> ·
+  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/installation.md"><strong>Install and start</strong></a> ·
   <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/assets/webui-v0.5.19/README.md">Watch the demo</a> ·
   <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/README.md">Documentation</a> ·
   <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/development/extensions.md">Build a plugin</a>
@@ -75,20 +75,24 @@ The default **Layered strategy** keeps runtime memory resident and reads the oth
 
 ## Quick start
 
-You need a DSH `0.1.7-rc.2` Host and Node.js `^22.19.0 || >=24.0.0`.
+New to DSH? [Install and start](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/installation.md) walks from an empty machine to your first memory, with a screenshot for every step. The short version, with [Node.js](https://nodejs.org/) 22.19 or later:
 
 ```sh
-dsh plugin --profile web add dsh-mnemon
-dsh web
+npm install --global pnpm
+npx @deepseek-ai/dsh web
 ```
 
-1. Open **Memory System** in the sidebar. **Status** shows each memory component and Provider.
-2. Add a runtime memory entry. Select a DSH workspace before creating Project Documents.
-3. For Memory Spaces, install the Mnemon CLI for Mnemon Native with `npm install --global @mnemon-dev/mnemon`, or enable another Provider on the Memory Spaces page.
-4. In a conversation, the turn memory bar under each reply lists what the turn read and wrote, and the brain mark saves a reply to memory.
+<p align="center">
+  <a href="https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/installation.md"><img src="https://raw.githubusercontent.com/omdsh-dev/dsh-mnemon/main/docs/assets/install-v0.5.19/en/install.gif" alt="On the Plugins page: Add plugin, type dsh-mnemon, Install, Enable now; the Memory System appears in the sidebar" width="880" /></a>
+</p>
+
+1. In the page that opens, click **Plugins → Add plugin**, type `dsh-mnemon`, click **Install**, then **Enable now**.
+2. Open **Memory System** in the sidebar. **Status** shows each memory component and Provider.
+3. Tell a conversation something to remember. The turn memory bar under the reply lists what the turn read and wrote, and the brain mark saves a reply to memory.
+4. For Memory Spaces, install the Mnemon CLI for Mnemon Native with `npm install --global @mnemon-dev/mnemon`, or enable another Provider on the Memory Spaces page.
 5. Choose the main strategy and enhancements under **Plugins → dsh-mnemon**.
 
-For Headless, add the same package with `dsh plugin --profile headless add dsh-mnemon`. Keep `v0.5.16` on older hosts. The [getting started guide](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/getting-started.md) covers each platform, and [compatibility and upgrades](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/reference/compatibility.md) covers existing installations.
+dsh-mnemon supports DSH `0.1.7-rc.2` (npm `latest`) and `0.2.0-rc.1` (npm `next`, run with `npx @deepseek-ai/dsh@next web`). The same package serves the desktop app's Plugins page, `dsh plugin --profile web add dsh-mnemon` on the command line, and Headless with `dsh plugin --profile headless add dsh-mnemon`; keep `v0.5.16` on older hosts. [Getting started](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/guides/getting-started.md) continues from here, and [compatibility and upgrades](https://github.com/omdsh-dev/dsh-mnemon/blob/main/docs/en/reference/compatibility.md) covers existing installations.
 
 ## How it works
 

@@ -88,7 +88,7 @@
     "runtime.result.remove": "Removed from {target} · {count} entries",
     "runtime.result.maintenance": "Capacity maintenance complete: archived to {spaces}, then updated {target} · {count} entries",
     "runtime.result.localCompaction": "Local profile compaction complete: no Memory Space write; updated {target} · {count} entries",
-    "runtime.readOnly": "This deployment is read only. Runtime memory still enters context but cannot be changed here.",
+    "runtime.readOnly": "Read only here: runtime memory still enters context but cannot be changed on this page.",
     "runtime.footnote": "memories.json is the only source of truth. The control plane generates both Markdown files; do not edit them directly."
   }
 }

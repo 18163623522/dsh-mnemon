@@ -10,7 +10,8 @@ dsh-mnemon gives DeepSeek Harness three kinds of memory: **runtime memory** in e
 
 | Task | Guide |
 |---|---|
-| Install, then store and use the first memories | [Getting started](./guides/getting-started.md) |
+| Install from scratch on the web, the desktop app or the command line, through to the first memory | [Install and start](./guides/installation.md) |
+| Store and use the first memories | [Getting started](./guides/getting-started.md) |
 | Find your way around the conversation, the Memory System and the Plugins page | [UI guide](./guides/ui-guide.md) |
 | Understand what each component and strategy does | [Capability map](./guides/capabilities.md) |
 | Choose and connect a long-term backend | [Providers](./guides/memory-providers.md) |
@@ -40,4 +41,4 @@ dsh-mnemon gives DeepSeek Harness three kinds of memory: **runtime memory** in e
 
 [v0.5.17](./releases/v0.5.17.md) adds the General strategy, composes memory from component declarations on the Plugins page, gives every component its own settings page and makes the data directory an explicit Default or Custom choice. [All releases](./releases/README.md) · [Roadmap](./roadmap.md) · [Historical evidence](../pr-assets/README.md)
 
-Guides describe the current release. Screenshots and recordings come from the [v0.5.19 gallery](../assets/webui-v0.5.19/README.md); dated PR records establish only their named revisions and environments. Internal Host RPCs are not an external plugin SDK.
+Guides describe the current release. Screenshots and recordings come from the [v0.5.19 gallery](../assets/webui-v0.5.19/README.md), and the installation steps from the [installation gallery](../assets/install-v0.5.19/README.md); dated PR records establish only their named revisions and environments. Internal Host RPCs are not an external plugin SDK.
