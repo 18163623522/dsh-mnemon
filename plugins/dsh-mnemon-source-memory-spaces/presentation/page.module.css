@@ -335,8 +335,9 @@ button.readSourceCard:hover { background: var(--mn-hover); }
 .agentAnswerHeading h3 { margin: 2px 0 0; font-size: 14px; font-weight: 500; line-height: 22px; }
 .agentAnswerHeading > code { color: var(--mn-faint); font-size: 11px; }
 .agentAnswer > p { margin: 12px 0; white-space: pre-wrap; color: var(--mn-text); font-size: 14px; line-height: 22px; }
-.agentCitations { display: flex; flex-wrap: wrap; gap: 6px; padding-top: 10px; border-top: .5px solid var(--mn-line); }
-.agentCitations code { padding: 1px 8px; border-radius: 999px; color: var(--mn-muted); background: var(--mn-fill); font-size: 11px; line-height: 17px; }
+.agentCitations { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-top: 10px; border-top: .5px solid var(--mn-line); }
+.agentCitations small { color: var(--mn-faint); font-size: 12px; line-height: 18px; }
+.agentCitations span { max-width: 100%; overflow: hidden; padding: 1px 8px; border-radius: 999px; color: var(--mn-muted); background: var(--mn-fill); font-size: 12px; line-height: 18px; text-overflow: ellipsis; white-space: nowrap; }
 .fieldWide { display: grid; gap: 6px; color: var(--mn-muted); font-size: 12px; font-weight: 500; line-height: 18px; }
 .supervisedForm textarea:focus { border-color: var(--mn-accent); }
 .singleColumn { max-width: 830px; }

@@ -76,7 +76,7 @@ export const zh = {
   'card.forget': '忘记',
   'turnTail.label': '本回合记忆',
   'turnTail.recall': '召回 {count}',
-  'turnTail.write': '沉淀 {count}',
+  'turnTail.write': '写入 {count}',
   'turnTail.documents': '档案检索 {count}',
   'turnTail.inspect': '检查 {count}',
   'turnTail.failed': '失败 {count}',

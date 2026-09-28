@@ -342,7 +342,8 @@
     "overview.disconnectSpaceAria": "断开{name}",
     "overview.deletingSpace": "删除中…",
     "common.score": "相关度 {value}",
-    "overview.providerEnableHint": "未启用的 Provider 可在“插件 → 可组合记忆”的“记忆空间”页面中启用。"
+    "overview.providerEnableHint": "未启用的 Provider 可在“插件 → 可组合记忆”的“记忆空间”页面中启用。",
+    "search.citations": "引用"
   },
   "en": {
     "term.space": "Memory Space",
@@ -687,6 +688,7 @@
     "overview.disconnectSpaceAria": "Disconnect {name}",
     "overview.deletingSpace": "Deleting…",
     "common.score": "Score {value}",
-    "overview.providerEnableHint": "Turn on more Providers on Memory Spaces’ page under Plugins → dsh-mnemon."
+    "overview.providerEnableHint": "Turn on more Providers on Memory Spaces’ page under Plugins → dsh-mnemon.",
+    "search.citations": "Cites"
   }
 }

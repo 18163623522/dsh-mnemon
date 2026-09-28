@@ -1854,7 +1854,8 @@ describe('MnemonWorkbench', () => {
 
     await waitFor(() => expect(screen.getByRole('region', { name: 'Agent 查询结果' })).toBeTruthy())
     expect(screen.getByText('项目选择 SQLite，以满足单文件部署。')).toBeTruthy()
-    expect(screen.getByText('project/memory-12345678')).toBeTruthy()
+    // A citation names the recalled memory it points at; its identifier stays on hover.
+    expect(screen.getByTitle('project/memory-12345678').textContent).toBe('1. 项目选择 SQLite，因为需要单文件部署。')
     expect(screen.getByText('原始召回内容')).toBeTruthy()
     expect(screen.getByText('项目选择 SQLite，因为需要单文件部署。')).toBeTruthy()
     expect(call).toHaveBeenCalledWith(expect.anything(), 'agent-search', expect.objectContaining({ query: 'SQLite' }))

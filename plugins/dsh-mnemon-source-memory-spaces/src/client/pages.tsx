@@ -1043,6 +1043,11 @@ export function ExplorePage(props: { client: MemorySpacesPageClient; agentClient
   const [sources, setSources] = useState<MemoryReadSource[]>([])
   const [searchKind, setSearchKind] = useState<'direct' | 'agent' | null>(null)
   const [agentAnswer, setAgentAnswer] = useState<{ answer: string; citations: string[]; runId: string } | null>(null)
+  /** A citation names the recalled memory it points at, not its identifiers. */
+  const citationLabel = (citation: string): string => {
+    const cited = results.find(result => `${result.memoryBodyId}/${result.id}` === citation || result.id === citation)
+    return cited === undefined ? short(citation.split('/').at(-1) ?? citation, 12) : short(cited.content, 40)
+  }
   const [searched, setSearched] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [relatedTo, setRelatedTo] = useState<{ insight: Insight; request: number } | null>(null)
@@ -1126,7 +1131,7 @@ export function ExplorePage(props: { client: MemorySpacesPageClient; agentClient
       <ReadSourcePanel title={t('search.sourcesTitle')} sources={sources} />
       <div className={css.asyncResults}>
       {searching && <SectionSpinner label={searchKind === 'agent' ? t('search.agentSearching') : t('search.searching')} />}
-      {agentAnswer !== null && <section className={css.agentAnswer} aria-label={t('search.agentAnswer')}><div className={css.agentAnswerHeading}><div><span>{t('search.agentAnswerHint')}</span><h3>{t('search.agentAnswer')}</h3></div><code>{agentAnswer.runId.slice(0, 8)}</code></div><p>{agentAnswer.answer}</p>{agentAnswer.citations.length > 0 && <div className={css.agentCitations}>{agentAnswer.citations.map(citation => <code key={citation}>{citation}</code>)}</div>}</section>}
+      {agentAnswer !== null && <section className={css.agentAnswer} aria-label={t('search.agentAnswer')}><div className={css.agentAnswerHeading}><div><span>{t('search.agentAnswerHint')}</span><h3>{t('search.agentAnswer')}</h3></div></div><p>{agentAnswer.answer}</p>{agentAnswer.citations.length > 0 && <div className={css.agentCitations}><small>{t('search.citations')}</small>{agentAnswer.citations.map((citation, index) => <span key={citation} title={citation}>{index + 1}. {citationLabel(citation)}</span>)}</div>}</section>}
       {error !== null && <div className={css.inlineError} role="alert">{error}</div>}
       {!searched && <EmptyState glyph="⌕" title={t('search.startTitle')}>{t('search.startText')}</EmptyState>}
       {searched && !searching && results.length === 0 && error === null && <EmptyState glyph="0" title={t('search.emptyTitle')}>{t('search.emptyText')}</EmptyState>}
