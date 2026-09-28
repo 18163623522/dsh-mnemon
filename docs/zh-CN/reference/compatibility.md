@@ -57,9 +57,9 @@ DSH `0.1.7-rc.2` 的 Desktop generation 目录和 pnpm 安装可能只在 profil
 
 Starter 的 `dsh-mnemon/starter` 条目先准备依赖解析，再让原有 `cordis:group` 导入子组件。它调用宿主公开的包解析服务，保留其他 bundle 启动时的依赖路径，并由宿主拒绝不兼容的模块重绑定；不平铺组件包、不改写 profile 链接、不修改 DSH。已有 Entry ID、核心停用总开关、各组件的独立选择和记忆数据均保持不变。
 
-Mnemon 同时在自己的传输注入作用域内注册 Web RPC，已运行的官方 Connection 无需重启。请保持 Starter 就绪组件启用，使用 bundle 或核心开关控制整套组合。
+Mnemon 同时在自己的传输注入作用域内注册 Web RPC，已运行的官方 Connection 无需重启。请保持 Starter 就绪组件启用，使用 bundle 或核心开关控制整套组合。关闭它时，`mnemon-bundle` 会一直等待 `mnemonStarterReady`：`dsh web` 照常启动但没有记忆系统，桌面版则按启动失败处理；在 DSH 0.1.7-rc.2 与 0.2.0-rc.1 上重新打开它，记忆系统无需重启即可恢复，见[安装与启动](../guides/installation.md#dsh-提示waiting-for-service-mnemonstarterready)。
 
-官方 WebUI 首次安装后，可以在同一宿主进程中点击“立即启用”；已安装但停用的 bundle 也可直接启动。更新或卸载 Node 已加载过的包时，仍须遵循 DSH 的正常重启要求，本修复不替换已加载模块。参见[安装与启用验收记录](../../pr-assets/desktop-live-activation/README.zh-CN.md)。
+官方 WebUI 首次安装后，可以在同一宿主进程中点击“立即启用”；已安装但停用的 bundle 也可直接启动。更新或卸载 Node 已加载过的包时，仍须遵循 DSH 的正常重启要求，本修复不替换已加载模块。例如从 0.5.17 或更早的版本原地更新后不重启就启用组件，会提示 `./starter` 未导出（`ERR_PACKAGE_PATH_NOT_EXPORTED`）。参见[安装与启用验收记录](../../pr-assets/desktop-live-activation/README.zh-CN.md)。
 
 ## DSH 0.1.7 bundle 组件列表
 
