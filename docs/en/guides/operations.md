@@ -223,7 +223,8 @@ For authenticated remote clients, `remoteAccess: trusted-host` grants management
 ### Process
 
 - CLI uses `spawn(command, args, { shell: false })`.
-- stdout + stderr are capped at 2 MiB by default.
+- stdout + stderr are capped at 2 MiB per call. Mnemon Native reads a whole Memory Space for its contents list, its graph and the exact-content check before runtime memory archives entries; those reads grow with the Store and are capped at 128 MiB.
+- A call that fails says why: only a failed launch suggests installing Mnemon or setting `mnemon.cliPath`, while a timeout, a cancellation and an output over the cap each name themselves.
 - Calls use `timeoutMs` and AbortSignal; cancellation sends `SIGTERM`, then `SIGKILL` after 1.5 seconds.
 - One Runner serializes calls; separate DSH processes still rely on Mnemon / SQLite concurrency.
 
