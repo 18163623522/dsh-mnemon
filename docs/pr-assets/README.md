@@ -12,6 +12,7 @@ For new evaluations, commit the reusable harness, workload generator, concise bi
 
 | Record / 记录 | Scope / 范围 |
 |---|---|
+| [Fallback sidebar entry as a native row — issue #318](./issue-318-sidebar-entry/README.md) / [中文](./issue-318-sidebar-entry/README.zh-CN.md) | The fallback Memory System entry beside DSH's own rows on main and with the fix: expanded, open and collapsed, with computed styles / main 与修复后的兜底“记忆系统”入口与 DSH 原生行并排：展开、打开与折叠状态，以及计算样式 |
 | [Idle review writes one layer — issue #319](./issue-319-review-layers/README.md) / [中文](./issue-319-review-layers/README.zh-CN.md) | A scripted review pass that repeats a Document in working memory on main and with the fix, and Write runtime memory switched off / 脚本化审查在 main 与修复后把项目档案重复写入工作记忆的对比，以及关闭写入运行时记忆 |
 | [Large Native Memory Spaces — issue #320](./issue-320-native-store-dumps/README.md) / [中文](./issue-320-native-store-dumps/README.zh-CN.md) | A 900-insight Native store before and after: graph, contents and runtime memory archiving at capacity, with exact CLI readback / 900 条记忆的 Native 库修复前后：图谱、内容与运行时记忆满容量归档，以及 CLI 逐字核验 |
 | [v0.5.20 release](./release-v0.5.20/README.md) / [中文](./release-v0.5.20/README.zh-CN.md) | The release package through Add plugin on fresh DSH 0.2.0-rc.1 and 0.1.7-rc.2 profiles, Enable now without a restart, Status, Runtime, Native CLI and WebUI recall / 在全新的 DSH 0.2.0-rc.1 与 0.1.7-rc.2 profile 上通过添加插件安装发布包、不重启直接启用、状态页、运行时记忆、Native CLI 与 WebUI 检索 |
