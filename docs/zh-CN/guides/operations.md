@@ -51,7 +51,7 @@ Go 更新还要求当前执行文件确实位于本机 Go 的安装输出位置�
 
 ## 旧会话恢复
 
-支持的宿主为 DSH `0.1.7-rc.2` 与 `0.2.0-rc.1`，参见[兼容性矩阵](../reference/compatibility.md)。升级 Mnemon 后重启 Web Profile：Starter 补丁为拥有路由的 `connection` Entry 同时声明 `webRuntime` 和 `webServer`，恢复此前在“记忆系统”或其配置页返回 HTTP 405 的全部七个 RPC 通道。绕过 Starter 独立安装 Host 的自定义 Profile，也应在自己的 connection Entry 声明这两个依赖，并保留自定义组合原有的其他依赖。不修改 DSH 包源码；浏览器认证和 Mnemon grant 仍然生效。
+支持的宿主为 DSH `0.1.7-rc.2` 与 `0.2.0-rc.2`，参见[兼容性矩阵](../reference/compatibility.md)。升级 Mnemon 后重启 Web Profile：Starter 补丁为拥有路由的 `connection` Entry 同时声明 `webRuntime` 和 `webServer`，恢复此前在“记忆系统”或其配置页返回 HTTP 405 的全部七个 RPC 通道。绕过 Starter 独立安装 Host 的自定义 Profile，也应在自己的 connection Entry 声明这两个依赖，并保留自定义组合原有的其他依赖。不修改 DSH 包源码；浏览器认证和 Mnemon grant 仍然生效。
 
 另一项 `source summary requires notice form; source v0 artifact remains unchanged` 错误来自旧版 Mnemon 写入的 DSH 会话消息。新消息已移除 recall/instructions 中不合法的 summary；更新插件不会改写现有会话。修复单个受影响日志时：
 
@@ -154,7 +154,7 @@ DSH 以写权限打开旧会话时，会迁移为不可变的 v3 generation。Mn
 
 ## 云端 WebUI
 
-DSH 0.1.7-rc.2 与 0.2.0-rc.1 是支持的 registry 安装目标。页面、每个 RPC 与每条 stream 都通过 Host 输出的启动 token URL 建立同一份、与 authority 绑定的浏览器会话。`--trusted-host` 仍只是 Host/Origin 防线，不能替代 HTTPS 或部署层访问控制。
+DSH 0.1.7-rc.2 与 0.2.0-rc.2 是支持的 registry 安装目标。页面、每个 RPC 与每条 stream 都通过 Host 输出的启动 token URL 建立同一份、与 authority 绑定的浏览器会话。`--trusted-host` 仍只是 Host/Origin 防线，不能替代 HTTPS 或部署层访问控制。
 
 1. 在反向代理或访问网关终止 HTTPS，并只向预期用户开放公网入口。把同源的 `/` 与 `/api` 流量（包括 stream）代理到 `http://127.0.0.1:3080`，同时保留外部 `Host` authority。
 2. 使用外部 authority 启动回环服务。参数应为裸 `host[:port]`，不是 URL：
@@ -308,7 +308,7 @@ HTTP 403 可能来自 Host/Origin 不匹配，或旧远程 Client 仍调用独�
 
 ### 版本与国际化
 
-支持 DSH 0.1.7-rc.2 与 0.2.0-rc.1，参见[兼容性矩阵](../reference/compatibility.md)。Web 界面为中英文双语，但命令、工具卡、兼容元数据和部分错误仍未完全国际化。
+支持 DSH 0.1.7-rc.2 与 0.2.0-rc.2，参见[兼容性矩阵](../reference/compatibility.md)。Web 界面为中英文双语，但命令、工具卡、兼容元数据和部分错误仍未完全国际化。
 
 ## 文档归档恢复
 
