@@ -13,15 +13,15 @@ Baseline: `dfb3196cbcea58fb9b36b7283ccac4662d366858` (main, as published in 0.5.
 - the shared brain icon at the size the fallback passes (18 on main, 16 with the fix);
 - the placement `placeEntry` uses, directly under New Session.
 
-The values are the browser's computed styles and boxes. In each screenshot the top **记忆系统** row is the fallback; below it are DSH's **插件** and **记忆系统** rows.
+The values are the browser's computed styles and boxes, measured with every row present, so the fallback can be compared with DSH's own Memory System row. The two never appear together in real use: the fallback is removed as soon as the native seat is available. The screenshots therefore hide DSH's Memory System row, so each shows what a fallback layout shows: the fallback **记忆系统** entry under New Session and DSH's **插件** row.
 
 ## Before and after
 
 | | Main | Fix |
 |---|---|---|
 | Expanded | ![The fallback row is smaller, grey and indented](./before-expanded.jpg) | ![The fallback row matches the native rows](./after-expanded.jpg) |
-| Open | ![The open fallback row is bold on a darker background](./before-open.jpg) | ![The open fallback row matches the selected native row](./after-open.jpg) |
-| Collapsed | ![A circle with a larger icon](./before-collapsed.jpg) | ![The same rounded square as the native rows](./after-collapsed.jpg) |
+| Open | ![The open fallback row is bold on a darker background](./before-open.jpg) | ![The open fallback row uses DSH's selected-row background](./after-open.jpg) |
+| Collapsed | ![A circle with a larger icon](./before-collapsed.jpg) | ![The same rounded square as DSH's rail rows](./after-collapsed.jpg) |
 
 | Expanded row | DSH Plugins row | Fallback on main | Fallback with the fix |
 |---|---|---|---|
