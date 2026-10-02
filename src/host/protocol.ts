@@ -630,7 +630,7 @@ export interface VersionStatus {
 export interface VersionRestartStatus {
   /** The dsh-mnemon version this Host runs. */
   running: string
-  /** The dsh-mnemon version now installed, when it differs: from Check versions, `dsh plugin` or DSH's Plugins page. */
+  /** The dsh-mnemon version now installed, when it differs, however it was installed: Check versions or `dsh plugin`, for example. */
   installed?: string
   /** Packages Check versions updated on their own. */
   packages?: VersionPackageId[]

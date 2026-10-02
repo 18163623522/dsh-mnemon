@@ -2,7 +2,7 @@
 
 [简体中文](./README.zh-CN.md) | [Verification data](./verification.json)
 
-In the desktop app, **Status → Check versions** found a newer dsh-mnemon but could not update it. The dialog only said 检测到 DSH Profile 安装，但当前找不到 pnpm 命令。, because the version check ran pnpm from PATH and the app's Host has none. The app ships its own pnpm and hands it to DSH's plugin manager. With this change the Starter updates through that plugin manager, so the app's own pnpm installs it. After DSH swaps in the new page, the Memory System reopens on the result.
+In the desktop app, **Status → Check versions** found a newer dsh-mnemon but could not update it. The dialog only said 检测到 DSH Profile 安装，但当前找不到 pnpm 命令。, because the version check ran pnpm from PATH and the app's Host has none. The app ships its own pnpm and hands it to DSH's plugin manager. With this change the Starter updates through that plugin manager, so the app's own pnpm installs it. After DSH swaps in the new page, the Memory System reopens on the result. Until DSH restarts, a notice above every Memory System page names the installed version and the one that still runs.
 
 Tested revision: `b6e463569103c8380d6159ee4108e20d505a8da1`. Baseline: dsh-mnemon 0.5.20 from npm. The runs took place on 2026-10-02 (Asia/Shanghai):
 - macOS 15.6 arm64 and Node 24.19.0;
@@ -83,6 +83,47 @@ Here npm DSH 0.2.0-rc.2 was started directly with `dsh web`, without a launcher 
 
 `dsh-mnemon-strategy-scoped@0.5.4` from npm was added with the packaged-app `dsh plugin add`. It is a DSH bundle the profile maintains (Profile 独立维护). Its **Update** went through DSH's plugin manager to npm's 0.5.5 (`Done in 267ms using pnpm v11.7.0`). Only the Strategy's page changed, so the dialog stayed open, and the enabled bundles were unchanged.
 
+## Restart reminder
+
+An update replaces the installed files, but the Host keeps the code it loaded until DSH restarts, while DSH already swaps in the new page. Revision `375d1ba43fae7de1b82e9717ec69dadd1a8375db` adds a notice above every Memory System page that names the installed version and the one that still runs, and Status shows the running version:
+- the Host records the version it loaded and compares it with the Starter on disk on each status read, so the notice covers `dsh plugin` too;
+- **Check versions** reads the installed Starter from disk as well.
+
+These runs used a build of that revision, served as above: `0.5.21-dshupdate.0` installed first, and the same build as `0.5.21`.
+
+| After Check versions updated the Starter | After a restart |
+|---|---|
+| ![Above Status: dsh-mnemon 0.5.21 is installed, while 0.5.21-dshupdate.0 still runs](./reminder-installed.jpg) | ![After a restart: no notice, and the engine card reads dsh-mnemon 0.5.21](./reminder-restarted.jpg) |
+
+**Check versions, on DSH 0.2.0-rc.2 with the packaged-app launcher:**
+- DSH's plugin manager installed 0.5.21 (`Done in 598ms using pnpm v11.7.0`).
+- Status and Runtime both showed **dsh-mnemon 0.5.21 已安装** with 当前运行的仍是 0.5.21-dshupdate.0；重启 DSH 后生效，桌面版请完全退出后重新打开。
+- The engine card kept the running dsh-mnemon 0.5.21-dshupdate.0. Check versions read 待重启, installed 0.5.21, with no **Update** button.
+- After a restart, the notice was gone, the engine card read dsh-mnemon 0.5.21, and the dialog read 已是最新.
+
+**`dsh plugin add` while the Memory System was open:**
+- The packaged-app `dsh plugin --profile web add dsh-mnemon@0.5.21` ran in the same profile while DSH served the page (`Done in 419ms using pnpm v11.7.0`).
+- About 0.5 s after it returned, DSH swapped in the new client and the open Memory System closed to DSH's home. This is DSH's client HMR; the dialog's reopening covers only updates started from the dialog.
+- Reopened from the sidebar, Status and Runtime showed the same notice. Check versions read 待重启 with 0.5.21 installed and no **Update** button, instead of offering the version already installed.
+
+![Check versions after dsh plugin add: 0.5.21 installed, restart needed, no Update button](./reminder-cli-dialog.jpg)
+
+**Back to the running version:** `dsh plugin add dsh-mnemon@0.5.21-dshupdate.0` closed the Memory System the same way. Reopened, it showed no notice, and Check versions offered 0.5.21-dshupdate.0 → 0.5.21 again.
+
+**An optional Strategy updated from Check versions:**
+- `dsh-mnemon-strategy-scoped@0.5.4` was added on its own, then updated to 0.5.5 (`Done in 312ms using pnpm v11.7.0`).
+- Status and Runtime showed **dsh-mnemon-strategy-scoped 已更新** with 重启 DSH 后生效，桌面版请完全退出后重新打开。 The Starter stayed 0.5.21-dshupdate.0.
+- The notice was gone after a restart.
+
+![Above Runtime: dsh-mnemon-strategy-scoped updated, restart DSH](./reminder-strategy.jpg)
+
+**DSH 0.1.7-rc.2:** `dsh web` ran with pnpm 11.19.0 on PATH.
+- Check versions updated the Starter through DSH's plugin manager (`Done in 419ms using pnpm v11.19.0`).
+- The same notice appeared on Status and Runtime.
+- After a restart, it was gone, and the engine card read 0.5.21.
+
+None of these runs logged a console error.
+
 ## Automated checks
 
 `pnpm run verify` passes on the tested revision. It covers:
@@ -91,6 +132,8 @@ Here npm DSH 0.2.0-rc.2 was started directly with `dsh web`, without a launcher 
 - root tests: 113 files, 1,578 passed, 6 skipped;
 - Headless activation and public entries, publint and attw;
 - package contents at 1,506,720 unpacked bytes, with the budget moved to 1,509,000.
+
+On the reminder revision, `pnpm run verify` passes again: docs at 2,997 local links, root tests at 113 files with 1,584 passed and 6 skipped, and package contents at 1,511,189 unpacked bytes, with the budget moved to 1,515,000.
 
 New Host tests cover:
 - DSH's route without a PATH pnpm, and its preference over one;
@@ -108,6 +151,13 @@ New Client tests cover:
 - reopening the workspace only for a fresh record;
 - Status reopening the dialog in the workbench.
 
+New tests for the reminder cover:
+- the restart status: an installed Starter however it arrived, and packages Check versions updated on their own;
+- a Starter `dsh plugin` installed, which Check versions shows as installed and waiting for the restart, with no update to offer;
+- no notice once the Starter on disk is the running one again;
+- the status every page reads, with the running version and an installed update;
+- the notice on every page, for the Starter and for packages, and none otherwise.
+
 ## Limits
 
 - The desktop app was reproduced with npm DSH 0.2.0-rc.2 through the same `packageManager` contract and a copy of the app's pnpm. The packaged app itself was not driven.
@@ -115,3 +165,6 @@ New Client tests cover:
 - The reopening starts with updates from the release that contains this change. On 0.5.21 or earlier, the desktop app needs one removal and reinstall on its Plugins page, as the guides say.
 - The live runs use the default sidebar layout. The builtin layout reopens through the same workspace opener, which unit tests cover.
 - Without session storage the update still works; only the reopening is lost.
+- After `dsh plugin` installs an update, DSH's client HMR closes an open Memory System. The notice shows once it is opened again.
+- DSH's Plugins page, which updates only by removing and installing again, was not run.
+- Only the Starter is compared with the version that runs. A package other than the Starter that is updated outside Check versions is not named.

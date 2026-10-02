@@ -546,7 +546,7 @@ export class VersionUpdateManager {
     const pnpm = this.executable('pnpm')
     const installer = this.bundleInstaller(dshInstall)
     const mnemonOutdated = mnemonLocal.current !== undefined && mnemonLatest !== undefined && compareVersions(mnemonLocal.current, mnemonLatest) < 0
-    // `dsh plugin` or DSH's Plugins page may have installed another Starter while this Host runs.
+    // `dsh plugin` may have installed another Starter while this Host runs.
     const installed = this.installedVersion(dshInstall)
     const dshOutdated = dshLatest !== undefined && compareVersions(installed, dshLatest) < 0
     const mnemonSupported = mnemonLocal.install.updateCommand !== undefined
