@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { HostAgent, HostContextShape, HostSubagentsService, ToolDefinition, ToolExecution } from "../src/host/dsh.ts"
+import type { HostAgent, HostContextShape, HostPreStepDecision, HostSubagentsService, ToolDefinition, ToolExecution } from "../src/host/dsh.ts"
 import type { RememberRequest, MemoryBodyCatalog as MemorySpaceCatalog, SearchRequest, Insight, MemoryPlacementCandidate, PreparedMemoryPlacement } from 'dsh-mnemon-source-memory-spaces/contracts'
 import type { DocumentMutationResult, DocumentView, DocumentMutation } from 'dsh-mnemon-source-documents/contracts'
 import type { RuntimeMemoryMaintenancePlan, RuntimeMemoryMutation, RuntimeMemoryMutationResult, RuntimeMemorySnapshot } from 'dsh-mnemon-source-runtime/contracts'
@@ -18,6 +18,7 @@ import type { ComposableMemoryTurn } from '../src/core/turns.ts'
 import { sourceFixture } from './fixtures/sources.ts'
 import { compositionFixture } from './fixtures/composition.ts'
 import { assertDshOutputSchema, MnemonSubagentCoordinator } from "../src/host/subagent.ts"
+import { CONTINUATION_TEXT } from '../src/host/continuation-turn.ts'
 import { DEFAULT_THREE_TIER_VIEW_STRATEGY } from 'dsh-mnemon-strategy-default-three-tier'
 import { registerTools } from "../src/host/tools.ts"
 import { resolveConfig } from "../src/host/config.ts"
@@ -1536,6 +1537,26 @@ describe('Mnemon memory subagent coordinator', () => {
     expect(rememberCall.toolFilter.allow).toContain('mnemon_remember')
     expect(rememberCall.toolFilter.allow).not.toContain('mnemon_forget')
     expect(rememberCall.persona).toContain('you cannot and must not delete existing entries')
+  })
+
+  it('ends each tool continuation of a delegated write child with a user turn (issue 327)', async () => {
+    const host = subagents({ summary: 'Stored in project.', action: 'stored', memoryBodyIds: ['project'] })
+    const registry = toolRegistry()
+    const handlers: Array<(payload: { step: number; signal: AbortSignal }, next: () => Promise<HostPreStepDecision>) => Promise<HostPreStepDecision>> = []
+    const child = { ...parent('subagent'), id: 'child-run-1', ctx: { on: (name: string, handler: never) => {
+      if (name === 'agent/pre-step') handlers.push(handler)
+      return () => {}
+    } } } as unknown as HostAgent
+    // DSH publishes the child while the provider starts it.
+    const publishing: HostSubagentsService = { ...host.value, async start(provider, request) {
+      registry.publish(child, request.parent)
+      return host.value.start(provider, request)
+    } }
+    const coordinator = new MnemonSubagentCoordinator(publishing, runtimeSource(), registry.value)
+    await coordinator.remember(parent(), { content: 'Durable choice' }, new AbortController().signal)
+    expect(handlers).toHaveLength(1)
+    await expect(handlers[0]!({ step: 2, signal: new AbortController().signal }, async () => ({ kind: 'enter', messages: [] })))
+      .resolves.toMatchObject({ kind: 'enter', messages: [{ role: 'user', content: [{ type: 'text', text: CONTINUATION_TEXT }] }] })
   })
 
   it('excludes destructive forget from supervised writeback runs (issue 148)', async () => {
