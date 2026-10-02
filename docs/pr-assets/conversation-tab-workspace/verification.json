@@ -193,5 +193,26 @@
       ],
       "consoleErrors": []
     }
+  },
+  "designReview": {
+    "date": "2026-10-03",
+    "followUps": [
+      "With workspace or centralized storage, a tab whose Agent is not loaded used the DSH launch directory as its root on main; the fix routes it to the conversation workspace. Entries saved the old way stay in the launch directory.",
+      "A full Documents capacity in such a tab runs under a task Agent that archives the least recently used Document first, as the conversation Agent does (tests/rpc.spec.ts).",
+      "Automatic Provider placement for a new Memory Space runs under a task Agent in that state (tests/rpc.spec.ts).",
+      "The dashboard aligns such a session with its registry workspace (tests/view-management.spec.ts).",
+      "Archived sessions keep their place in the DSH 0.1.7-rc.2 and 0.2.0-rc.2 registries, so they route to their workspace too."
+    ],
+    "verify": {
+      "command": "pnpm run verify",
+      "rootTests": {
+        "files": 113,
+        "passed": 1566,
+        "skipped": 6
+      },
+      "docsLocalLinks": 2981,
+      "packageUnpackedBytes": 1500772,
+      "packageBudget": 1501000
+    }
   }
 }

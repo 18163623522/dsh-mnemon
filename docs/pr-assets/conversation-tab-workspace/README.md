@@ -25,6 +25,8 @@ The fixture creates two conversations under the test preset. Renaming that prese
 
 - **Workspace from DSH's registry.** DSH's workspace registry lists every session, loaded or not (`Workspace.sessionIds`, identical in DSH 0.1.7-rc.2 and 0.2). When a request names a session whose Agent is not loaded, the Host takes that session's workspace from the registry. The request is then aligned with the conversation, as it would be with a loaded Agent.
 - **Writes without the conversation Agent.** A new Document and Remember used the conversation's Agent whenever the page was aligned with it. They now do so only when that Agent is loaded; otherwise they write to the Source in the conversation's workspace, as a page without a session does.
+- **Task Agents where an Agent is needed.** When Documents are full, a task Agent in the conversation's workspace archives the least recently used Document and then writes, as the conversation's Agent does. A task Agent also chooses a new Memory Space's Provider. Asking an Agent in Memory Spaces and tidying their names and descriptions already worked this way.
+- **The right root in workspace storage.** With workspace or centralized storage, such a tab used to read and write Runtime memory and Memory Spaces in the directory DSH was started from. It now uses the conversation's workspace. Entries saved the old way stay in that directory.
 
 | After: Status | After: a Document created there |
 |---|---|
@@ -61,10 +63,12 @@ All nine passed on DSH 0.2.0-rc.2 and on 0.1.7-rc.2, with no visible error and n
   - a manual Document write succeeds;
   - a session no workspace lists keeps no workspace.
 - Another test sends Remember and a new Document straight to the Sources when the session's Agent is not loaded.
-- `pnpm run verify` passes: docs (2,965 local links), typecheck, the deterministic build, build, typecheck and tests for all 17 plugins, root tests (113 files, 1,563 passed, 6 skipped), Headless activation, package contents (1,499,348 unpacked bytes, within the 1,501,000 budget), public entries, publint and attw.
+- Further tests cover the task Agents: a full Documents capacity goes to one, while other failures and a page without a conversation keep the Source's answer; Provider placement goes to one. The dashboard aligns such a session with its registry workspace.
+- `pnpm run verify` passes: docs (2,981 local links), typecheck, the deterministic build, build, typecheck and tests for all 17 plugins, root tests (113 files, 1,566 passed, 6 skipped), Headless activation, package contents (1,500,772 unpacked bytes, within the 1,501,000 budget), public entries, publint and attw.
 
 ## Limits
 
 - The reproduction reaches the unresumable state by renaming the fixture's preset. Other ways to get there, such as a session DSH has not resumed yet, use the same Host path, which the unit tests cover.
-- A session that no workspace lists, for instance an archived one (DSH 0.2 does not open those), still has no workspace.
-- Agent-backed work that needs the conversation itself, such as recall through its Agent or automatic Provider placement, still waits for DSH to resume the Agent.
+- A session that no workspace lists still has no workspace. Archived sessions keep their place in the registry (DSH 0.1.7-rc.2 and 0.2.0-rc.2), so they route to their workspace too.
+- Work that runs inside the conversation's own Agent, such as its idle review, still waits for DSH to resume the Agent.
+- The task Agent paths are covered by unit tests; the live runs above did not fill Documents to capacity.

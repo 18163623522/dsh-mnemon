@@ -801,6 +801,17 @@ export class MnemonLifecycle {
     return this.coordinator.document(this.liveAgent(sessionId), request, signal)
   }
 
+  /**
+   * The same Document write under a fresh task Agent, for a conversation whose
+   * Agent is not loaded: it archives the least recently used Document to make
+   * room, as the conversation's Agent would.
+   */
+  mutateDocumentTask(sessionId: string, request: DocumentMutation, workspaceRoot?: string, signal = new AbortController().signal) {
+    const root = workspaceRoot?.trim() || this.workspaceRoot(sessionId)
+    if (root === undefined || root.trim() === '') throw new Error('a selected DSH workspace is required to write a Mnemon Document')
+    return this.runTaskAgent(sessionId, root, signal, agent => this.coordinator.document(agent, request, signal))
+  }
+
   archiveDocument(sessionId: string, id: string, workspaceRoot?: string, signal = new AbortController().signal) {
     const root = workspaceRoot?.trim() || this.workspaceRoot(sessionId)
     if (root === undefined || root.trim() === '') throw new Error('a selected DSH workspace is required to archive a Mnemon Document')
@@ -813,6 +824,12 @@ export class MnemonLifecycle {
 
   placeProvider(sessionId: string, body: { name: string; description: string }, prepared: PreparedMemoryPlacement, signal = new AbortController().signal) {
     return this.coordinator.placeProvider(this.liveAgent(sessionId), body, prepared, signal)
+  }
+
+  /** Choose a new Memory Space's Provider under a fresh task Agent, as Ask Agent does without a loaded conversation Agent. */
+  placeProviderTask(sessionId: string, body: { name: string; description: string }, prepared: PreparedMemoryPlacement, workspaceRoot?: string, signal = new AbortController().signal) {
+    const root = workspaceRoot?.trim() || this.workspaceRoot(sessionId)
+    return this.runTaskAgent(sessionId, root, signal, agent => this.coordinator.placeProvider(agent, body, prepared, signal))
   }
 
   maintainMetadata(sessionId: string, memoryBodyIds: readonly string[], workspaceRoot?: string, signal = new AbortController().signal) {
