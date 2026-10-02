@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ClientConnectionHandle } from "../src/host/dsh.ts"
 import type { ClientSettingsScope, ClientSettingsSnapshot } from "../src/host/dsh.ts"
 import type { Config } from "../src/host/config.ts"
+import type { VersionRestartStatus } from '../src/host/protocol.ts'
 import { ComposedMnemonWorkbench as MnemonWorkbench } from './fixtures/client.tsx'
 import { MnemonActionSeat } from '../src/client/action-seat.ts'
 import { MnemonChangeSignal } from '../src/client/change-signal.ts'
@@ -34,7 +35,7 @@ describe('MnemonWorkbench', () => {
   const settingsScope = staticSettingsScope<Config>(settingsSnapshot)
   const readOnlySettingsScope = staticSettingsScope<Config>({ status: 'unavailable', writable: false, mode: 'host' })
 
-  function createConnection(options: { reviewPartial?: boolean; reviewTeam?: boolean; reviewError?: string; isLoopback?: boolean; withInactiveBody?: boolean; withSecondActiveBody?: boolean; metadataFailureBodyId?: string; withPlacement?: boolean; withProviderSources?: boolean; listCount?: number; searchCount?: number; entityCount?: number; entityInsightCount?: number; documentCount?: number; runtimeCount?: number; runtimeBranch?: boolean; longContent?: boolean; workspaceMismatch?: boolean; nativeUnhealthy?: boolean; graphPending?: boolean; statusPending?: boolean; summaryWithoutVersion?: boolean; directoryPending?: boolean; reconnectPending?: boolean; relatedDeferred?: boolean; versionsDeferred?: boolean; layerSwitches?: Record<'runtime' | 'documents' | 'memory-spaces', boolean>; componentsOff?: string[]; composition?: { serving: boolean; state: 'ready' | 'incomplete' | 'rejected'; diagnostics: Array<{ code: string; message: string }> } } = {}) {
+  function createConnection(options: { reviewPartial?: boolean; reviewTeam?: boolean; reviewError?: string; isLoopback?: boolean; withInactiveBody?: boolean; withSecondActiveBody?: boolean; metadataFailureBodyId?: string; withPlacement?: boolean; withProviderSources?: boolean; listCount?: number; searchCount?: number; entityCount?: number; entityInsightCount?: number; documentCount?: number; runtimeCount?: number; runtimeBranch?: boolean; longContent?: boolean; workspaceMismatch?: boolean; nativeUnhealthy?: boolean; graphPending?: boolean; statusPending?: boolean; summaryWithoutVersion?: boolean; restartPending?: VersionRestartStatus; directoryPending?: boolean; reconnectPending?: boolean; relatedDeferred?: boolean; versionsDeferred?: boolean; layerSwitches?: Record<'runtime' | 'documents' | 'memory-spaces', boolean>; componentsOff?: string[]; composition?: { serving: boolean; state: 'ready' | 'incomplete' | 'rejected'; diagnostics: Array<{ code: string; message: string }> } } = {}) {
     const body = {
       id: 'project',
       provider: MEMORY_PROVIDER_CATALOG.find(item => item.id === 'mnemon-native')!, providerId: 'mnemon-native', providerEnabled: true, providerSettings: {}, configuredSecrets: [],
@@ -79,6 +80,7 @@ describe('MnemonWorkbench', () => {
       ...(options.nativeUnhealthy === true ? { error: '项目记忆空间: Mnemon Store 无法打开' } : {}),
       version: '0.1.2',
       dshMnemonVersion: '0.1.2',
+      ...(options.restartPending === undefined ? {} : { restartPending: options.restartPending }),
       cliPath: '/usr/local/bin/mnemon',
       commandFound: true,
       dataDir: '/tmp/mnemon',
@@ -856,6 +858,28 @@ describe('MnemonWorkbench', () => {
     await waitFor(() => expect(within(dialog).getByText('已是最新')).toBeTruthy())
     expect(call.mock.calls.filter(([, endpoint]) => endpoint === 'versions')).toHaveLength(2)
     await waitFor(() => expect(screen.getByText('Mnemon 0.2.0')).toBeTruthy())
+  })
+
+  it('says on every page which update waits for a DSH restart', async () => {
+    const { connection } = createConnection({ restartPending: { running: '0.1.2', installed: '0.1.3' } })
+    render(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" />)
+    const reminder = await screen.findByRole('status', { name: 'dsh-mnemon 0.1.3 已安装' })
+    expect(reminder.textContent).toContain('当前运行的仍是 0.1.2；重启 DSH 后生效，桌面版请完全退出后重新打开。')
+    // The engine card names the version that runs.
+    expect(screen.getByText('dsh-mnemon 0.1.2')).toBeTruthy()
+    await selectWorkspaceTab('运行时记忆')
+    expect(screen.getByRole('status', { name: 'dsh-mnemon 0.1.3 已安装' })).toBeTruthy()
+  })
+
+  it('names packages updated on their own until a restart, and stays quiet otherwise', async () => {
+    const { connection } = createConnection({ restartPending: { running: '0.1.2', packages: ['dsh-mnemon-strategy-scoped', 'dsh-mnemon-strategy-general'] } })
+    render(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" />)
+    const reminder = await screen.findByRole('status', { name: 'dsh-mnemon-strategy-scoped、dsh-mnemon-strategy-general 已更新' })
+    expect(reminder.textContent).toContain('重启 DSH 后生效')
+    cleanup()
+    render(<MnemonWorkbench connection={createConnection().connection} settingsScope={settingsScope} sessionId="session-1" />)
+    await waitFor(() => expect(screen.getByText('dsh-mnemon 0.1.2')).toBeTruthy())
+    expect(screen.queryByText(/重启 DSH 后生效/u)).toBeNull()
   })
 
   it('reopens the version dialog on Status in the client DSH swapped in during a Starter update', async () => {

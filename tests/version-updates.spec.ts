@@ -1,4 +1,4 @@
-import { chmodSync, mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -514,7 +514,12 @@ describe('Starter updates through DSH\'s plugin manager', () => {
     const installed = new Map<string, string>([['dsh-mnemon', '0.5.21'], ...added.map(([name]): [string, string] => [name, '0.5.1'])])
     const installBundle = vi.fn(async (spec: string): Promise<DshBundleChange> => {
       await options.gate
-      installed.set(spec.slice(0, spec.lastIndexOf('@')), spec.slice(spec.lastIndexOf('@') + 1))
+      const name = spec.slice(0, spec.lastIndexOf('@'))
+      const version = spec.slice(spec.lastIndexOf('@') + 1)
+      installed.set(name, version)
+      // DSH rewrites the hoisted package in place.
+      const path = join(profile, 'node_modules', name, 'package.json')
+      json(path, { ...JSON.parse(readFileSync(path, 'utf8')) as object, version })
       return { application: 'restart-required', packageResult: { output: 'Packages: +1\nDone' } }
     })
     const listBundles = vi.fn(async () => [{ name: 'other-bundle', version: '1.0.0' }, ...[...installed].map(([name, version]) => ({ name, version }))])
@@ -640,8 +645,41 @@ describe('Starter updates through DSH\'s plugin manager', () => {
     await expect(check).resolves.toMatchObject({ current: '0.5.22', outdated: false, restartRequired: true })
   })
 
+  it('reports what waits for a restart: an installed Starter however it arrived, and packages updated on their own', async () => {
+    const f = profileFixture({ added: { 'dsh-mnemon-strategy-general': { bundle: true } } })
+    expect(f.manager.restartStatus()).toBeUndefined()
+    await f.manager.update('dsh-mnemon-strategy-general')
+    expect(f.manager.restartStatus()).toEqual({ running: '0.5.21', packages: ['dsh-mnemon-strategy-general'] })
+    // `dsh plugin` rewrites the hoisted package in place while this Host keeps the code it loaded.
+    json(join(f.profile, 'node_modules', 'dsh-mnemon', 'package.json'), { name: 'dsh-mnemon', version: '0.5.23' })
+    expect(f.manager.restartStatus()).toEqual({ running: '0.5.21', installed: '0.5.23', packages: ['dsh-mnemon-strategy-general'] })
+    expect(f.manager.runningVersion).toBe('0.5.21')
+  })
+
+  it('shows a Starter `dsh plugin` installed as installed, waiting for the restart, with no update to offer', async () => {
+    const f = profileFixture()
+    json(join(f.profile, 'node_modules', 'dsh-mnemon', 'package.json'), { name: 'dsh-mnemon', version: '0.5.22' })
+    await expect(f.starter()).resolves.toMatchObject({ current: '0.5.22', latest: '0.5.22', outdated: false, restartRequired: true })
+    expect(f.manager.restartStatus()).toEqual({ running: '0.5.21', installed: '0.5.22' })
+    await expect(f.manager.update('dsh-mnemon')).resolves.toMatchObject({ previousVersion: '0.5.22', updated: false, restartRequired: true })
+    expect(f.installBundle).not.toHaveBeenCalled()
+  })
+
+  it('drops the reminder once the Starter on disk is the running one again', async () => {
+    const f = profileFixture()
+    await f.manager.update('dsh-mnemon')
+    expect(f.manager.restartStatus()).toEqual({ running: '0.5.21', installed: '0.5.22' })
+    // `dsh plugin add dsh-mnemon@0.5.21` puts back the version this Host runs.
+    json(join(f.profile, 'node_modules', 'dsh-mnemon', 'package.json'), { name: 'dsh-mnemon', version: '0.5.21' })
+    expect(f.manager.restartStatus()).toBeUndefined()
+    await expect(f.starter()).resolves.toMatchObject({ current: '0.5.21', outdated: true, restartRequired: false })
+  })
+
   it('does not report success when DSH leaves another version installed', async () => {
-    const f = profileFixture({ installer: { listBundles: vi.fn(async () => [{ name: 'dsh-mnemon', version: '0.5.21' }]) } })
+    const f = profileFixture({ installer: {
+      installBundle: vi.fn(async (): Promise<DshBundleChange> => ({ application: 'restart-required' })),
+      listBundles: vi.fn(async () => [{ name: 'dsh-mnemon', version: '0.5.21' }]),
+    } })
     await expect(f.manager.update('dsh-mnemon')).rejects.toThrow('did not install the requested version 0.5.22; found 0.5.21')
     expect(f.manager.currentDshMnemonVersion).toBe('0.5.21')
   })

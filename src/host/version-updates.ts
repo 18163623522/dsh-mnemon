@@ -4,7 +4,7 @@ import { delimiter, dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { findMnemonCommand, mnemonNpmLauncher, nodeLauncherEnvironment, resolveMnemonInvocation } from 'dsh-mnemon-source-memory-spaces/native-cli'
 import { runProcess, type ProcessOptions, type ProcessResult, type ProcessRunner } from './process.ts'
-import type { VersionComponentId, VersionComponentStatus, VersionInstallMode, VersionPackageId, VersionPackageStatus, VersionStatus, VersionUpdateResult } from "./protocol.ts"
+import type { VersionComponentId, VersionComponentStatus, VersionInstallMode, VersionPackageId, VersionPackageStatus, VersionRestartStatus, VersionStatus, VersionUpdateResult } from "./protocol.ts"
 
 export type { VersionComponentId, VersionComponentStatus, VersionInstallMode, VersionStatus, VersionUpdateResult } from "./protocol.ts"
 
@@ -87,6 +87,11 @@ export function isVersionComponentId(value: unknown): value is VersionComponentI
 const MNEMON_MODULE = 'github.com/mnemon-dev/mnemon'
 const PACKAGE_MANIFEST_PATH = [new URL('../package.json', import.meta.url), new URL('../../package.json', import.meta.url)]
   .map(url => fileURLToPath(url)).find(path => manifest(path)?.name === DSH_MNEMON_PACKAGE) ?? fileURLToPath(new URL('../package.json', import.meta.url))
+/**
+ * The version this process loaded. Profiles install with a hoisted layout, so an update rewrites
+ * these same files while the loaded modules stay in memory until DSH restarts.
+ */
+const LOADED_VERSION = manifest(PACKAGE_MANIFEST_PATH)?.version
 const CHECK_TIMEOUT_MS = 10_000
 const UPDATE_TIMEOUT_MS = 10 * 60_000
 /** A check waits this long for an update that is finishing, within the browser's 15 s check deadline. */
@@ -320,6 +325,9 @@ function samePath(left: string, right: string): boolean {
 }
 
 export class VersionUpdateManager {
+  /** The version this Host runs; an update changes what is installed, not what is loaded. */
+  readonly runningVersion: string
+  /** The Starter the last update installed, read only while the files on disk cannot be. */
   private dshMnemonVersion: string
   private readonly packageManifestPath: string
   private readonly dshHome: string
@@ -335,7 +343,8 @@ export class VersionUpdateManager {
 
   constructor(dependencies: VersionUpdateDependencies = {}) {
     this.packageManifestPath = dependencies.packageManifestPath ?? PACKAGE_MANIFEST_PATH
-    this.dshMnemonVersion = manifest(this.packageManifestPath)?.version ?? '0.0.0'
+    this.runningVersion = (dependencies.packageManifestPath === undefined ? LOADED_VERSION : undefined) ?? manifest(this.packageManifestPath)?.version ?? '0.0.0'
+    this.dshMnemonVersion = this.runningVersion
     this.dshHome = dependencies.dshHome ?? (process.env.DSH_HOME?.trim() || join(homedir(), '.dsh'))
     this.mnemonCliPath = dependencies.mnemonCliPath ?? (() => findMnemonCommand({}))
     this.processRunner = dependencies.processRunner ?? runProcess
@@ -363,8 +372,26 @@ export class VersionUpdateManager {
     }
   }
 
+  /** The Starter installed now, which DSH loads at its next start, however it was installed. */
   get currentDshMnemonVersion(): string {
-    return this.dshMnemonVersion
+    return this.installedVersion(inspectDshInstall(this.packageManifestPath, this.dshHome))
+  }
+
+  private installedVersion(install: DshInstall): string {
+    const path = install.mode === 'npm' && install.profileDir !== undefined
+      ? packageAt(install.profileDir, DSH_MNEMON_PACKAGE) ?? this.packageManifestPath : this.packageManifestPath
+    return manifest(path)?.version ?? this.dshMnemonVersion
+  }
+
+  /**
+   * What waits for a DSH restart: a Starter on disk other than the one this Host runs, however it
+   * was installed, and the packages Check versions updated on their own.
+   */
+  restartStatus(): VersionRestartStatus | undefined {
+    const installed = this.currentDshMnemonVersion
+    const packages = [...this.pendingRestart].filter((id): id is VersionPackageId => id !== DSH_MNEMON_PACKAGE).sort()
+    if (installed === this.runningVersion && packages.length === 0) return undefined
+    return { running: this.runningVersion, ...(installed === this.runningVersion ? {} : { installed }), ...(packages.length === 0 ? {} : { packages }) }
   }
 
   private async latestPackageVersion(name: string, current?: string): Promise<string | undefined> {
@@ -470,6 +497,7 @@ export class VersionUpdateManager {
     const starterPath = install.mode === 'npm' && install.profileDir !== undefined
       ? packageAt(install.profileDir, DSH_MNEMON_PACKAGE) ?? this.packageManifestPath : this.packageManifestPath
     const starter = manifest(starterPath)
+    const starterReplaced = (starter?.version ?? this.dshMnemonVersion) !== this.runningVersion
     const profile = install.profileDir === undefined ? undefined : manifest(join(install.profileDir, 'package.json'))
     const names = [...new Set([...Object.keys(starter?.dependencies ?? {}), ...Object.keys(profile?.dependencies ?? {}), ...Object.keys(profile?.devDependencies ?? {})])].filter(name => SUBPACKAGE.test(name)).sort()
     const installer = this.bundleInstaller(install)
@@ -495,7 +523,7 @@ export class VersionUpdateManager {
           ...(install.profileName === undefined ? {} : { installProfile: install.profileName }),
           installMode: mode, outdated: false, updateSupported: supported,
           updateHint: linked ? 'link' : managedBy === 'starter' ? 'starter' : throughDsh ? 'dsh' : supported ? 'pnpm' : mode === 'npm' ? 'pnpm-missing' : 'manual',
-          restartRequired: this.pendingRestart.has(name as VersionPackageId) || this.pendingRestart.has(DSH_MNEMON_PACKAGE),
+          restartRequired: this.pendingRestart.has(name as VersionPackageId) || starterReplaced,
         },
       }
     })
@@ -518,7 +546,9 @@ export class VersionUpdateManager {
     const pnpm = this.executable('pnpm')
     const installer = this.bundleInstaller(dshInstall)
     const mnemonOutdated = mnemonLocal.current !== undefined && mnemonLatest !== undefined && compareVersions(mnemonLocal.current, mnemonLatest) < 0
-    const dshOutdated = dshLatest !== undefined && compareVersions(this.currentDshMnemonVersion, dshLatest) < 0
+    // `dsh plugin` or DSH's Plugins page may have installed another Starter while this Host runs.
+    const installed = this.installedVersion(dshInstall)
+    const dshOutdated = dshLatest !== undefined && compareVersions(installed, dshLatest) < 0
     const mnemonSupported = mnemonLocal.install.updateCommand !== undefined
     const dshSupported = dshInstall.mode === 'npm' && dshInstall.profileDir !== undefined && (installer !== undefined || pnpm !== undefined)
     return {
@@ -529,13 +559,13 @@ export class VersionUpdateManager {
           name: 'dsh-mnemon',
           ...(dshInstall.profileName === undefined ? {} : { installProfile: dshInstall.profileName }),
           installPath: dshInstall.locationDir,
-          current: this.currentDshMnemonVersion,
+          current: installed,
           ...(dshLatest === undefined ? {} : { latest: dshLatest }),
           outdated: dshOutdated,
           installMode: dshInstall.mode,
           updateSupported: dshSupported,
           packages,
-          restartRequired: this.pendingRestart.size > 0,
+          restartRequired: this.restartStatus() !== undefined,
           updateHint: dshInstall.mode === 'npm'
             ? installer !== undefined ? 'dsh' : dshSupported ? 'pnpm' : 'pnpm-missing'
             : dshInstall.mode === 'link' ? 'link' : 'manual',
@@ -597,7 +627,10 @@ export class VersionUpdateManager {
     const previousVersion = child?.current ?? this.currentDshMnemonVersion
     const latest = await this.latestPackageVersion(component, previousVersion)
     if (latest === undefined) throw new Error('Unable to verify the latest dsh-mnemon release')
-    if (compareVersions(previousVersion, latest) >= 0) return { component, previousVersion, currentVersion: previousVersion, updated: false, restartRequired: this.pendingRestart.has(component) }
+    if (compareVersions(previousVersion, latest) >= 0) {
+      const restartRequired = component === DSH_MNEMON_PACKAGE ? previousVersion !== this.runningVersion : this.pendingRestart.has(component)
+      return { component, previousVersion, currentVersion: previousVersion, updated: false, restartRequired }
+    }
     // DSH's own installer replaces a DSH bundle: the Starter, or a Strategy the profile added on its own.
     const installer = child === undefined || child.updateHint === 'dsh' ? this.bundleInstaller(install) : undefined
     if (installer !== undefined) return this.updateThroughDsh(installer, component, previousVersion, latest)

@@ -223,6 +223,9 @@ export function createReadHandler(input: LiveMnemonRuntime, lifecycle?: MnemonLi
           let documents
           try { documents = await runtime.source('documents').read('snapshot', null, signal) } catch { /* Optional Source may be unavailable in this scope. */ }
           const composition = await compositionStatus(runtime)
+          // Every Memory System page reads this status, so each one can say what a restart would load.
+          let restartPending
+          try { restartPending = versions?.restartStatus() } catch { /* The reminder is optional; the status is not. */ }
           const hasSpaces = composition.sources.some(source => source.sourceTypeId === 'memory-spaces')
           const status = hasSpaces ? await runtime.source('memory-spaces').read<Record<string, unknown>>(endpoint, payload, signal) : {
             healthy: composition.evaluation.state === 'ready', commandFound: false, cliPath: runtime.graph.config.cliPath ?? '',
@@ -231,7 +234,8 @@ export function createReadHandler(input: LiveMnemonRuntime, lifecycle?: MnemonLi
           }
           return success({
             ...status,
-            ...(versions === undefined ? {} : { dshMnemonVersion: versions.currentDshMnemonVersion }),
+            ...(versions === undefined ? {} : { dshMnemonVersion: versions.runningVersion }),
+            ...(restartPending === undefined ? {} : { restartPending }),
             ...(lifecycle === undefined ? {} : { lifecycle: lifecycle.snapshot(runtime.scope.sessionId, isWorkspaceStorageScope(runtime.graph.config.storageScope) ? runtime.scope.workspaceId : undefined) }),
             ...(documents === undefined ? {} : { documents }),
             memorySystem: composition,

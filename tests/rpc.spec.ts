@@ -323,6 +323,22 @@ describe('Host assistance and channels', () => {
     } })
   })
 
+  it('names the running version and an installed update in the status every page reads', async () => {
+    const f = protocolFixture()
+    const restartStatus = vi.fn(() => ({ running: '0.5.22', installed: '0.5.23' }))
+    const versions = { runningVersion: '0.5.22', currentDshMnemonVersion: '0.5.23', restartStatus } as unknown as VersionUpdateManager
+    expect(await createReadHandler(f.runtime, lifecycle(), versions)('status-summary', { sessionId: 's1' })).toMatchObject({ ok: true, value: {
+      dshMnemonVersion: '0.5.22', restartPending: { running: '0.5.22', installed: '0.5.23' },
+    } })
+    restartStatus.mockReturnValue(undefined as never)
+    const current = await createReadHandler(f.runtime, lifecycle(), versions)('status', {})
+    expect(current).toMatchObject({ ok: true, value: { dshMnemonVersion: '0.5.22' } })
+    expect((current as { value: Record<string, unknown> }).value).not.toHaveProperty('restartPending')
+    // The reminder is optional; a failure to read it never fails the status.
+    restartStatus.mockImplementation(() => { throw new Error('unreadable profile') })
+    expect(await createReadHandler(f.runtime, lifecycle(), versions)('status', {})).toMatchObject({ ok: true, value: { healthy: true } })
+  })
+
   it('keeps activation strictly narrower than the configuration/mutation channel', async () => {
     const f = protocolFixture()
     const activate = createActivationHandler(f.runtime)
