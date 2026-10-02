@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ProcessRunner } from '../src/host/process.ts'
-import { compareVersions, VersionUpdateManager } from "../src/host/version-updates.ts"
+import { compareVersions, VersionUpdateManager, type DshBundleChange, type DshBundleInstaller } from "../src/host/version-updates.ts"
 
 const temporary: string[] = []
 
@@ -495,5 +495,154 @@ describe('VersionUpdateManager', () => {
     await expect(first).rejects.toThrow('failed')
     f.run.mockResolvedValue({ stdout: '', stderr: 'retry reached installer', exitCode: 1 })
     await expect(f.manager.update('dsh-mnemon')).rejects.toThrow('retry reached installer')
+  })
+})
+
+describe('Starter updates through DSH\'s plugin manager', () => {
+  function profileFixture(options: { pnpm?: boolean; installer?: Partial<DshBundleInstaller> | null; runningProfile?: (profile: string) => string | undefined; packageManager?: boolean; gate?: Promise<void>; added?: Record<string, { bundle: boolean }> } = {}) {
+    const profile = directory('dsh-profile')
+    const packageRoot = join(profile, 'node_modules', 'dsh-mnemon')
+    mkdirSync(packageRoot, { recursive: true })
+    const added = Object.entries(options.added ?? {})
+    json(join(profile, 'package.json'), { name: 'dsh-profile-desktop', dependencies: { 'dsh-mnemon': '0.5.21', ...Object.fromEntries(added.map(([name]) => [name, '0.5.1'])) } })
+    json(join(packageRoot, 'package.json'), { name: 'dsh-mnemon', version: '0.5.21' })
+    // Packages the profile added on its own, beside the Starter.
+    for (const [name, { bundle }] of added) {
+      mkdirSync(join(profile, 'node_modules', name), { recursive: true })
+      json(join(profile, 'node_modules', name, 'package.json'), { name, version: '0.5.1', ...(bundle ? { dsh: { bundle: { patch: './cordis.patch.yml' } } } : {}) })
+    }
+    const installed = new Map<string, string>([['dsh-mnemon', '0.5.21'], ...added.map(([name]): [string, string] => [name, '0.5.1'])])
+    const installBundle = vi.fn(async (spec: string): Promise<DshBundleChange> => {
+      await options.gate
+      installed.set(spec.slice(0, spec.lastIndexOf('@')), spec.slice(spec.lastIndexOf('@') + 1))
+      return { application: 'restart-required', packageResult: { output: 'Packages: +1\nDone' } }
+    })
+    const listBundles = vi.fn(async () => [{ name: 'other-bundle', version: '1.0.0' }, ...[...installed].map(([name, version]) => ({ name, version }))])
+    const installer = options.installer === null ? undefined : { installBundle, listBundles, ...options.installer }
+    const run = vi.fn<ProcessRunner>(async () => {
+      json(join(packageRoot, 'package.json'), { name: 'dsh-mnemon', version: '0.5.22' })
+      return { stdout: 'updated', stderr: '', exitCode: 0 }
+    })
+    const manager = new VersionUpdateManager({
+      packageManifestPath: join(packageRoot, 'package.json'), dshHome: profile,
+      mnemonCliPath: () => '/missing/mnemon',
+      resolveExecutable: name => options.pnpm === true && name === 'pnpm' ? '/fake/pnpm' : undefined,
+      processRunner: run, fetchNpmLatest: async () => '0.5.22', fetchMnemonLatest: async () => undefined,
+      bundleInstaller: () => installer as DshBundleInstaller | undefined,
+      runningProfile: () => {
+        const dir = (options.runningProfile ?? (path => path))(profile)
+        // By default the launcher supplies the package manager, as the desktop app does.
+        return dir === undefined ? undefined : { dir, packageManager: options.packageManager ?? true }
+      },
+    })
+    const starter = async () => (await manager.check()).components.find(component => component.id === 'dsh-mnemon')
+    return { profile, installBundle, listBundles, run, manager, starter }
+  }
+
+  it('offers the update without pnpm on PATH and installs the exact version through DSH', async () => {
+    const f = profileFixture()
+    await expect(f.starter()).resolves.toMatchObject({ updateSupported: true, updateHint: 'dsh', outdated: true, latest: '0.5.22' })
+    await expect(f.manager.update('dsh-mnemon')).resolves.toMatchObject({
+      updated: true, previousVersion: '0.5.21', currentVersion: '0.5.22', restartRequired: true, output: 'Packages: +1\nDone',
+    })
+    // An exact version installs at once, outside pnpm's release-age window, and the bundle selection stays.
+    expect(f.installBundle).toHaveBeenCalledExactlyOnceWith('dsh-mnemon@0.5.22', { enabled: false })
+    expect(f.run).not.toHaveBeenCalled()
+    expect(f.manager.currentDshMnemonVersion).toBe('0.5.22')
+    await expect(f.starter()).resolves.toMatchObject({ restartRequired: true })
+  })
+
+  it('prefers DSH\'s installer over a pnpm on PATH', async () => {
+    const f = profileFixture({ pnpm: true })
+    await expect(f.starter()).resolves.toMatchObject({ updateHint: 'dsh' })
+    await f.manager.update('dsh-mnemon')
+    expect(f.installBundle).toHaveBeenCalledOnce()
+    expect(f.run).not.toHaveBeenCalled()
+  })
+
+  it('never writes another profile through DSH', async () => {
+    const f = profileFixture({ runningProfile: () => directory('other-profile') })
+    await expect(f.starter()).resolves.toMatchObject({ updateSupported: false, updateHint: 'pnpm-missing' })
+    await expect(f.manager.update('dsh-mnemon')).rejects.toThrow('cannot be updated automatically')
+    expect(f.installBundle).not.toHaveBeenCalled()
+  })
+
+  it('runs DSH\'s installer with the pnpm on PATH where the launcher supplies none', async () => {
+    const f = profileFixture({ pnpm: true, packageManager: false })
+    await expect(f.starter()).resolves.toMatchObject({ updateSupported: true, updateHint: 'dsh' })
+    await f.manager.update('dsh-mnemon')
+    expect(f.installBundle).toHaveBeenCalledOnce()
+    expect(f.run).not.toHaveBeenCalled()
+  })
+
+  it('offers no update when DSH would have no package manager to run', async () => {
+    // npm DSH started from a shell without pnpm: DSH's own Plugins page cannot install either.
+    const f = profileFixture({ packageManager: false })
+    await expect(f.starter()).resolves.toMatchObject({ updateSupported: false, updateHint: 'pnpm-missing' })
+    await expect(f.manager.update('dsh-mnemon')).rejects.toThrow('cannot be updated automatically')
+    expect(f.installBundle).not.toHaveBeenCalled()
+  })
+
+  it('updates an optional Strategy the profile added on its own through DSH, and leaves other packages to pnpm', async () => {
+    const f = profileFixture({ added: { 'dsh-mnemon-strategy-general': { bundle: true }, 'dsh-mnemon-provider-mem0': { bundle: false } } })
+    const packages = (await f.starter())?.packages ?? []
+    expect(packages.find(item => item.id === 'dsh-mnemon-strategy-general')).toMatchObject({ managedBy: 'profile', outdated: true, updateSupported: true, updateHint: 'dsh' })
+    // Not a bundle, so only pnpm can replace it, and no pnpm is on PATH.
+    expect(packages.find(item => item.id === 'dsh-mnemon-provider-mem0')).toMatchObject({ managedBy: 'profile', updateSupported: false, updateHint: 'pnpm-missing' })
+    await expect(f.manager.update('dsh-mnemon-strategy-general')).resolves.toMatchObject({ component: 'dsh-mnemon-strategy-general', previousVersion: '0.5.1', currentVersion: '0.5.22', updated: true, restartRequired: true })
+    expect(f.installBundle).toHaveBeenCalledExactlyOnceWith('dsh-mnemon-strategy-general@0.5.22', { enabled: false })
+    // The Starter's own version is unchanged.
+    expect(f.manager.currentDshMnemonVersion).toBe('0.5.21')
+    await expect(f.manager.update('dsh-mnemon-provider-mem0')).rejects.toThrow('must be updated through its Starter or original installation method')
+  })
+
+  it('keeps the pnpm path when the profile has no plugin manager', async () => {
+    const f = profileFixture({ pnpm: true, installer: null })
+    await expect(f.starter()).resolves.toMatchObject({ updateSupported: true, updateHint: 'pnpm' })
+    await expect(f.manager.update('dsh-mnemon')).resolves.toMatchObject({ updated: true, currentVersion: '0.5.22' })
+    expect(f.run).toHaveBeenCalledWith('/fake/pnpm', ['add', 'dsh-mnemon@0.5.22', '--save-exact'], expect.objectContaining({ cwd: f.profile }))
+  })
+
+  it('reports DSH\'s failure reason and keeps the known version', async () => {
+    const f = profileFixture({ installer: { installBundle: vi.fn(async (): Promise<DshBundleChange> => ({
+      application: 'failed', error: { code: 'operation-error', diagnostic: '\nERR_PNPM_FETCH_404 dsh-mnemon@0.5.22 is not in this registry\nmore lines' },
+    })) } })
+    await expect(f.manager.update('dsh-mnemon')).rejects.toThrow('DSH could not install dsh-mnemon@0.5.22: operation-error (ERR_PNPM_FETCH_404 dsh-mnemon@0.5.22 is not in this registry)')
+    expect(f.manager.currentDshMnemonVersion).toBe('0.5.21')
+    await expect(f.starter()).resolves.toMatchObject({ restartRequired: false, updateSupported: true })
+  })
+
+  it('names the DSH an incompatible release needs', async () => {
+    const f = profileFixture({ installer: { installBundle: vi.fn(async (): Promise<DshBundleChange> => ({
+      application: 'failed',
+      error: { code: 'incompatible-version', incompatible: [{ runtimeVersion: '0.2.0-rc.2', peers: { '@deepseek-ai/dsh': '^0.3.0' } }] },
+    })) } })
+    await expect(f.manager.update('dsh-mnemon')).rejects.toThrow('DSH could not install dsh-mnemon@0.5.22: incompatible-version (requires @deepseek-ai/dsh ^0.3.0; this DSH is 0.2.0-rc.2)')
+    expect(f.manager.currentDshMnemonVersion).toBe('0.5.21')
+  })
+
+  it('reports an installer that throws, such as a busy profile lock', async () => {
+    const f = profileFixture({ installer: { installBundle: vi.fn(async (): Promise<DshBundleChange> => { throw new Error('lock wait timed out') }) } })
+    await expect(f.manager.update('dsh-mnemon')).rejects.toThrow('DSH could not install dsh-mnemon@0.5.22: lock wait timed out')
+    // The update guard is released for a retry.
+    await expect(f.manager.update('dsh-mnemon')).rejects.toThrow('lock wait timed out')
+  })
+
+  it('answers a check made while the update finishes with its outcome', async () => {
+    // DSH swaps in the new browser client as soon as the files change; that client checks at once.
+    let finish!: () => void
+    const f = profileFixture({ gate: new Promise<void>(resolve => { finish = resolve }) })
+    const update = f.manager.update('dsh-mnemon')
+    const check = f.starter()
+    await vi.waitFor(() => expect(f.installBundle).toHaveBeenCalledOnce())
+    finish()
+    await expect(update).resolves.toMatchObject({ updated: true, currentVersion: '0.5.22' })
+    await expect(check).resolves.toMatchObject({ current: '0.5.22', outdated: false, restartRequired: true })
+  })
+
+  it('does not report success when DSH leaves another version installed', async () => {
+    const f = profileFixture({ installer: { listBundles: vi.fn(async () => [{ name: 'dsh-mnemon', version: '0.5.21' }]) } })
+    await expect(f.manager.update('dsh-mnemon')).rejects.toThrow('did not install the requested version 0.5.22; found 0.5.21')
+    expect(f.manager.currentDshMnemonVersion).toBe('0.5.21')
   })
 })

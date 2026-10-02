@@ -7,6 +7,7 @@ import type { Config } from "../src/host/config.ts"
 import { ComposedMnemonWorkbench as MnemonWorkbench } from './fixtures/client.tsx'
 import { MnemonActionSeat } from '../src/client/action-seat.ts'
 import { MnemonChangeSignal } from '../src/client/change-signal.ts'
+import { clearStarterUpdate, pendingStarterUpdate, recordStarterUpdate } from '../src/client/starter-update.ts'
 import { translateEn } from '../src/client/locales.ts'
 import { TEST_PROVIDERS as MEMORY_PROVIDER_CATALOG } from './fixtures/providers.ts'
 import { memoryPageStyles } from '../src/client/page-kit.tsx'
@@ -855,6 +856,22 @@ describe('MnemonWorkbench', () => {
     await waitFor(() => expect(within(dialog).getByText('已是最新')).toBeTruthy())
     expect(call.mock.calls.filter(([, endpoint]) => endpoint === 'versions')).toHaveLength(2)
     await waitFor(() => expect(screen.getByText('Mnemon 0.2.0')).toBeTruthy())
+  })
+
+  it('reopens the version dialog on Status in the client DSH swapped in during a Starter update', async () => {
+    recordStarterUpdate({ from: '0.1.1', to: '0.1.2' })
+    try {
+      const { connection, call } = createConnection()
+      render(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" />)
+      const dialog = await screen.findByRole('dialog', { name: '检查与更新版本' })
+      await waitFor(() => expect(within(dialog).getByText('Mnemon CLI')).toBeTruthy())
+      expect(call).not.toHaveBeenCalledWith('/dsh-mnemon-write', 'version-update', expect.anything())
+      fireEvent.click(within(dialog).getAllByRole('button', { name: '关闭' }).at(-1)!)
+      await waitFor(() => expect(screen.queryByRole('dialog', { name: '检查与更新版本' })).toBeNull())
+      expect(pendingStarterUpdate()).toBeUndefined()
+    } finally {
+      clearStarterUpdate()
+    }
   })
 
   it('keeps a version check dismissible and moves focus into ready content', async () => {

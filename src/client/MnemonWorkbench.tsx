@@ -10,6 +10,7 @@ import type { MemoryPluginEntryView, MemoryViewDashboard } from '../host/view-pr
 import { MnemonClient } from "./api.ts"
 import { isRemoteConnection } from "./remote-rpc.ts"
 import { VersionDialog } from "./VersionDialog.tsx"
+import { pendingStarterUpdate } from './starter-update.ts'
 import { translateZh, type MnemonKey, type MnemonTranslate } from "./locales.ts"
 
 import { ProviderIcon } from "./ProviderIcon.tsx"
@@ -356,7 +357,9 @@ function StatusPage(props: {
   onOpenConfiguration?: (() => void) | undefined
 }): JSX.Element {
   const t = useT()
-  const [versionsOpen, setVersionsOpen] = useState(false)
+  // DSH swapped this client in during a Starter update started here: show how it ended.
+  const [resumedUpdate, setResumedUpdate] = useState(() => pendingStarterUpdate())
+  const [versionsOpen, setVersionsOpen] = useState(resumedUpdate !== undefined)
   const status = props.status
   const reviewError = status?.lifecycle?.current?.lastError
   const storage = status?.storage
@@ -384,7 +387,7 @@ function StatusPage(props: {
 
       <div className={css.asyncStatusBlock}>{status !== null && (status.providerServices !== undefined || (status.memoryBodies !== undefined && nativeInUse(status))) && <ProviderHealth status={status} services={status.providerServices ?? []} onOpenConfiguration={props.onOpenConfiguration} />}</div>
       <div className={css.asyncStatusBlock}><StorageDomains catalog={storage} selected={selectedScope} selectedKind={selectedScopeKind} areaName={props.areaName} /></div>
-      {versionsOpen && <VersionDialog client={props.client} writeEnabled={props.writeEnabled} onClose={() => setVersionsOpen(false)} onRefreshStatus={props.onRefresh} />}
+      {versionsOpen && <VersionDialog client={props.client} writeEnabled={props.writeEnabled} resumedUpdate={resumedUpdate} onClose={() => { setResumedUpdate(undefined); setVersionsOpen(false) }} onRefreshStatus={props.onRefresh} />}
     </div>
   )
 }

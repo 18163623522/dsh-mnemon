@@ -35,7 +35,9 @@ Test-Path "$env:LOCALAPPDATA\Programs\mnemon\mnemon.exe"
 - **dsh-mnemon**：运行版本来自当前插件包，更新查询 npm `latest`；已安装的 beta/alpha/rc 同时查询自身通道，也可升级到更高的正式版。稳定版用户不会自动进入预发布通道。
 - **Mnemon CLI**：本地版本来自 `mnemon --version`，最新版本来自官方 `@mnemon-dev/mnemon` npm 包。只有 Mnemon Native 需要它，未安装时显示为可选并给出安装命令。
 
-检查只读，不会自动安装。只有发现更高版本并安全识别安装来源时才显示“更新”：Mnemon 支持官方 npm 启动器、Homebrew Cask / Formula 与 `go install`；dsh-mnemon 支持当前 DSH Profile 中由 pnpm 管理的 npm 安装。`link:` / `file:` 开发版本与无法识别的手工安装只显示说明，避免覆盖源码。
+检查只读，不会自动安装。只有发现更高版本并安全识别安装来源时才显示“更新”：Mnemon 支持官方 npm 启动器、Homebrew Cask / Formula 与 `go install`；dsh-mnemon 支持当前 DSH Profile 中的 npm 安装。`link:` / `file:` 开发版本与无法识别的手工安装只显示说明，避免覆盖源码。
+
+dsh-mnemon 通过 DSH 自己的插件安装器更新，效果与 `dsh plugin add dsh-mnemon@<版本>` 相同；Profile 单独安装的可选 Strategy 也是如此。安装器使用 Profile 自己的包管理器，桌面版中即应用自带的 pnpm，因此 PATH 上不需要 pnpm；同时沿用 Profile 的安装源设置与备用源，并等待 Profile 的锁。保留新版本之前，DSH 会检查它声明支持的 DSH 版本；安装失败时恢复 Profile 的文件，已启用的插件保持不变。Host 只更新自己所运行的 Profile。DSH 未提供插件安装器时，Host 在所属 Profile 中运行 PATH 上的 pnpm。既没有应用自带的 pnpm、PATH 上也没有 pnpm 时，面板会提示安装 pnpm 并重启 DSH。dsh-mnemon 0.5.21 及更早的版本只有 pnpm 这一种方式：在桌面版中从这些版本更新时，需要在插件页移除 dsh-mnemon 后重新添加一次，记忆数据会保留。
 
 npm 更新要求当前启动器属于现有 npm 所报告的全局安装目录；不同 Node/npm 环境或启动器故障会显示修复指引。首次安装或迁移使用 `npm install --global @mnemon-dev/mnemon@latest`，后续使用 `mnemon update`。命令在 DSH 宿主运行，需要 Node.js 22+。修改 PATH 或 CLI 配置后，重新检查并核对面板中的可执行文件路径。
 
@@ -45,7 +47,7 @@ npm 更新要求当前启动器属于现有 npm 所报告的全局安装目录�
 
 Go 更新还要求当前执行文件确实位于本机 Go 的安装输出位置（`GOBIN`，或 `GOPATH` 第一项的 `bin` 目录），且未配置交叉编译目标。不能仅因下载的二进制包含 Go 构建信息就认定它由 Go 管理。CLI 更新后还会核验当前执行文件已达到所检查的版本，才报告成功。
 
-更新命令由 Host 固定选择：浏览器不能传入命令或参数，执行禁用 shell，并限制时间与输出。插件更新在所属 profile 中安装已检查的精确版本，确认实际安装版本后才报告成功，避免固定 beta 版本未变却提示已更新。更新完成后界面自动重新检查两个组件并刷新状态。Mnemon CLI 从下一次调用起生效；dsh-mnemon 仍需重启 `dsh web` 才能加载新插件代码。
+更新命令由 Host 固定选择：浏览器不能传入命令或参数，执行禁用 shell，并限制时间与输出。插件更新在所属 profile 中安装已检查的精确版本，确认实际安装版本后才报告成功，避免固定 beta 版本未变却提示已更新。更新完成后界面自动重新检查两个组件并刷新状态。Mnemon CLI 从下一次调用起生效；dsh-mnemon 在 DSH 重启后才加载新插件代码：停止并重新运行 `dsh web`，或完全退出桌面版（macOS 上按 `Cmd+Q`）后重新打开。在此之前 Host 仍运行之前的版本，而 DSH 会在文件变化后立即载入新的记忆系统页面；该页面会重新打开**检查版本**，显示这次更新以及需要的重启。
 
 <a id="dsh-015-兼容与旧会话恢复"></a>
 
