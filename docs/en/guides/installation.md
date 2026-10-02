@@ -102,6 +102,7 @@ The **Plugins** page of the DeepSeek Harness desktop app works like the web page
 
 - The desktop app uses its own `desktop` profile. From DSH 0.2 the command line no longer manages that profile, so install and manage plugins on the app's Plugins page.
 - Desktop windows load from the app's own `dsh-app://app/` address. dsh-mnemon 0.5.18 and earlier treated them as remote pages, which made the Memory System and the plugin settings read only ([#310](https://github.com/omdsh-dev/dsh-mnemon/issues/310)). 0.5.19 fixes this; update dsh-mnemon, with no configuration change.
+- DSH's Plugins page cannot update an installed plugin. Update dsh-mnemon from **Memory System → Status → Check versions → Update**, which installs the new version with the app's own installer. dsh-mnemon 0.5.21 and earlier cannot do this in the desktop app; update from them once by removing dsh-mnemon on the Plugins page and adding it again. Your memory data stays.
 - After updating dsh-mnemon in the desktop app, quit the app completely and open it again (`Cmd+Q` on macOS) so the new version loads. If an error appears after an update, see [Common problems](#common-problems).
 
 ## 7. Command line and Headless

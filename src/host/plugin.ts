@@ -17,6 +17,7 @@ import { MemoryPluginInstallation } from './plugin-installation.ts'
 import { MnemonRemoteService } from './remote-rpc.ts'
 import { plainHostConfig, type LiveHostConfig } from './live-config.ts'
 import { ProfileMnemonSettings } from './settings-service.ts'
+import { VersionUpdateManager, type DshBundleInstaller } from './version-updates.ts'
 
 export const name = 'dsh-mnemon'
 export const provide = ['mnemonMemory']
@@ -121,7 +122,17 @@ export function apply(rawContext: unknown, rawConfig: MnemonConfig | LiveHostCon
       ? webContext.extend({ webServer: webContext.get('webServer') }).connection
       : webContext.connection
     if (connection === undefined) return
-    const rpc = registerRpc(connection, runtime, lifecycle)
+    // The Starter updates through DSH's own plugin manager and profile, so a packaged
+    // app's bundled pnpm serves it where no pnpm is on PATH.
+    const versions = new VersionUpdateManager({
+      mnemonCliPath: () => runtime.config.cliPath,
+      bundleInstaller: () => ctx.get('pluginManager') as DshBundleInstaller | undefined,
+      runningProfile: () => {
+        const profile = ctx.get('profileContext') as { dir?: unknown; packageManager?: unknown } | undefined
+        return typeof profile?.dir === 'string' ? { dir: profile.dir, packageManager: profile.packageManager !== undefined } : undefined
+      },
+    })
+    const rpc = registerRpc(connection, runtime, lifecycle, versions)
     const settings = registerSettingsRpc(connection, hostSettings)
     const view = registerViewRpc(connection, runtime, extensions, memoryPlugins, lifecycle, pluginInstallation)
     if (Context.is(webContext)) {
