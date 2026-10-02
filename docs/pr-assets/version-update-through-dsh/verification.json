@@ -441,5 +441,117 @@
       "packageUnpackedBytes": 1511189,
       "packageBudget": 1515000
     }
+  },
+  "designReview": {
+    "revision": "f395626a87bbbc5fea8baef4252f7bf369880084",
+    "fixes": [
+      "Failure text names the ERR_PNPM_* line, DSH's failure kind and DSH's log path, not the first output line.",
+      "Installed is the exact version the Profile records (Starter and profile-added packages), with node_modules as the fallback, so files a failed install leaves are not taken for an update.",
+      "The Host keeps how the last update ended (VersionStatus.lastUpdate); the reopened dialog shows that success or error.",
+      "Packages updated from the dialog are compared with the version they replaced; one put back waits for nothing.",
+      "Status reopens the dialog only after the Host answers, and drops the record once DSH runs the updated version with nothing pending."
+    ],
+    "liveRerun": {
+      "checkVersions020": {
+        "status": {
+          "engine": "dsh-mnemon 0.5.21-dshupdate.0",
+          "reminder": {
+            "title": "dsh-mnemon 0.5.21 已安装",
+            "text": "dsh-mnemon 0.5.21 已安装 当前运行的仍是 0.5.21-dshupdate.0；重启 DSH 后生效，桌面版请完全退出后重新打开。"
+          }
+        },
+        "dialog": {
+          "state": "待重启",
+          "installed": "0.5.21",
+          "latest": "0.5.21",
+          "updateButton": false,
+          "notice": "请重启 DSH 以加载新的 dsh-mnemon 插件代码；桌面版请完全退出后重新打开。"
+        }
+      },
+      "afterRestart020": {
+        "status": {
+          "engine": "dsh-mnemon 0.5.21",
+          "reminder": null
+        },
+        "dialog": {
+          "state": "已是最新",
+          "installed": "0.5.21",
+          "latest": "0.5.21",
+          "updateButton": false,
+          "notice": null
+        }
+      },
+      "dshPluginAdd": {
+        "after": {
+          "state": "待重启",
+          "installed": "0.5.21",
+          "latest": "0.5.21",
+          "updateButton": false,
+          "notice": "请重启 DSH 以加载新的 dsh-mnemon 插件代码；桌面版请完全退出后重新打开。"
+        },
+        "back": {
+          "state": "可更新",
+          "installed": "0.5.21-dshupdate.0",
+          "latest": "0.5.21",
+          "updateButton": true,
+          "notice": null
+        }
+      },
+      "strategy": {
+        "after": {
+          "engine": "dsh-mnemon 0.5.21-dshupdate.0",
+          "reminder": {
+            "title": "dsh-mnemon-strategy-scoped 已更新",
+            "text": "dsh-mnemon-strategy-scoped 已更新 重启 DSH 后生效，桌面版请完全退出后重新打开。"
+          }
+        },
+        "afterRestart": {
+          "engine": "dsh-mnemon 0.5.21-dshupdate.0",
+          "reminder": null
+        }
+      },
+      "dsh017": {
+        "after": {
+          "engine": "dsh-mnemon 0.5.21-dshupdate.0",
+          "reminder": {
+            "title": "dsh-mnemon 0.5.21 已安装",
+            "text": "dsh-mnemon 0.5.21 已安装 当前运行的仍是 0.5.21-dshupdate.0；重启 DSH 后生效，桌面版请完全退出后重新打开。"
+          }
+        },
+        "afterRestart": {
+          "engine": "dsh-mnemon 0.5.21",
+          "reminder": null
+        }
+      },
+      "failedInstall": {
+        "setup": "DSH 0.2.0-rc.2 packaged-app launcher; the Profile registry serves no dsh-mnemon 0.5.21 while npm names it",
+        "dialogError": "版本操作失败\n\nDSH could not install dsh-mnemon@0.5.21: operation-error (no-matching-version: [ERR_PNPM_NO_MATCHING_VERSION] No matching version found for dsh-mnemon@0.5.21 while fetching it from http://127.0.0.1:<port>/); log: <profile>/.plugin-manager/logs/<operation>/pnpm.log",
+        "after": {
+          "status": {
+            "engine": "dsh-mnemon 0.5.21-dshupdate.0",
+            "reminder": null
+          },
+          "dialog": {
+            "state": "可更新",
+            "installed": "0.5.21-dshupdate.0",
+            "latest": "0.5.21",
+            "updateButton": true,
+            "notice": null
+          }
+        }
+      },
+      "consoleErrors": []
+    },
+    "automated": {
+      "command": "pnpm run verify",
+      "rootTests": {
+        "files": 113,
+        "passed": 1592,
+        "skipped": 6
+      },
+      "docsLocalLinks": 2997,
+      "packageUnpackedBytes": 1514466,
+      "packageBudget": 1517000
+    }
   }
 }

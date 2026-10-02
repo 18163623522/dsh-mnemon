@@ -124,6 +124,27 @@ These runs used a build of that revision, served as above: `0.5.21-dshupdate.0` 
 
 None of these runs logged a console error.
 
+## Design review
+
+An independent review of this PR found no broken design or contract. It found five behaviors worth fixing, all fixed in `f395626a87bbbc5fea8baef4252f7bf369880084`:
+- **Failure messages.** A failed install named the first line of pnpm's output, often a retry warning, and hid the `ERR_PNPM_*` line. The dialog now names the error line, the failure kind DSH read off it, and DSH's log path.
+- **Files a failed install leaves.** DSH restores the Profile's `package.json` and lockfile when an install fails, but files it downloaded can stay. Check versions read `node_modules`, so a failed update could look installed and waiting for a restart. Installed is now the exact version the Profile records, for the Starter and for a package the Profile added, with `node_modules` as the fallback.
+- **The reopened dialog.** The page DSH swaps in judged success from that same state. The Host now keeps how the last update ended and returns it with each check, and the reopened dialog shows that success or error.
+- **A package put back.** A Strategy updated from the dialog and then put back with `dsh plugin` stayed named in the notice until a restart. Each update now remembers the version it replaced.
+- **Reload after a restart.** With the dialog left open across a DSH restart, a reload within ten minutes reopened it. Status now waits for the Host, and drops the record once DSH runs the updated version with nothing pending.
+
+The live runs above were repeated on that revision, on the same setup:
+- Check versions on DSH 0.2.0-rc.2 and 0.1.7-rc.2: the notice and 待重启 · 0.5.21 before the restart, no notice and 已是最新 after it.
+- `dsh plugin add` and putting the version back: the same results as before.
+- An optional Strategy updated and restarted: the same results as before.
+- **A real failure.** The Profile's registry served no 0.5.21 while npm named it. Clicking Update failed with:
+
+  `DSH could not install dsh-mnemon@0.5.21: operation-error (no-matching-version: [ERR_PNPM_NO_MATCHING_VERSION] No matching version found for dsh-mnemon@0.5.21 while fetching it from http://127.0.0.1:<port>/); log: <profile>/.plugin-manager/logs/<operation>/pnpm.log`
+
+  No notice followed, and Check versions still read 可更新 · 0.5.21-dshupdate.0 with **Update**.
+
+No run logged a console error.
+
 ## Automated checks
 
 `pnpm run verify` passes on the tested revision. It covers:
@@ -134,6 +155,8 @@ None of these runs logged a console error.
 - package contents at 1,506,720 unpacked bytes, with the budget moved to 1,509,000.
 
 On the reminder revision, `pnpm run verify` passes again: docs at 2,997 local links, root tests at 113 files with 1,584 passed and 6 skipped, and package contents at 1,511,189 unpacked bytes, with the budget moved to 1,515,000.
+
+On the design-review revision `f395626a` it passes with root tests at 113 files, 1,592 passed and 6 skipped, docs at 2,997 local links, and package contents at 1,514,466 unpacked bytes, with the budget moved to 1,517,000. New tests there cover: the error line and log in a failure; the recorded Starter after a failed install that leaves files, with the failure reported; a finished update reported to a swapped-in page; a package put back to the version it replaced; the reopened dialog showing the outcome the Host reports, ignoring an older one; and Status not reopening the dialog once DSH has restarted onto the update.
 
 New Host tests cover:
 - DSH's route without a PATH pnpm, and its preference over one;
