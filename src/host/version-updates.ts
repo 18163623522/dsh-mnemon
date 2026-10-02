@@ -4,7 +4,7 @@ import { delimiter, dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { findMnemonCommand, mnemonNpmLauncher, nodeLauncherEnvironment, resolveMnemonInvocation } from 'dsh-mnemon-source-memory-spaces/native-cli'
 import { runProcess, type ProcessOptions, type ProcessResult, type ProcessRunner } from './process.ts'
-import type { VersionComponentId, VersionComponentStatus, VersionInstallMode, VersionPackageId, VersionPackageStatus, VersionRestartStatus, VersionStatus, VersionUpdateResult } from "./protocol.ts"
+import type { VersionComponentId, VersionComponentStatus, VersionInstallMode, VersionPackageId, VersionPackageStatus, VersionRestartStatus, VersionStatus, VersionUpdateOutcome, VersionUpdateResult } from "./protocol.ts"
 
 export type { VersionComponentId, VersionComponentStatus, VersionInstallMode, VersionStatus, VersionUpdateResult } from "./protocol.ts"
 
@@ -74,7 +74,7 @@ export interface DshBundleChange {
     diagnostic?: string
     incompatible?: ReadonlyArray<{ runtimeVersion?: string; peers?: Readonly<Record<string, string>> }>
   }
-  packageResult?: { output?: string }
+  packageResult?: { output?: string; logPath?: string; kind?: string }
 }
 
 const DSH_MNEMON_PACKAGE = 'dsh-mnemon'
@@ -223,6 +223,11 @@ function dependencySpec(profile: PackageManifest | undefined, name = DSH_MNEMON_
   return profile?.dependencies?.[name] ?? profile?.devDependencies?.[name]
 }
 
+/** A dependency the Profile records at one exact version, as DSH's installer writes it. */
+function exactVersion(spec: string | undefined): string | undefined {
+  return spec !== undefined && /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(spec) ? spec : undefined
+}
+
 function isLinkSpec(spec: string | undefined): boolean {
   return spec !== undefined && /^(?:link|file|workspace):|^\.{1,2}(?:[/\\]|$)/.test(spec)
 }
@@ -299,8 +304,15 @@ function dshFailure(change: DshBundleChange): string {
     const runtime = incompatible.find(plugin => plugin.runtimeVersion !== undefined)?.runtimeVersion
     return `${reason} (requires ${peers.join(', ')}${runtime === undefined ? '' : `; this DSH is ${runtime}`})`
   }
-  const diagnostic = change.error?.diagnostic?.split('\n').map(line => line.trim()).find(line => line !== '')?.slice(0, 300)
-  return diagnostic === undefined ? reason : `${reason} (${diagnostic})`
+  // pnpm prints warnings and retries before its error: name the error line, the kind DSH read off it, and the full log.
+  const lines = (change.error?.diagnostic ?? change.packageResult?.output ?? '').split('\n').map(line => line.trim()).filter(line => line !== '')
+  const line = lines.findLast(line => /ERR_PNPM_[A-Z_]+/.test(line))
+    ?? lines.findLast(line => /^(?:\[?error\]?\b|ERROR\b)|\brejected\b/i.test(line))
+    ?? lines.at(-1)
+  const kind = change.packageResult?.kind
+  const detail = [kind === undefined || kind === 'unknown' || line?.includes(kind) === true ? undefined : kind, line?.slice(0, 300)].filter(Boolean).join(': ')
+  const log = change.packageResult?.logPath
+  return `${reason}${detail === '' ? '' : ` (${detail})`}${log === undefined || log === '' ? '' : `; log: ${log}`}`
 }
 
 function updateOutput(result: ProcessResult): string | undefined {
@@ -338,8 +350,10 @@ export class VersionUpdateManager {
   private readonly fetchMnemonLatest: () => Promise<string | undefined>
   private readonly bundleInstallerOf: () => DshBundleInstaller | undefined
   private readonly runningProfile: () => DshRunningProfile | undefined
-  private readonly pendingRestart = new Set<VersionComponentId>()
+  /** What Check versions updated while this Host runs, each with the version it replaced. */
+  private readonly pendingRestart = new Map<VersionComponentId, string | undefined>()
   private inFlight: Promise<VersionUpdateResult> | undefined
+  private lastUpdate: VersionUpdateOutcome | undefined
 
   constructor(dependencies: VersionUpdateDependencies = {}) {
     this.packageManifestPath = dependencies.packageManifestPath ?? PACKAGE_MANIFEST_PATH
@@ -378,9 +392,24 @@ export class VersionUpdateManager {
   }
 
   private installedVersion(install: DshInstall): string {
+    // The Profile records the exact Starter it installed, and DSH restores that record when an
+    // install fails, even when files it downloaded stay behind in node_modules.
+    const recorded = install.mode === 'npm' && install.profileDir !== undefined
+      ? exactVersion(dependencySpec(manifest(join(install.profileDir, 'package.json')))) : undefined
+    if (recorded !== undefined) return recorded
     const path = install.mode === 'npm' && install.profileDir !== undefined
       ? packageAt(install.profileDir, DSH_MNEMON_PACKAGE) ?? this.packageManifestPath : this.packageManifestPath
     return manifest(path)?.version ?? this.dshMnemonVersion
+  }
+
+  /** A package Check versions updated, and still not the version it replaced. */
+  private replaced(id: VersionComponentId, current: string | undefined): boolean {
+    return this.pendingRestart.has(id) && current !== this.pendingRestart.get(id)
+  }
+
+  private remember(id: VersionComponentId, previousVersion: string | undefined): void {
+    // The first version replaced since this Host started is the one it loaded.
+    if (!this.pendingRestart.has(id)) this.pendingRestart.set(id, previousVersion)
   }
 
   /**
@@ -388,8 +417,12 @@ export class VersionUpdateManager {
    * was installed, and the packages Check versions updated on their own.
    */
   restartStatus(): VersionRestartStatus | undefined {
-    const installed = this.currentDshMnemonVersion
-    const packages = [...this.pendingRestart].filter((id): id is VersionPackageId => id !== DSH_MNEMON_PACKAGE).sort()
+    const install = inspectDshInstall(this.packageManifestPath, this.dshHome)
+    const installed = this.installedVersion(install)
+    const pending = [...this.pendingRestart.keys()].filter((id): id is VersionPackageId => id !== DSH_MNEMON_PACKAGE)
+    // A package put back to the version it replaced, by `dsh plugin` for example, waits for nothing.
+    const rows = pending.length === 0 ? [] : this.subpackages(install).map(row => row.status)
+    const packages = pending.filter(id => this.replaced(id, rows.find(row => row.id === id)?.current)).sort()
     if (installed === this.runningVersion && packages.length === 0) return undefined
     return { running: this.runningVersion, ...(installed === this.runningVersion ? {} : { installed }), ...(packages.length === 0 ? {} : { packages }) }
   }
@@ -497,7 +530,7 @@ export class VersionUpdateManager {
     const starterPath = install.mode === 'npm' && install.profileDir !== undefined
       ? packageAt(install.profileDir, DSH_MNEMON_PACKAGE) ?? this.packageManifestPath : this.packageManifestPath
     const starter = manifest(starterPath)
-    const starterReplaced = (starter?.version ?? this.dshMnemonVersion) !== this.runningVersion
+    const starterReplaced = this.installedVersion(install) !== this.runningVersion
     const profile = install.profileDir === undefined ? undefined : manifest(join(install.profileDir, 'package.json'))
     const names = [...new Set([...Object.keys(starter?.dependencies ?? {}), ...Object.keys(profile?.dependencies ?? {}), ...Object.keys(profile?.devDependencies ?? {})])].filter(name => SUBPACKAGE.test(name)).sort()
     const installer = this.bundleInstaller(install)
@@ -507,6 +540,8 @@ export class VersionUpdateManager {
       const base = directSpec === undefined ? dirname(starterPath) : install.profileDir!
       const path = packageAt(base, name)
       const value = path === undefined ? undefined : manifest(path)
+      // A package the Profile added keeps the version its record names, as the Starter does.
+      const current = (managedBy === 'profile' ? exactVersion(directSpec) : undefined) ?? value?.version
       const linked = isLinkSpec(directSpec ?? starter?.dependencies?.[name]) || install.mode === 'link'
         || (path !== undefined && !realpathSync(dirname(path)).replaceAll('\\', '/').includes('/node_modules/'))
       const mode: VersionInstallMode = linked ? 'link' : path === undefined ? 'missing' : install.mode === 'npm' ? 'npm' : 'manual'
@@ -518,12 +553,12 @@ export class VersionUpdateManager {
         status: {
           id: name as VersionPackageId, name, kind: SUBPACKAGE.exec(name)![1] as VersionPackageStatus['kind'], managedBy,
           ...(starter?.dependencies?.[name] === undefined ? {} : { expectedVersion: starter.dependencies[name] }),
-          ...(value?.version === undefined ? {} : { current: value.version }),
+          ...(current === undefined ? {} : { current }),
           ...(path === undefined ? {} : { installPath: realpathSync(dirname(path)) }),
           ...(install.profileName === undefined ? {} : { installProfile: install.profileName }),
           installMode: mode, outdated: false, updateSupported: supported,
           updateHint: linked ? 'link' : managedBy === 'starter' ? 'starter' : throughDsh ? 'dsh' : supported ? 'pnpm' : mode === 'npm' ? 'pnpm-missing' : 'manual',
-          restartRequired: this.pendingRestart.has(name as VersionPackageId) || starterReplaced,
+          restartRequired: this.replaced(name as VersionPackageId, current) || starterReplaced,
         },
       }
     })
@@ -553,6 +588,7 @@ export class VersionUpdateManager {
     const dshSupported = dshInstall.mode === 'npm' && dshInstall.profileDir !== undefined && (installer !== undefined || pnpm !== undefined)
     return {
       checkedAt: new Date().toISOString(),
+      ...(this.lastUpdate === undefined ? {} : { lastUpdate: this.lastUpdate }),
       components: [
         {
           id: 'dsh-mnemon',
@@ -595,7 +631,16 @@ export class VersionUpdateManager {
     if (this.inFlight !== undefined) throw new Error('A version update is already in progress')
     const run = this.performUpdate(component)
     this.inFlight = run
-    try { return await run } finally { this.inFlight = undefined }
+    try {
+      const result = await run
+      this.lastUpdate = { at: new Date().toISOString(), component, result }
+      return result
+    } catch (error) {
+      this.lastUpdate = { at: new Date().toISOString(), component, error: error instanceof Error ? error.message : String(error) }
+      throw error
+    } finally {
+      this.inFlight = undefined
+    }
   }
 
   private async performUpdate(component: VersionComponentId): Promise<VersionUpdateResult> {
@@ -628,7 +673,7 @@ export class VersionUpdateManager {
     const latest = await this.latestPackageVersion(component, previousVersion)
     if (latest === undefined) throw new Error('Unable to verify the latest dsh-mnemon release')
     if (compareVersions(previousVersion, latest) >= 0) {
-      const restartRequired = component === DSH_MNEMON_PACKAGE ? previousVersion !== this.runningVersion : this.pendingRestart.has(component)
+      const restartRequired = component === DSH_MNEMON_PACKAGE ? previousVersion !== this.runningVersion : this.replaced(component, previousVersion)
       return { component, previousVersion, currentVersion: previousVersion, updated: false, restartRequired }
     }
     // DSH's own installer replaces a DSH bundle: the Starter, or a Strategy the profile added on its own.
@@ -643,7 +688,7 @@ export class VersionUpdateManager {
     if (installedVersion !== latest) throw new Error(`${component} update did not install the requested version ${latest}; found ${installedVersion ?? 'no package'}`)
     const outputText = updateOutput(output)
     if (component === DSH_MNEMON_PACKAGE) this.dshMnemonVersion = installedVersion
-    this.pendingRestart.add(component)
+    this.remember(component, previousVersion)
     return {
       component,
       previousVersion,
@@ -671,7 +716,7 @@ export class VersionUpdateManager {
     const installedVersion = (await installer.listBundles()).find(bundle => bundle.name === component)?.version
     if (installedVersion !== latest) throw new Error(`${component} update did not install the requested version ${latest}; found ${installedVersion ?? 'no package'}`)
     if (component === DSH_MNEMON_PACKAGE) this.dshMnemonVersion = installedVersion
-    this.pendingRestart.add(component)
+    this.remember(component, previousVersion)
     return {
       component,
       previousVersion,

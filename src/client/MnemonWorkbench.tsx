@@ -10,7 +10,7 @@ import type { MemoryPluginEntryView, MemoryViewDashboard } from '../host/view-pr
 import { MnemonClient } from "./api.ts"
 import { isRemoteConnection } from "./remote-rpc.ts"
 import { VersionDialog } from "./VersionDialog.tsx"
-import { pendingStarterUpdate } from './starter-update.ts'
+import { clearStarterUpdate, pendingStarterUpdate } from './starter-update.ts'
 import { translateZh, type MnemonKey, type MnemonTranslate } from "./locales.ts"
 
 import { ProviderIcon } from "./ProviderIcon.tsx"
@@ -359,8 +359,19 @@ function StatusPage(props: {
   const t = useT()
   // DSH swapped this client in during a Starter update started here: show how it ended.
   const [resumedUpdate, setResumedUpdate] = useState(() => pendingStarterUpdate())
-  const [versionsOpen, setVersionsOpen] = useState(resumedUpdate !== undefined)
+  const [versionsOpen, setVersionsOpen] = useState(false)
   const status = props.status
+  const answered = status !== null || !props.loading
+  useEffect(() => {
+    if (resumedUpdate === undefined || !answered) return
+    // A DSH that already restarted onto the update has nothing left to report.
+    if (status !== null && status.restartPending === undefined && resumedUpdate.to !== undefined && status.dshMnemonVersion === resumedUpdate.to) {
+      clearStarterUpdate()
+      setResumedUpdate(undefined)
+      return
+    }
+    setVersionsOpen(true)
+  }, [answered])
   const reviewError = status?.lifecycle?.current?.lastError
   const storage = status?.storage
   const selectedScopeKind = storage?.activeKind ?? 'global'

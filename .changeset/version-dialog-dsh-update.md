@@ -12,7 +12,7 @@ An optional Strategy the Profile added on its own is a DSH bundle too and update
 
 DSH loads a plugin's new browser code as soon as its files change, which used to close the Memory System and the dialog before the update could report back. The dialog now records the update in the page's session, and the new page reopens Status with the dialog, which shows the update and the restart it needs; the Host waits briefly for an update that is still finishing before it answers. The restart notice also covers the desktop app: quit it completely and reopen it.
 
-Until DSH restarts, a notice above every Memory System page names the installed version and the one that still runs, whether the update came from Check versions or `dsh plugin`; packages updated on their own are named too. Status now shows the running version rather than the installed one, and Check versions shows the installed one, so it no longer offers an update `dsh plugin` already installed. From 0.5.21 or earlier, the desktop app still needs one removal and reinstall on the Plugins page; memory data stays.
+Until DSH restarts, a notice above every Memory System page names the installed version and the one that still runs, whether the update came from Check versions or `dsh plugin`; packages updated on their own are named too. Status now shows the running version rather than the installed one, and Check versions shows the installed one, so it no longer offers an update `dsh plugin` already installed. The installed version is the one the Profile records, so files a failed install leaves behind are not taken for an update; the dialog names pnpm's error line and DSH's log, and a reopened dialog shows how the Host says the update ended. From 0.5.21 or earlier, the desktop app still needs one removal and reinstall on the Plugins page; memory data stays.
 
 **检查版本 → 更新**现在可以在桌面版中更新 dsh-mnemon。此前 Host 在所属 Profile 中运行 PATH 上的 pnpm，而桌面版的 Host 找不到 pnpm，面板只能提示缺少 pnpm。现在只要 Host 运行在 dsh-mnemon 所属的 Profile 中，更新就通过 DSH 自己的插件安装器完成，效果与 `dsh plugin add dsh-mnemon@<版本>` 相同：
 - 使用 Profile 自己的包管理器（桌面版中即应用自带的 pnpm），并沿用 Profile 的安装源设置、备用源与锁；
@@ -24,4 +24,4 @@ Profile 单独安装的可选 Strategy 同样是 DSH bundle，在子包列表中
 
 插件文件一变化，DSH 就会载入它新的浏览器代码，此前这会在更新报告结果之前关闭记忆系统和面板。现在面板会把这次更新记在页面会话中，新页面重新打开状态页与面板，显示这次更新以及需要的重启；对于仍在收尾的更新，Host 会稍等片刻再回答。重启提示也覆盖了桌面版：完全退出后重新打开。
 
-DSH 重启之前，记忆系统每个页面的顶部都会提示已安装的版本与仍在运行的版本，无论更新来自检查版本还是 `dsh plugin`；单独更新的子包也会列出。状态页现在显示正在运行的版本，而不是已安装的版本；检查版本显示已安装的版本，不再提供 `dsh plugin` 已经安装的更新。从 0.5.21 及更早的版本更新时，桌面版仍需在插件页移除并重新添加一次，记忆数据会保留。
+DSH 重启之前，记忆系统每个页面的顶部都会提示已安装的版本与仍在运行的版本，无论更新来自检查版本还是 `dsh plugin`；单独更新的子包也会列出。状态页现在显示正在运行的版本，而不是已安装的版本；检查版本显示已安装的版本，不再提供 `dsh plugin` 已经安装的更新。已安装的版本以 Profile 记录的为准，安装失败留下的文件不会被当成已更新；面板会显示 pnpm 的错误行与 DSH 的日志路径，重新打开的面板显示 Host 报告的更新结果。从 0.5.21 及更早的版本更新时，桌面版仍需在插件页移除并重新添加一次，记忆数据会保留。

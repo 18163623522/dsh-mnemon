@@ -625,6 +625,17 @@ export interface VersionPackageStatus extends VersionComponentStatus {
 export interface VersionStatus {
   checkedAt: string
   components: VersionComponentStatus[]
+  /** How the last update this Host ran from Check versions ended, for a page DSH swapped in meanwhile. */
+  lastUpdate?: VersionUpdateOutcome
+}
+
+export interface VersionUpdateOutcome {
+  at: string
+  component: VersionComponentId
+  /** The update's reply, when it ended without an error. */
+  result?: VersionUpdateResult
+  /** Why it failed, when it did. */
+  error?: string
 }
 
 export interface VersionRestartStatus {

@@ -883,9 +883,10 @@ describe('MnemonWorkbench', () => {
   })
 
   it('reopens the version dialog on Status in the client DSH swapped in during a Starter update', async () => {
-    recordStarterUpdate({ from: '0.1.1', to: '0.1.2' })
+    recordStarterUpdate({ from: '0.1.2', to: '0.1.3' })
     try {
-      const { connection, call } = createConnection()
+      // The Host that ran the update still runs the version it loaded.
+      const { connection, call } = createConnection({ restartPending: { running: '0.1.2', installed: '0.1.3' } })
       render(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" />)
       const dialog = await screen.findByRole('dialog', { name: '检查与更新版本' })
       await waitFor(() => expect(within(dialog).getByText('Mnemon CLI')).toBeTruthy())
@@ -893,6 +894,20 @@ describe('MnemonWorkbench', () => {
       fireEvent.click(within(dialog).getAllByRole('button', { name: '关闭' }).at(-1)!)
       await waitFor(() => expect(screen.queryByRole('dialog', { name: '检查与更新版本' })).toBeNull())
       expect(pendingStarterUpdate()).toBeUndefined()
+    } finally {
+      clearStarterUpdate()
+    }
+  })
+
+  it('does not reopen the version dialog once DSH has restarted onto the update', async () => {
+    // The dialog was left open, DSH restarted, and the page reloaded within the record's lifetime.
+    recordStarterUpdate({ from: '0.1.1', to: '0.1.2' })
+    try {
+      const { connection } = createConnection()
+      render(<MnemonWorkbench connection={connection} settingsScope={settingsScope} sessionId="session-1" />)
+      await waitFor(() => expect(screen.getByText('dsh-mnemon 0.1.2')).toBeTruthy())
+      await waitFor(() => expect(pendingStarterUpdate()).toBeUndefined())
+      expect(screen.queryByRole('dialog', { name: '检查与更新版本' })).toBeNull()
     } finally {
       clearStarterUpdate()
     }

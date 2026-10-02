@@ -22,8 +22,8 @@ const starter = (packages: VersionPackageStatus[]): VersionComponentStatus => ({
   id: 'dsh-mnemon', name: 'dsh-mnemon', current: '0.5.2', latest: '0.5.2', outdated: false, installMode: 'npm', updateSupported: true, updateHint: 'pnpm', packages,
 })
 
-function fixture(components: VersionComponentStatus[], options: { writable?: boolean; english?: boolean; resumedUpdate?: StarterUpdateRecord } = {}) {
-  const snapshot: VersionStatus = { checkedAt: '2026-09-06T08:00:00Z', components }
+function fixture(components: VersionComponentStatus[], options: { writable?: boolean; english?: boolean; resumedUpdate?: StarterUpdateRecord; lastUpdate?: VersionStatus['lastUpdate'] } = {}) {
+  const snapshot: VersionStatus = { checkedAt: '2026-09-06T08:00:00Z', components, ...(options.lastUpdate === undefined ? {} : { lastUpdate: options.lastUpdate }) }
   const versions = vi.fn(async () => snapshot)
   const updateVersion = vi.fn(async (component: VersionComponentStatus['id']): Promise<VersionUpdateResult> => ({ component, updated: true, restartRequired: component !== 'mnemon' }))
   const onRefreshStatus = vi.fn()
@@ -190,6 +190,32 @@ describe('a Starter update across DSH\'s client swap', () => {
     expect(screen.getAllByText(restartNotice).length).toBeGreaterThan(0)
     expect(screen.queryByRole('button', { name: '更新' })).toBeNull()
     expect(f.updateVersion).not.toHaveBeenCalled()
+  })
+
+  it('shows the update the Host reports it finished', async () => {
+    recordStarterUpdate({ from: '0.5.2', to: '0.5.3' })
+    const lastUpdate = { at: new Date().toISOString(), component: 'dsh-mnemon' as const, result: { component: 'dsh-mnemon' as const, updated: true, previousVersion: '0.5.2', currentVersion: '0.5.3', restartRequired: true } }
+    const f = fixture([{ ...starter([]), current: '0.5.3', latest: '0.5.3', restartRequired: true, updateHint: 'dsh' }], { resumedUpdate: pendingStarterUpdate()!, lastUpdate })
+    expect(await screen.findByText('dsh-mnemon 已更新')).toBeTruthy()
+    expect(screen.getAllByText(restartNotice).length).toBeGreaterThan(0)
+    expect(f.updateVersion).not.toHaveBeenCalled()
+  })
+
+  it('shows the failure the Host reports, even when files the install left suggest otherwise', async () => {
+    recordStarterUpdate({ from: '0.5.2', to: '0.5.3' })
+    const reason = 'DSH could not install dsh-mnemon@0.5.3: incompatible-version (requires @deepseek-ai/dsh ^0.3.0; this DSH is 0.2.0-rc.2)'
+    fixture([outdatedStarter()], { resumedUpdate: pendingStarterUpdate()!, lastUpdate: { at: new Date().toISOString(), component: 'dsh-mnemon', error: reason } })
+    expect(await screen.findByText(reason)).toBeTruthy()
+    expect(screen.getByText('版本操作失败')).toBeTruthy()
+    expect(screen.queryByText('dsh-mnemon 已更新')).toBeNull()
+  })
+
+  it('ignores an outcome from before the update this page started', async () => {
+    recordStarterUpdate({ from: '0.5.2', to: '0.5.3' })
+    const earlier = new Date(Date.now() - 10 * 60_000).toISOString()
+    fixture([outdatedStarter()], { resumedUpdate: pendingStarterUpdate()!, lastUpdate: { at: earlier, component: 'dsh-mnemon', error: 'an older failure' } })
+    expect(await screen.findByRole('button', { name: '更新' })).toBeTruthy()
+    expect(screen.queryByText('an older failure')).toBeNull()
   })
 
   it('claims no update the Host does not report', async () => {

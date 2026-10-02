@@ -89,8 +89,9 @@ const relativeReadmeImages = readmeFiles.flatMap((path) => {
 // Idle review's one-layer rule and its runtime memory switch (#319) measure 1,498,810 bytes.
 // Updating the Starter through DSH's own plugin installer, with the version dialog
 // reopened after DSH swaps in the new client, measures 1,506,720 bytes. The restart
-// reminder on every Memory System page brings it to 1,511,189 bytes.
-const maximumUnpackedBytes = 1_515_000
+// reminder on every Memory System page brings it to 1,511,189 bytes, and reporting how an
+// update ended, from the Profile's record, to 1,514,466 bytes.
+const maximumUnpackedBytes = 1_517_000
 
 if (missing.length > 0 || unexpected.length > 0 || hostLeaks.length > 0 || relativeReadmeImages.length > 0 || pack.unpackedSize > maximumUnpackedBytes) {
   if (missing.length > 0) console.error(`Missing package files:\n${missing.map(path => `- ${path}`).join('\n')}`)

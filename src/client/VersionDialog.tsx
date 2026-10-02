@@ -156,13 +156,18 @@ export function VersionDialog(props: {
   }
   const updatingBusy = updating !== null
   const controlsBusy = checking || updatingBusy
-  // The update's own reply went to the client DSH replaced; the Host's pending restart says how it ended.
+  // The update's own reply went to the client DSH replaced. The Host keeps how it ended; a Host
+  // from before it kept that leaves only its pending restart to go by.
   const resumed = props.resumedUpdate
   const starter = snapshot?.components.find(component => component.id === 'dsh-mnemon')
-  const resumedResult: VersionUpdateResult | null = result === null && resumed !== undefined && starter?.restartRequired === true && (resumed.to === undefined || starter.current === resumed.to)
-    ? { component: 'dsh-mnemon', updated: true, restartRequired: true, ...(resumed.from === undefined ? {} : { previousVersion: resumed.from }), ...(starter.current === undefined ? {} : { currentVersion: starter.current }) }
-    : null
+  const outcome = result === null && error === null && resumed !== undefined && snapshot?.lastUpdate?.component === 'dsh-mnemon'
+    && Date.parse(snapshot.lastUpdate.at) >= resumed.at - 60_000 ? snapshot.lastUpdate : undefined
+  const resumedResult: VersionUpdateResult | null = outcome !== undefined ? outcome.result ?? null
+    : result === null && resumed !== undefined && snapshot?.lastUpdate === undefined && starter?.restartRequired === true && (resumed.to === undefined || starter.current === resumed.to)
+      ? { component: 'dsh-mnemon', updated: true, restartRequired: true, ...(resumed.from === undefined ? {} : { previousVersion: resumed.from }), ...(starter.current === undefined ? {} : { currentVersion: starter.current }) }
+      : null
   const shownResult = result ?? resumedResult
+  const shownError = error ?? outcome?.error ?? null
   const updateButton = (component: VersionComponentStatus) => props.writeEnabled && component.outdated && component.updateSupported && component.checkError === undefined
     ? <button type="button" className={css.primaryButton} disabled={controlsBusy} onClick={() => void update(component)}>{updating === component.id ? t('versions.updating') : t('versions.update')}</button>
     : null
@@ -175,7 +180,7 @@ export function VersionDialog(props: {
   return <SidebarModal title={t('versions.title')} description={t('versions.description')} busy={updatingBusy} contentReady={!checking} onClose={close} footer={<><span className={css.modalFooterMeta}>{snapshot === null ? '' : t('versions.checkedAt', { time: new Date(snapshot.checkedAt).toLocaleTimeString() })}</span><div className={css.modalFooterActions}><button type="button" data-autofocus className={css.secondaryButton} disabled={controlsBusy} onClick={() => void check()}>{checking ? t('versions.checkingShort') : t('versions.recheck')}</button><button type="button" data-dialog-close className={css.secondaryButton} disabled={updatingBusy} onClick={close}>{t('common.close')}</button></div></>}>
     <div className={css.versionDialogBody}>
       {checking && snapshot === null && <div className={css.versionChecking} role="status"><span />{t('versions.checking')}</div>}
-      {error !== null && <div className={css.versionError} role="alert"><strong>{t('versions.failed')}</strong><p>{error}</p></div>}
+      {shownError !== null && <div className={css.versionError} role="alert"><strong>{t('versions.failed')}</strong><p>{shownError}</p></div>}
       {!props.writeEnabled && <p className={css.versionNotice}>{t('versions.readOnly')}</p>}
       {shownResult !== null && <div className={css.versionResult} role="status"><strong>{shownResult.updated ? t('versions.updated', { name: shownResult.component === 'mnemon' ? 'Mnemon CLI' : shownResult.component }) : t('versions.alreadyCurrent')}</strong>{shownResult.restartRequired && <p>{t('versions.restartRequired')}</p>}</div>}
       {snapshot !== null && <div className={css.versionList}>{snapshot.components.map(component => {
