@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { HostAgent, HostContextShape, HostPreStepDecision, HostSubagentsService, ToolDefinition, ToolExecution } from "../src/host/dsh.ts"
+import type { HostAgent, HostContextShape, HostSubagentsService, ToolDefinition, ToolExecution } from "../src/host/dsh.ts"
 import type { RememberRequest, MemoryBodyCatalog as MemorySpaceCatalog, SearchRequest, Insight, MemoryPlacementCandidate, PreparedMemoryPlacement } from 'dsh-mnemon-source-memory-spaces/contracts'
 import type { DocumentMutationResult, DocumentView, DocumentMutation } from 'dsh-mnemon-source-documents/contracts'
 import type { RuntimeMemoryMaintenancePlan, RuntimeMemoryMutation, RuntimeMemoryMutationResult, RuntimeMemorySnapshot } from 'dsh-mnemon-source-runtime/contracts'
@@ -1539,12 +1539,13 @@ describe('Mnemon memory subagent coordinator', () => {
     expect(rememberCall.persona).toContain('you cannot and must not delete existing entries')
   })
 
-  it('ends each tool continuation of a delegated write child with a user turn (issue 327)', async () => {
+  it('recovers a delegated write child whose server refuses a request without a user query (issue 327)', async () => {
     const host = subagents({ summary: 'Stored in project.', action: 'stored', memoryBodyIds: ['project'] })
     const registry = toolRegistry()
-    const handlers: Array<(payload: { step: number; signal: AbortSignal }, next: () => Promise<HostPreStepDecision>) => Promise<HostPreStepDecision>> = []
-    const child = { ...parent('subagent'), id: 'child-run-1', ctx: { on: (name: string, handler: never) => {
-      if (name === 'agent/pre-step') handlers.push(handler)
+    const handlers = new Map<string, (payload: never, next: () => Promise<unknown>) => Promise<unknown>>()
+    const append = vi.fn()
+    const child = { ...parent('subagent'), id: 'child-run-1', session: { ...parent('subagent').session, append }, ctx: { on: (name: string, handler: never) => {
+      handlers.set(name, handler)
       return () => {}
     } } } as unknown as HostAgent
     // DSH publishes the child while the provider starts it.
@@ -1554,8 +1555,15 @@ describe('Mnemon memory subagent coordinator', () => {
     } }
     const coordinator = new MnemonSubagentCoordinator(publishing, runtimeSource(), registry.value)
     await coordinator.remember(parent(), { content: 'Durable choice' }, new AbortController().signal)
-    expect(handlers).toHaveLength(1)
-    await expect(handlers[0]!({ step: 2, signal: new AbortController().signal }, async () => ({ kind: 'enter', messages: [] })))
+    expect([...handlers.keys()].sort()).toEqual(['agent/pre-step', 'agent/request-error'])
+    const live = new AbortController().signal
+    const step = handlers.get('agent/pre-step')!
+    // Nothing changes before a refusal.
+    await expect(step({ messages: [], step: 2, signal: live } as never, async () => ({ kind: 'enter', messages: [] }))).resolves.toEqual({ kind: 'enter', messages: [] })
+    await expect(handlers.get('agent/request-error')!({ turn: 1, step: 3, failure: { message: 'no user query found in messages', code: 'SERVER_ERROR' }, signal: live } as never, async () => undefined))
+      .resolves.toEqual({ kind: 'retry' })
+    expect(append).toHaveBeenCalledExactlyOnceWith('user/message', expect.objectContaining({ content: [{ type: 'text', text: CONTINUATION_TEXT }] }), { surfaceOp: 'append' })
+    await expect(step({ messages: [], step: 4, signal: live } as never, async () => ({ kind: 'enter', messages: [] })))
       .resolves.toMatchObject({ kind: 'enter', messages: [{ role: 'user', content: [{ type: 'text', text: CONTINUATION_TEXT }] }] })
   })
 

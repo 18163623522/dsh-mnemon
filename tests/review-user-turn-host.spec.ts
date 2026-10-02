@@ -94,7 +94,12 @@ class StrictTemplateOllama extends LlmAdapter {
 
 const decision = Array.from({ length: 24 }, (_, index) => `- Checkpoint rule ${index + 1}: the fixture project writes review checkpoints to SQLite before compaction.`).join('\n')
 
-it.each(['fork', 'spawn'])('keeps a user turn in every %s review request when Ollama truncates the delegated prompt', async provider => {
+it.each([
+  { provider: 'fork', truncates: true },
+  { provider: 'spawn', truncates: true },
+  { provider: 'fork', truncates: false },
+  { provider: 'spawn', truncates: false },
+])('completes a $provider review whose server refuses a request without a user query (truncates: $truncates)', async ({ provider, truncates }) => {
   const f = await compositionFixture()
   f.config.idleReview.provider = provider as 'fork' | 'spawn'
   const ctx = new Context()
@@ -123,7 +128,7 @@ it.each(['fork', 'spawn'])('keeps a user turn in every %s review request when Ol
       // The window holds this request from the delegated prompt on; the next tool round overflows it.
       const messages = options.messages
       const prompt = promptIndex(messages)
-      ollama.numCtx = tokens(messages[0]!) + messages.slice(prompt).reduce((sum, message) => sum + tokens(message), 0)
+      if (truncates) ollama.numCtx = tokens(messages[0]!) + messages.slice(prompt).reduce((sum, message) => sum + tokens(message), 0)
       return { name: 'mnemon_document_search', args: { query: 'Review checkpoint storage', limit: 1 } }
     }
     return { name: terminal, args: { requestId, result: {
@@ -157,13 +162,18 @@ it.each(['fork', 'spawn'])('keeps a user turn in every %s review request when Ol
     expect(result).toMatchObject({ delegated: true, action: 'created' })
     expect(documentId).toBeDefined()
     const child = ollama.requests.filter(request => request.session !== 'parent')
-    expect(child).toHaveLength(4)
-    // As reported: by the fourth request Ollama has truncated the delegated prompt away.
-    expect(child.map(request => request.promptKept)).toEqual([true, true, true, false])
-    expect(child.every(request => request.userQuery)).toBe(true)
-    // Each tool continuation ends with one more continuation turn; the first request and the parent get none.
-    expect(child.map(request => request.continuations)).toEqual([0, 1, 2, 3])
-    expect(child.slice(1).map(request => request.last)).toEqual(['dsh-mnemon', 'dsh-mnemon', 'dsh-mnemon'])
+    if (truncates) {
+      // As reported, the fourth request lost the delegated prompt and was refused. It ran again at once,
+      // ending with the continuation turn; nothing before the refusal changed.
+      expect(child.map(request => request.promptKept)).toEqual([true, true, true, false, false])
+      expect(child.map(request => request.userQuery)).toEqual([true, true, true, false, true])
+      expect(child.map(request => request.continuations)).toEqual([0, 0, 0, 0, 1])
+      expect(child.at(-1)!.last).toBe('dsh-mnemon')
+    } else {
+      // A server that keeps the prompt never refuses, so every request stays as it was.
+      expect(child.map(request => [request.userQuery, request.promptKept, request.continuations])).toEqual([[true, true, 0], [true, true, 0], [true, true, 0], [true, true, 0]])
+    }
+    expect(child.slice(0, 4).map(request => request.last)).not.toContain('dsh-mnemon')
     expect(ollama.requests.filter(request => request.session === 'parent').map(request => request.continuations)).toEqual([0])
   } finally {
     stop?.()
