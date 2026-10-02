@@ -26,7 +26,8 @@ function requestedScope(payload: Record<string, unknown>): { workspaceId?: strin
 function scoped(runtime: LiveMnemonRuntime, payload: Record<string, unknown>, lifecycle?: MnemonLifecycle) {
   const requested = requestedScope(payload)
   const route = runtime.route(requested)
-  // Browser workspace ids are resolved through the authenticated DSH registry.
+  // Browser workspace ids, and sessions whose Agents are not loaded, resolve through the
+  // authenticated DSH registry.
   const workspaceId = route.selectedWorkspace?.path ?? lifecycle?.workspaceRoot(requested.sessionId)
   const scope: MemoryOperationScope = {
     storage: route.graph.config.storageScope,
@@ -128,7 +129,7 @@ async function assisted(runtime: ScopedRuntime, lifecycle: MnemonLifecycle, type
     if (operation === 'mutate') {
       requireCapability(runtime, typeId, 'write')
       const request = input as unknown as DocumentMutation
-      return runtime.aligned && sessionId !== '' ? lifecycle.mutateDocument(sessionId, request, signal) : runtime.source(typeId).mutate('mutate', request, signal)
+      return runtime.aligned && runtime.liveSession && sessionId !== '' ? lifecycle.mutateDocument(sessionId, request, signal) : runtime.source(typeId).mutate('mutate', request, signal)
     }
   }
   if (typeId !== 'memory-spaces') throw new Error('unsupported Source assistance operation')
@@ -353,7 +354,7 @@ export function createWriteHandler(input: LiveMnemonRuntime, lifecycle?: MnemonL
       }
       if (Object.hasOwn(SPACE_WRITE_CAPABILITIES, endpoint)) {
         requireCapability(runtime, 'memory-spaces', SPACE_WRITE_CAPABILITIES[endpoint]!)
-        if (endpoint === 'remember' && lifecycle !== undefined && runtime.aligned && runtime.scope.sessionId) {
+        if (endpoint === 'remember' && lifecycle !== undefined && runtime.aligned && runtime.liveSession && runtime.scope.sessionId) {
           return success(await lifecycle.remember(runtime.scope.sessionId, { ...payload, source: 'user' } as unknown as RememberRequest, signal))
         }
         return success(await runtime.source('memory-spaces').mutate(endpoint, endpoint === 'remember' ? { ...payload, source: 'user' } : payload, signal))

@@ -56,7 +56,7 @@ function protocolFixture(options: Config = {}) {
   }
   const route = {
     graph, selectedWorkspace: { id: 'workspace', title: 'Fixture', path: '/fixture/workspace' },
-    selectedRoot: '/fixture/data', effectiveRoot: '/fixture/data', aligned: true,
+    selectedRoot: '/fixture/data', effectiveRoot: '/fixture/data', aligned: true, liveSession: true,
   }
   const runtime = { config: graph.config, route: vi.fn(() => route) } as unknown as LiveMnemonRuntime
   return { runtime, graph, route, sources, generation, release }
@@ -254,6 +254,21 @@ describe('Host assistance and channels', () => {
     f.route.aligned = false
     await createWriteHandler(f.runtime, life)('remember', { sessionId: 's1', content: 'inspected' })
     expect(f.sources['memory-spaces']!.mutate).toHaveBeenCalledWith('remember', expect.objectContaining({ content: 'inspected', source: 'user' }), undefined)
+  })
+
+  it('writes to the Sources directly for a session whose Agent is not loaded', async () => {
+    // A conversation opened from the list, or just switched to, before DSH loads its Agent.
+    const f = protocolFixture()
+    Object.assign(f.route, { liveSession: false })
+    const remember = vi.fn()
+    const mutateDocument = vi.fn()
+    const write = createWriteHandler(f.runtime, lifecycle({ remember, mutateDocument }))
+    expect(await write('remember', { sessionId: 's1', content: 'Prefer pnpm.' })).toMatchObject({ ok: true })
+    expect(f.sources['memory-spaces']!.mutate).toHaveBeenCalledWith('remember', expect.objectContaining({ content: 'Prefer pnpm.', source: 'user' }), undefined)
+    expect(await write('document', { sessionId: 's1', action: 'create', title: 'Boot', content: '# Boot' })).toMatchObject({ ok: true })
+    expect(f.sources.documents!.mutate).toHaveBeenCalledWith('mutate', expect.objectContaining({ action: 'create', title: 'Boot' }), undefined)
+    expect(remember).not.toHaveBeenCalled()
+    expect(mutateDocument).not.toHaveBeenCalled()
   })
 
   it('synthesizes answers only after deterministic Source search and honors cancellation', async () => {
