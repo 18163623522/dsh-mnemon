@@ -3,6 +3,7 @@ import type { HostConnectionHandle, HostRpcHandler, RpcResult } from './dsh.ts'
 import type { MnemonLifecycle } from './lifecycle.ts'
 import type { LiveMnemonRuntime } from './runtime.ts'
 import { assertParticipation } from './access.ts'
+import { sourceFailure } from './source-session.ts'
 import { isVersionComponentId, VersionUpdateManager } from './version-updates.ts'
 import type { MemoryCapability, MemoryJsonValue, MemoryOperationScope, MemorySourceManagementInstance, MemorySourceManagementRequest } from '../core/contracts/index.ts'
 import type { CreateMemoryBodyRequest as CreateMemorySpaceRequest, Insight, MemoryBodyCatalog as MemorySpaceCatalog, PreparedMemoryPlacement, RememberRequest } from 'dsh-mnemon-source-memory-spaces/contracts'
@@ -26,7 +27,8 @@ function requestedScope(payload: Record<string, unknown>): { workspaceId?: strin
 function scoped(runtime: LiveMnemonRuntime, payload: Record<string, unknown>, lifecycle?: MnemonLifecycle) {
   const requested = requestedScope(payload)
   const route = runtime.route(requested)
-  // Browser workspace ids are resolved through the authenticated DSH registry.
+  // Browser workspace ids, and sessions whose Agents are not loaded, resolve through the
+  // authenticated DSH registry.
   const workspaceId = route.selectedWorkspace?.path ?? lifecycle?.workspaceRoot(requested.sessionId)
   const scope: MemoryOperationScope = {
     storage: route.graph.config.storageScope,
@@ -128,7 +130,15 @@ async function assisted(runtime: ScopedRuntime, lifecycle: MnemonLifecycle, type
     if (operation === 'mutate') {
       requireCapability(runtime, typeId, 'write')
       const request = input as unknown as DocumentMutation
-      return runtime.aligned && sessionId !== '' ? lifecycle.mutateDocument(sessionId, request, signal) : runtime.source(typeId).mutate('mutate', request, signal)
+      if (runtime.aligned && runtime.liveSession && sessionId !== '') return lifecycle.mutateDocument(sessionId, request, signal)
+      try {
+        return await runtime.source(typeId).mutate('mutate', request, signal)
+      } catch (error) {
+        // A conversation whose Agent is not loaded makes room as its Agent would:
+        // a task Agent archives the least recently used Document, then writes.
+        if (!runtime.aligned || sessionId === '' || !sourceFailure(error, 'document-capacity')) throw error
+        return lifecycle.mutateDocumentTask(sessionId, request, workspaceRoot, signal)
+      }
     }
   }
   if (typeId !== 'memory-spaces') throw new Error('unsupported Source assistance operation')
@@ -149,7 +159,11 @@ async function assisted(runtime: ScopedRuntime, lifecycle: MnemonLifecycle, type
       if (request.placement === undefined) return source.mutate('body-create', request, signal)
       requireAligned(runtime)
       const prepared = await source.read<PreparedMemoryPlacement>('prepare-body-placement', request, signal)
-      const placementDecision = await lifecycle.placeProvider(sessionId, { name: request.name, description: request.description }, prepared, signal)
+      const body = { name: request.name, description: request.description }
+      // Without a loaded conversation Agent, a task Agent in the same workspace decides.
+      const placementDecision = runtime.liveSession
+        ? await lifecycle.placeProvider(sessionId, body, prepared, signal)
+        : await lifecycle.placeProviderTask(sessionId, body, prepared, workspaceRoot, signal)
       return source.mutate('body-create', { request, placementDecision }, signal)
     }
     case 'body-metadata-maintain': {
@@ -353,7 +367,7 @@ export function createWriteHandler(input: LiveMnemonRuntime, lifecycle?: MnemonL
       }
       if (Object.hasOwn(SPACE_WRITE_CAPABILITIES, endpoint)) {
         requireCapability(runtime, 'memory-spaces', SPACE_WRITE_CAPABILITIES[endpoint]!)
-        if (endpoint === 'remember' && lifecycle !== undefined && runtime.aligned && runtime.scope.sessionId) {
+        if (endpoint === 'remember' && lifecycle !== undefined && runtime.aligned && runtime.liveSession && runtime.scope.sessionId) {
           return success(await lifecycle.remember(runtime.scope.sessionId, { ...payload, source: 'user' } as unknown as RememberRequest, signal))
         }
         return success(await runtime.source('memory-spaces').mutate(endpoint, endpoint === 'remember' ? { ...payload, source: 'user' } : payload, signal))

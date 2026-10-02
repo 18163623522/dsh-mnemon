@@ -56,7 +56,7 @@ function protocolFixture(options: Config = {}) {
   }
   const route = {
     graph, selectedWorkspace: { id: 'workspace', title: 'Fixture', path: '/fixture/workspace' },
-    selectedRoot: '/fixture/data', effectiveRoot: '/fixture/data', aligned: true,
+    selectedRoot: '/fixture/data', effectiveRoot: '/fixture/data', aligned: true, liveSession: true,
   }
   const runtime = { config: graph.config, route: vi.fn(() => route) } as unknown as LiveMnemonRuntime
   return { runtime, graph, route, sources, generation, release }
@@ -254,6 +254,53 @@ describe('Host assistance and channels', () => {
     f.route.aligned = false
     await createWriteHandler(f.runtime, life)('remember', { sessionId: 's1', content: 'inspected' })
     expect(f.sources['memory-spaces']!.mutate).toHaveBeenCalledWith('remember', expect.objectContaining({ content: 'inspected', source: 'user' }), undefined)
+  })
+
+  it('writes to the Sources directly for a session whose Agent is not loaded', async () => {
+    // A conversation opened from the list, or just switched to, before DSH loads its Agent.
+    const f = protocolFixture()
+    Object.assign(f.route, { liveSession: false })
+    const remember = vi.fn()
+    const mutateDocument = vi.fn()
+    const write = createWriteHandler(f.runtime, lifecycle({ remember, mutateDocument }))
+    expect(await write('remember', { sessionId: 's1', content: 'Prefer pnpm.' })).toMatchObject({ ok: true })
+    expect(f.sources['memory-spaces']!.mutate).toHaveBeenCalledWith('remember', expect.objectContaining({ content: 'Prefer pnpm.', source: 'user' }), undefined)
+    expect(await write('document', { sessionId: 's1', action: 'create', title: 'Boot', content: '# Boot' })).toMatchObject({ ok: true })
+    expect(f.sources.documents!.mutate).toHaveBeenCalledWith('mutate', expect.objectContaining({ action: 'create', title: 'Boot' }), undefined)
+    expect(remember).not.toHaveBeenCalled()
+    expect(mutateDocument).not.toHaveBeenCalled()
+  })
+
+  it('makes room for a Document through a task Agent when the session\'s Agent is not loaded', async () => {
+    const f = protocolFixture()
+    Object.assign(f.route, { liveSession: false })
+    const capacity = Object.assign(new Error('Would exceed active document capacity: 11 bytes (limit 10). Archive the least-recently-used active document before retrying.'), { code: 'document-capacity', candidates: [{ id: 'old' }] })
+    const mutateDocumentTask = vi.fn(async () => ({ action: 'created', document: { id: 'new' } }))
+    const write = createWriteHandler(f.runtime, lifecycle({ mutateDocumentTask }))
+    f.sources.documents!.mutate.mockRejectedValueOnce(capacity)
+    expect(await write('document', { sessionId: 's1', action: 'create', title: 'Boot', content: '# Boot' })).toMatchObject({ ok: true })
+    // The task Agent archives the least recently used Document, as a loaded Agent does.
+    expect(mutateDocumentTask).toHaveBeenCalledWith('s1', expect.objectContaining({ action: 'create', title: 'Boot' }), '/fixture/workspace', undefined)
+    // Other failures, and a page without a conversation, keep the Source's answer.
+    f.sources.documents!.mutate.mockRejectedValueOnce(new Error('document not found: x'))
+    expect(await write('document', { sessionId: 's1', action: 'update', id: 'x', content: '# X' })).toMatchObject({ ok: false, error: { message: 'document not found: x' } })
+    f.sources.documents!.mutate.mockRejectedValueOnce(capacity)
+    expect(await write('document', { action: 'create', title: 'Boot', content: '# Boot' })).toMatchObject({ ok: false, error: { message: expect.stringContaining('Would exceed active document capacity') } })
+    expect(mutateDocumentTask).toHaveBeenCalledOnce()
+  })
+
+  it('chooses a new Memory Space\'s Provider through a task Agent when the session\'s Agent is not loaded', async () => {
+    const f = protocolFixture()
+    Object.assign(f.route, { liveSession: false })
+    const decision = { providerId: 'mnemon-native', reason: 'local', confidence: 'high' }
+    const placeProvider = vi.fn()
+    const placeProviderTask = vi.fn(async () => decision)
+    const write = createWriteHandler(f.runtime, lifecycle({ placeProvider, placeProviderTask }))
+    const request = { sessionId: 's1', name: 'Product', description: 'Decisions', placement: { mode: 'automatic', prompt: 'local first' } }
+    expect(await write('body-create', request)).toMatchObject({ ok: true })
+    expect(placeProviderTask).toHaveBeenCalledWith('s1', { name: 'Product', description: 'Decisions' }, expect.objectContaining({ selectorBrief: 'eligible providers' }), '/fixture/workspace', undefined)
+    expect(placeProvider).not.toHaveBeenCalled()
+    expect(f.sources['memory-spaces']!.mutate).toHaveBeenCalledWith('body-create', { request, placementDecision: decision }, undefined)
   })
 
   it('synthesizes answers only after deterministic Source search and honors cancellation', async () => {
