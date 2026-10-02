@@ -273,6 +273,7 @@ HTTP 403 可能来自 Host/Origin 不匹配，或旧远程 Client 仍调用独�
 | `memoryBodyId is required...` | active 数量不是恰好 1；显式选择目标 |
 | `memory space is not active for reading` | 在概览激活目标；写入 inactive 可以，读取不行 |
 | Provider 错误 | 审查需要受 guard 保护的本地子 Agent；默认有界 `spawn`，可选择 `fork`。DSH/Teams 0.1.7-rc.2 可选择 `idleReview.agentTeams: scoped`，默认仍为 `pause`；重试前核对部分写入回执 |
+| 本地模型（例如 Ollama 上的 Qwen3.x）下后台审查报 `no user query found in messages` | 工具结果填满模型的上下文窗口后，Ollama 截断时丢掉了子代理的任务提示。0.5.21 之后的版本会给被拒的子代理步骤追加一条用户消息并重试（[#327](https://github.com/omdsh-dev/dsh-mnemon/issues/327)），请更新 dsh-mnemon。调大 Ollama 的上下文长度（`OLLAMA_CONTEXT_LENGTH` 或模型的 `num_ctx`）也能避免截断。审查可能在失败前已创建项目档案，请核对部分写入回执 |
 | Runtime replace 超容量 | 缩短 replacement 或先显式整理；自动维护只处理 add 溢出 |
 | Document source path 被拒绝 | 路径必须在会话工作区内，且不能引用受管 Documents 目录 |
 | CLI timeout | 增大 `timeoutMs`；大 Store 的状态与图谱可能超过 10 秒 |

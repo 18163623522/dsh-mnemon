@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto'
 import { resolve } from 'node:path'
-import type { MessageSourceMap } from '@deepseek-ai/dsh-llm'
 import type { ResolvedConfig } from './config.ts'
 import type {
   CreateHostAgentOptions,
@@ -26,15 +25,7 @@ import type { AssistantMessageText, LifecycleAgentSnapshot, LifecycleCounters, L
 import type { PreparedMemoryPlacement } from 'dsh-mnemon-source-memory-spaces/contracts'
 import type { MemoryWake } from "../core/contracts/index.ts"
 import { agentScope, type MnemonAgentRuntimeSource } from './runtime.ts'
-
-declare module '@deepseek-ai/dsh-llm' {
-  interface MessageSourceMap {
-    'dsh-mnemon': {
-      kind: 'dsh-mnemon'
-      form: 'recall' | 'instructions'
-    }
-  }
-}
+import { createPluginMessage, MNEMON_PLUGIN_SOURCE } from './plugin-message.ts'
 
 type AgentRuntimeSource = Pick<MnemonAgentRuntimeSource, 'forAgent' | 'executions'>
 
@@ -65,7 +56,7 @@ function llmService(value: unknown): HostLlmService | undefined {
 export type { TurnMemoryActivity, TurnMemoryActivitySnapshot } from './activity.ts'
 export type { AssistantMessageText, LifecycleAgentSnapshot, LifecycleCounters, LifecyclePhase, LifecycleSnapshot } from "./protocol.ts"
 
-export const MNEMON_PLUGIN_SOURCE = 'dsh-mnemon'
+export { MNEMON_PLUGIN_SOURCE }
 
 export interface SupervisedWritebackResult extends DelegatedWriteResult { sessionId: string }
 
@@ -98,18 +89,6 @@ interface PromptAssembly {
 interface PromptAssemblyContext {
   agent?: HostAgent
   signal?: AbortSignal
-}
-
-function createPluginMessage(text: string, form: 'recall' | 'instructions'): HostUserMessage {
-  return structuredClone({
-    id: crypto.randomUUID(),
-    role: 'user' as const,
-    content: [{ type: 'text' as const, text }],
-    source: {
-      kind: MNEMON_PLUGIN_SOURCE,
-      form,
-    } satisfies MessageSourceMap['dsh-mnemon'],
-  })
 }
 
 function isMnemonMessageSource(source: unknown): boolean {
