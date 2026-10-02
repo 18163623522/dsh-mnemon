@@ -207,6 +207,8 @@ export interface HostWorkspace {
   readonly id: string
   readonly path: string
   readonly title: string
+  /** Sessions the workspace lists, whether or not their Agents are loaded. */
+  readonly sessionIds?: readonly string[]
 }
 
 export interface HostWorkspaceRegistry {
