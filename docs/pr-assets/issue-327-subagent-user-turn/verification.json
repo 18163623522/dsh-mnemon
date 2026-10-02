@@ -3,7 +3,8 @@
   "issue": "https://github.com/omdsh-dev/dsh-mnemon/issues/327",
   "revisions": {
     "baseline": "main 06182f4d828efb1569d2f68a2df5e0e1d1c69f89 (dsh-mnemon 0.5.21)",
-    "fix": "b0dc3c7ea684fcd17f2556482b9a3239e57af250"
+    "fix": "771d43e2bdc3ffcc06d2fa057ae0e9d913ce884f",
+    "firstVersion": "b0dc3c7ea684fcd17f2556482b9a3239e57af250 (a user turn on every continuation; narrowed after review)"
   },
   "environment": {
     "os": "macOS 15.6 arm64",
@@ -104,79 +105,171 @@
       }
     },
     "fix": {
-      "fork": {
-        "outcome": {
-          "delegated": true,
-          "action": "created",
-          "documentIds": 1
+      "truncating": {
+        "fork": {
+          "outcome": {
+            "delegated": true,
+            "action": "created",
+            "documentIds": 1
+          },
+          "childRequests": [
+            {
+              "request": 1,
+              "last": "runtime-context",
+              "continuations": 0,
+              "userQuery": true,
+              "promptKept": true
+            },
+            {
+              "request": 2,
+              "last": "tool",
+              "continuations": 0,
+              "userQuery": true,
+              "promptKept": true
+            },
+            {
+              "request": 3,
+              "last": "tool",
+              "continuations": 0,
+              "userQuery": true,
+              "promptKept": true
+            },
+            {
+              "request": 4,
+              "last": "tool",
+              "continuations": 0,
+              "userQuery": false,
+              "promptKept": false
+            },
+            {
+              "request": 5,
+              "last": "dsh-mnemon",
+              "continuations": 1,
+              "userQuery": true,
+              "promptKept": false
+            }
+          ]
         },
-        "childRequests": [
-          {
-            "request": 1,
-            "last": "runtime-context",
-            "continuations": 0,
-            "userQuery": true,
-            "promptKept": true
+        "spawn": {
+          "outcome": {
+            "delegated": true,
+            "action": "created",
+            "documentIds": 1
           },
-          {
-            "request": 2,
-            "last": "dsh-mnemon",
-            "continuations": 1,
-            "userQuery": true,
-            "promptKept": true
-          },
-          {
-            "request": 3,
-            "last": "dsh-mnemon",
-            "continuations": 2,
-            "userQuery": true,
-            "promptKept": true
-          },
-          {
-            "request": 4,
-            "last": "dsh-mnemon",
-            "continuations": 3,
-            "userQuery": true,
-            "promptKept": false
-          }
-        ]
+          "childRequests": [
+            {
+              "request": 1,
+              "last": "runtime-context",
+              "continuations": 0,
+              "userQuery": true,
+              "promptKept": true
+            },
+            {
+              "request": 2,
+              "last": "tool",
+              "continuations": 0,
+              "userQuery": true,
+              "promptKept": true
+            },
+            {
+              "request": 3,
+              "last": "tool",
+              "continuations": 0,
+              "userQuery": true,
+              "promptKept": true
+            },
+            {
+              "request": 4,
+              "last": "tool",
+              "continuations": 0,
+              "userQuery": false,
+              "promptKept": false
+            },
+            {
+              "request": 5,
+              "last": "dsh-mnemon",
+              "continuations": 1,
+              "userQuery": true,
+              "promptKept": false
+            }
+          ]
+        }
       },
-      "spawn": {
-        "outcome": {
-          "delegated": true,
-          "action": "created",
-          "documentIds": 1
+      "neverRefuses": {
+        "fork": {
+          "outcome": {
+            "delegated": true,
+            "action": "created",
+            "documentIds": 1
+          },
+          "childRequests": [
+            {
+              "request": 1,
+              "last": "runtime-context",
+              "continuations": 0,
+              "userQuery": true,
+              "promptKept": true
+            },
+            {
+              "request": 2,
+              "last": "tool",
+              "continuations": 0,
+              "userQuery": true,
+              "promptKept": true
+            },
+            {
+              "request": 3,
+              "last": "tool",
+              "continuations": 0,
+              "userQuery": true,
+              "promptKept": true
+            },
+            {
+              "request": 4,
+              "last": "tool",
+              "continuations": 0,
+              "userQuery": true,
+              "promptKept": true
+            }
+          ]
         },
-        "childRequests": [
-          {
-            "request": 1,
-            "last": "runtime-context",
-            "continuations": 0,
-            "userQuery": true,
-            "promptKept": true
+        "spawn": {
+          "outcome": {
+            "delegated": true,
+            "action": "created",
+            "documentIds": 1
           },
-          {
-            "request": 2,
-            "last": "dsh-mnemon",
-            "continuations": 1,
-            "userQuery": true,
-            "promptKept": true
-          },
-          {
-            "request": 3,
-            "last": "dsh-mnemon",
-            "continuations": 2,
-            "userQuery": true,
-            "promptKept": true
-          },
-          {
-            "request": 4,
-            "last": "dsh-mnemon",
-            "continuations": 3,
-            "userQuery": true,
-            "promptKept": false
-          }
-        ]
+          "childRequests": [
+            {
+              "request": 1,
+              "last": "runtime-context",
+              "continuations": 0,
+              "userQuery": true,
+              "promptKept": true
+            },
+            {
+              "request": 2,
+              "last": "tool",
+              "continuations": 0,
+              "userQuery": true,
+              "promptKept": true
+            },
+            {
+              "request": 3,
+              "last": "tool",
+              "continuations": 0,
+              "userQuery": true,
+              "promptKept": true
+            },
+            {
+              "request": 4,
+              "last": "tool",
+              "continuations": 0,
+              "userQuery": true,
+              "promptKept": true
+            }
+          ]
+        }
       }
     }
   },
@@ -330,15 +423,21 @@
           },
           {
             "request": 2,
-            "last": "user",
+            "last": "tool",
             "userQuery": true,
             "promptKept": true
           },
           {
             "request": 3,
-            "last": "user",
+            "last": "tool",
             "userQuery": true,
             "promptKept": true
+          },
+          {
+            "request": 4,
+            "last": "tool",
+            "userQuery": false,
+            "promptKept": false
           },
           {
             "request": 4,
@@ -361,15 +460,21 @@
           },
           {
             "request": 2,
-            "last": "user",
+            "last": "tool",
             "userQuery": true,
             "promptKept": true
           },
           {
             "request": 3,
-            "last": "user",
+            "last": "tool",
             "userQuery": true,
             "promptKept": true
+          },
+          {
+            "request": 4,
+            "last": "tool",
+            "userQuery": false,
+            "promptKept": false
           },
           {
             "request": 4,
@@ -388,16 +493,16 @@
     "command": "pnpm run verify",
     "rootTests": {
       "files": 115,
-      "passed": 1567,
+      "passed": 1571,
       "skipped": 6
     },
     "docsLocalLinks": 2979,
-    "packageUnpackedBytes": 1501839,
+    "packageUnpackedBytes": 1502943,
     "packageBudget": 1504000,
     "newTests": [
-      "tests/review-user-turn-host.spec.ts (fork and spawn)",
-      "tests/continuation-turn.spec.ts (5)",
-      "tests/subagent.spec.ts: a delegated write child"
+      "tests/review-user-turn-host.spec.ts (fork and spawn, truncating and never refusing)",
+      "tests/continuation-turn.spec.ts (7)",
+      "tests/subagent.spec.ts: a delegated write child recovers"
     ]
   }
 }

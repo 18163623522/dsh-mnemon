@@ -87,7 +87,7 @@ const relativeReadmeImages = readmeFiles.flatMap((path) => {
 // installation quick start with its recording brings it to 1,492,741 bytes.
 // The Starter's component group entry (`dsh-mnemon/bundle`) measures 1,494,791 bytes.
 // Idle review's one-layer rule and its runtime memory switch (#319) measure 1,498,810 bytes.
-// The user turn that ends each subagent tool continuation (#327) brings it to 1,501,839 bytes.
+// The user turn a refused subagent step retries with (#327) brings it to 1,502,943 bytes.
 const maximumUnpackedBytes = 1_504_000
 
 if (missing.length > 0 || unexpected.length > 0 || hostLeaks.length > 0 || relativeReadmeImages.length > 0 || pack.unpackedSize > maximumUnpackedBytes) {
