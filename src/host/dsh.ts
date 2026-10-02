@@ -148,6 +148,8 @@ export interface HostSession {
   eventAt(seq: number): HostSessionEvent | undefined
   /** Model-visible event sequences, in order; rewinds and compaction replace them. */
   surface: { readonly nodes: readonly number[] }
+  /** DSH's append, as its own request-error recoveries use it before retrying a step. */
+  append?(type: string, data: unknown, options?: { surfaceOp?: 'append' }): unknown
 }
 
 export type HostPreStepDecision = { kind: 'reject' } | { kind: 'enter'; messages: HostUserMessage[] }
@@ -207,6 +209,8 @@ export interface HostWorkspace {
   readonly id: string
   readonly path: string
   readonly title: string
+  /** Sessions the workspace lists, whether or not their Agents are loaded. */
+  readonly sessionIds?: readonly string[]
 }
 
 export interface HostWorkspaceRegistry {

@@ -215,17 +215,24 @@ export class LiveMnemonRuntime implements MnemonAgentRuntimeSource {
     selectedRoot: string
     effectiveRoot: string
     aligned: boolean
+    /** The request names a session whose Agent is loaded, so work can run in that conversation. */
+    liveSession: boolean
   } {
     this.assertOpen()
     const effectiveAgent = this.agent(request.sessionId)
-    const effectiveWorkspace = effectiveAgent === undefined ? undefined : this.workspaceForPath(effectiveAgent.session.header?.cwd)
+    // DSH loads a listed session's Agent only when the session runs, so a session opened from the
+    // list, or just switched to, may have none yet; DSH's workspace registry still lists it.
+    const effectiveWorkspace = effectiveAgent === undefined
+      ? this.workspaceForSession(request.sessionId)
+      : this.workspaceForPath(effectiveAgent.session.header?.cwd)
     const selectedWorkspace = request.workspaceId === undefined || request.workspaceId.trim() === ''
       ? effectiveWorkspace
       : this.requireWorkspace(request.workspaceId)
+    const effectiveGraph = effectiveAgent !== undefined ? this.forAgent(effectiveAgent)
+      : effectiveWorkspace !== undefined && isWorkspaceStorageScope(this.current.config.storageScope) ? this.forWorkspacePath(effectiveWorkspace.path) : this.current
     const graph = selectedWorkspace === undefined
-      ? effectiveAgent === undefined ? this.current : this.forAgent(effectiveAgent)
+      ? effectiveGraph
       : isWorkspaceStorageScope(this.current.config.storageScope) ? this.forWorkspacePath(selectedWorkspace.path) : this.current
-    const effectiveGraph = effectiveAgent === undefined ? this.current : this.forAgent(effectiveAgent)
     const selectedRoot = resolve(graph.directory)
     const effectiveRoot = resolve(effectiveGraph.directory)
     return {
@@ -235,6 +242,7 @@ export class LiveMnemonRuntime implements MnemonAgentRuntimeSource {
       selectedRoot,
       effectiveRoot,
       aligned: selectedRoot === effectiveRoot,
+      liveSession: effectiveAgent !== undefined,
     }
   }
 
@@ -275,6 +283,12 @@ export class LiveMnemonRuntime implements MnemonAgentRuntimeSource {
     const workspace = normalized === '' ? undefined : this.workspaceRegistry?.get(normalized)
     if (workspace === undefined) throw new Error('selected DSH workspace is unavailable')
     return workspace
+  }
+
+  private workspaceForSession(sessionId?: string): HostWorkspace | undefined {
+    const normalized = sessionId?.trim()
+    if (normalized === undefined || normalized === '') return undefined
+    return this.workspaceRegistry?.list().find(workspace => workspace.sessionIds?.includes(normalized) === true)
   }
 
   private workspaceForPath(path?: string): HostWorkspace | undefined {
