@@ -13,6 +13,8 @@ import { EMPTY_MEMORY_PROVIDER_CATALOG, MemoryProviderCatalog } from './provider
 import { type MemoryProviderAdapter, type ProviderSpaceStatus, type ProviderSearchResult } from './providers/adapter.ts'
 import { MemoryProviderAdapterRegistry } from './providers/registry.ts'
 import { lexicalRequiredMatchCount, lexicalSearchTokens, lexicalTokenMatchCount } from './search-tokens.ts'
+import { ENTITY_INDEX_LIST_LIMIT, ENTITY_RAIL_LIMIT, buildSpaceEntityIndex, memoriesWithEntity, mergeEntityCounts, type SpaceEntityIndex } from './entity-index.ts'
+import { normalizeEntityKey } from './entity-key.ts'
 import {
   applyRecallQualityPolicy,
   prepareRecallQualityPolicy,
@@ -31,6 +33,8 @@ import {
   type Category,
   type CreateMemorySpaceRequest,
   type EdgeType,
+  type EntityMemoriesView,
+  type EntityRelatedView,
   type EntityView,
   type Insight,
   type Intent,
@@ -96,12 +100,54 @@ function stringArray(value: JsonValue | undefined): string[] | undefined {
   return value.filter((entry): entry is string => typeof entry === 'string')
 }
 
+/** How long the entity reads reuse one Provider health result, so a rail and a selection share it. */
+const ENTITY_STATUS_REUSE_MS = 1_500
+/** How long an index that statistics cannot check is reused; a write through this Source still drops it. */
+const ENTITY_INDEX_UNCHECKED_REUSE_MS = 10_000
+
+interface EntityIndexRead {
+  byBody: Map<string, SpaceEntityIndex>
+  indexes: SpaceEntityIndex[]
+  /** Healthy entity spaces related recall can query, indexed or query-only. */
+  readable: MemorySpace[]
+  sources: MemoryReadSource[]
+  complete: boolean
+}
+
+interface CachedEntityIndex {
+  fingerprint: string | undefined
+  /** When the read finished; undefined while it runs. */
+  settledAt: number | undefined
+  index: Promise<SpaceEntityIndex>
+}
+
+function entityName(entity: string): string {
+  const name = entity.trim()
+  if (name.length > 200) throw new Error('entity is too long (max 200 characters)')
+  return name
+}
+
+function memoryKey(memoryBodyId: string, id: string): string {
+  return `${memoryBodyId}\u0000${id}`
+}
+
+/**
+ * What must stay the same for a space's entity index to stay valid: its
+ * Provider statistics (Mnemon counts every write in its operation log) and the
+ * Source's own record of the space. Without statistics it cannot be checked.
+ */
+function entityIndexFingerprint(body: MemorySpace, status: ProviderSpaceStatus): string | undefined {
+  const stats = status.stats
+  if (stats === undefined) return undefined
+  return JSON.stringify([body.provider.id, body.updatedAt, stats.totalInsights, stats.deletedInsights, stats.edgeCount, stats.oplogCount, stats.dbSizeBytes])
+}
+
 function readSource(
   body: MemorySpace,
   mode: MemoryReadMode,
   status: MemoryReadStatus,
   itemCount: number,
-  options: { edgeCount?: number; hint?: string } = {},
+  options: { edgeCount?: number; memoryCount?: number; complete?: boolean; hint?: string } = {},
 ): MemoryReadSource {
   return {
     memoryBodyId: body.id,
@@ -291,6 +337,9 @@ export class MemorySpacesService {
   private readonly providers: Map<MemorySpace['provider']['id'], MemoryProviderAdapter>
   private readonly recallQualityPolicy: RecallQualityPolicy
   private spacesInFlight: Promise<MemorySpaceCatalog> | undefined
+  /** One entity index per active entity space, valid while its fingerprint holds. */
+  private readonly entityIndexCache = new Map<string, CachedEntityIndex>()
+  private readonly entityStatusCache = new Map<string, { at: number; status: Promise<ProviderSpaceStatus> }>()
   private providersDisposed = false
   /** The CLI version a full status last read, and the binary it read it from. */
   private cliVersion: { binary: string; version: string } | undefined
@@ -615,6 +664,7 @@ export class MemorySpacesService {
     // Whole-service discovery only runs when its service is enabled or saved.
     const provider = this.providerFor(body)
     provider.invalidateStatus?.(body.id)
+    this.invalidateEntityIndex(body.id)
     const status = await provider.status(body, signal)
     return {
       ...body,
@@ -624,7 +674,8 @@ export class MemorySpacesService {
     }
   }
 
-  async search(request: SearchRequest, signal?: AbortSignal): Promise<{ query: string; mode: string; results: Insight[]; hint?: string; sources: MemoryReadSource[] }> {
+  /** exclude: memoryKey()s to leave out before the quality policy selects. */
+  async search(request: SearchRequest, signal?: AbortSignal, options: { exclude?: ReadonlySet<string> } = {}): Promise<{ query: string; mode: string; results: Insight[]; hint?: string; sources: MemoryReadSource[] }> {
     const query = required(request.query, 'query', 2000)
     const limit = integer(request.limit, this.config.defaultRecallLimit, 1, 50)
     const qualityContext: RecallQualityPolicyContext = { requestedLimit: limit, config: this.config.recallQuality }
@@ -674,7 +725,8 @@ export class MemorySpacesService {
       const hints: string[] = []
       for (const [bodyOrder, { body, result }] of selectedBatches.entries()) {
         const scoreSemantics = this.providerFor(body).scoreSemantics
-        candidates.push(...result.results.map((entry, index) => ({
+        const entries = options.exclude === undefined ? result.results : result.results.filter(entry => !options.exclude!.has(memoryKey(body.id, entry.id)))
+        candidates.push(...entries.map((entry, index) => ({
           insight: this.annotate(entry, body),
           memoryBodyId: body.id,
           providerId: body.provider.id,
@@ -908,29 +960,164 @@ export class MemorySpacesService {
     }
   }
 
+  /**
+   * The entities of the active spaces, each counted once per memory that
+   * carries it. With an entity, also the first page of those memories.
+   */
   async entities(entity?: string, limit?: number, signal?: AbortSignal): Promise<EntityView> {
-    const catalog = await this.spaces(signal)
-    const active = catalog.items.filter(body => body.active)
-    const capable = active.filter(body => body.provider.capabilities.entities)
-    const entityCounts = new Map<string, number>()
-    for (const body of capable) {
-      for (const item of body.stats?.topEntities ?? []) entityCounts.set(item.entity, (entityCounts.get(item.entity) ?? 0) + item.count)
+    const selected = entity === undefined ? '' : entityName(entity)
+    const read = await this.readEntityIndexes(signal)
+    const { items } = mergeEntityCounts(read.indexes)
+    const view: EntityView = {
+      items: items.slice(0, ENTITY_RAIL_LIMIT),
+      insights: [],
+      sources: read.sources,
+      total: items.length,
+      complete: read.complete,
     }
-    const items = [...entityCounts].map(([name, count]) => ({ entity: name, count })).sort((left, right) => right.count - left.count)
-    const sources = active.map(body => {
-      if (!body.provider.capabilities.entities) return readSource(body, 'unsupported', 'unsupported', 0, { hint: 'This provider does not expose an entity index.' })
-      if (!body.healthy) return readSource(body, 'entities', 'unavailable', 0, { hint: body.error ?? 'Provider unavailable.' })
-      const count = body.stats?.topEntities.length ?? 0
-      return readSource(body, 'entities', count === 0 ? 'empty' : 'ready', count)
+    if (selected === '') return view
+    const page = this.entityPage(read, selected, 0, integer(limit, 20, 1, 50))
+    return { ...view, selected: page.entity, insights: page.items }
+  }
+
+  /** One page of the memories that carry an entity, by importance and then recency. */
+  async entityMemories(entity: string, offset?: number, limit?: number, signal?: AbortSignal): Promise<EntityMemoriesView> {
+    const selected = entityName(entity)
+    if (selected === '') throw new Error('entity is required')
+    const read = await this.readEntityIndexes(signal)
+    return this.entityPage(read, selected, integer(offset, 0, 0, 1_000_000), integer(limit, 50, 1, 200))
+  }
+
+  /**
+   * What recall relates to an entity, without the memories that carry it.
+   * Those are left out before the quality policy selects, so they cannot use up
+   * its places and leave the related list empty.
+   */
+  async entityRelated(entity: string, limit?: number, signal?: AbortSignal): Promise<EntityRelatedView> {
+    const selected = entityName(entity)
+    if (selected === '') throw new Error('entity is required')
+    const read = await this.readEntityIndexes(signal)
+    const key = normalizeEntityKey(selected)
+    const carrying = new Set<string>()
+    for (const [bodyId, index] of read.byBody) for (const position of index.byKey.get(key) ?? []) carrying.add(memoryKey(bodyId, index.memories[position]!.id))
+    const display = mergeEntityCounts(read.indexes).names.get(key) ?? selected
+    const readableIds = read.readable.map(body => body.id)
+    if (readableIds.length === 0) return { entity: display, items: [], sources: [] }
+    const result = await this.search(
+      { query: selected, intent: 'ENTITY', limit: integer(limit, 20, 1, 50), memoryBodyIds: readableIds },
+      signal,
+      { exclude: carrying },
+    )
+    return { entity: display, items: result.results, sources: result.sources }
+  }
+
+  private entityPage(read: EntityIndexRead, selected: string, offset: number, limit: number): EntityMemoriesView {
+    const key = normalizeEntityKey(selected)
+    const memories = memoriesWithEntity(read.indexes, key)
+    return {
+      entity: mergeEntityCounts(read.indexes).names.get(key) ?? selected,
+      total: memories.length,
+      offset,
+      items: memories.slice(offset, offset + limit),
+      complete: read.complete,
+      sources: read.sources,
+    }
+  }
+
+  /**
+   * One entity index per active space that has an entity index, read
+   * concurrently. A space keeps its index while its Provider statistics and
+   * metadata stay the same; a write through this Source drops it.
+   */
+  private async readEntityIndexes(signal?: AbortSignal): Promise<EntityIndexRead> {
+    signal?.throwIfAborted()
+    const active = this.memorySpaces.active()
+    const capable = new Set(active.filter(body => body.provider.capabilities.entities).map(body => body.id))
+    for (const id of this.entityIndexCache.keys()) if (!capable.has(id)) this.entityIndexCache.delete(id)
+    const reads = await Promise.all(active.map(async (body): Promise<{ body: MemorySpace; index?: SpaceEntityIndex; recall: boolean; source: MemoryReadSource }> => {
+      if (!body.provider.capabilities.entities) {
+        return { body, recall: false, source: readSource(body, 'unsupported', 'unsupported', 0, { hint: 'This provider does not expose an entity index.' }) }
+      }
+      const status = await this.entitySpaceStatus(body)
+      if (!status.healthy) return { body, recall: false, source: readSource(body, 'entities', 'unavailable', 0, { hint: status.error ?? 'Provider unavailable.' }) }
+      const recall = body.provider.capabilities.search
+      if (this.providerFor(body).entityIndex === undefined && !body.provider.capabilities.browse) {
+        // Nothing to count from: its memories reach the page only through related recall.
+        return { body, recall, source: readSource(body, 'query-only', 'query-required', 0, { hint: 'This provider can only be queried; its memories appear among related memories.' }) }
+      }
+      try {
+        const index = await this.entityIndexFor(body, status)
+        const options = { memoryCount: index.memoryCount, complete: index.complete, ...(index.complete ? {} : { hint: 'The Provider indexed only part of this space.' }) }
+        return { body, index, recall, source: readSource(body, 'entities', index.byKey.size === 0 ? 'empty' : 'ready', index.byKey.size, options) }
+      } catch (error) {
+        return { body, recall: false, source: readSource(body, 'entities', 'unavailable', 0, { hint: error instanceof Error ? error.message : String(error) }) }
+      }
+    }))
+    signal?.throwIfAborted()
+    const byBody = new Map<string, SpaceEntityIndex>()
+    for (const read of reads) if (read.index !== undefined) byBody.set(read.body.id, read.index)
+    const indexes = [...byBody.values()]
+    return {
+      byBody,
+      indexes,
+      readable: reads.filter(read => read.recall).map(read => read.body),
+      sources: reads.map(read => read.source),
+      complete: indexes.every(index => index.complete),
+    }
+  }
+
+  /** Provider health for the entity reads, shared by requests that arrive together. */
+  private entitySpaceStatus(body: MemorySpace): Promise<ProviderSpaceStatus> {
+    const now = Date.now()
+    const recent = this.entityStatusCache.get(body.id)
+    if (recent !== undefined && now - recent.at < ENTITY_STATUS_REUSE_MS) return recent.status
+    const status = this.providerFor(body).status(body)
+      .catch((error: unknown): ProviderSpaceStatus => ({ healthy: false, error: error instanceof Error ? error.message : String(error) }))
+    this.entityStatusCache.set(body.id, { at: now, status })
+    return status
+  }
+
+  private entityIndexFor(body: MemorySpace, status: ProviderSpaceStatus): Promise<SpaceEntityIndex> {
+    const fingerprint = entityIndexFingerprint(body, status)
+    const cached = this.entityIndexCache.get(body.id)
+    if (cached !== undefined && cached.fingerprint === fingerprint) {
+      // Without statistics a finished index cannot be checked, so it is trusted only briefly.
+      if (fingerprint !== undefined || cached.settledAt === undefined || Date.now() - cached.settledAt < ENTITY_INDEX_UNCHECKED_REUSE_MS) return cached.index
+    }
+    const entry: CachedEntityIndex = { fingerprint, settledAt: undefined, index: Promise.resolve(undefined as never) }
+    entry.index = this.buildEntityIndex(body).then(index => {
+      entry.settledAt = Date.now()
+      return index
+    }, (error: unknown) => {
+      if (this.entityIndexCache.get(body.id) === entry) this.entityIndexCache.delete(body.id)
+      throw error
     })
-    const selected = entity?.trim() ?? ''
-    if (selected === '') return { items, insights: [], sources }
-    if (selected.length > 200) throw new Error('entity is too long (max 200 characters)')
-    const readableIds = capable.filter(body => body.healthy).map(body => body.id)
-    const insights = readableIds.length === 0
-      ? []
-      : (await this.search({ query: selected, intent: 'ENTITY', limit: integer(limit, 20, 1, 50), memoryBodyIds: readableIds }, signal)).results
-    return { items, selected, insights, sources }
+    this.entityIndexCache.set(body.id, entry)
+    return entry.index
+  }
+
+  private async buildEntityIndex(body: MemorySpace): Promise<SpaceEntityIndex> {
+    const provider = this.providerFor(body)
+    if (provider.entityIndex !== undefined) {
+      const owned = await provider.entityIndex(body)
+      return buildSpaceEntityIndex(owned.memories.map(memory => this.entityMemory(memory, body)), owned.memories.length, owned.complete)
+    }
+    const listed = await provider.list(body, { limit: ENTITY_INDEX_LIST_LIMIT })
+    return buildSpaceEntityIndex(listed.map(memory => this.entityMemory(memory, body)), listed.length, listed.length < ENTITY_INDEX_LIST_LIMIT)
+  }
+
+  /** A listed memory, not a query result: no relevance fields. */
+  private entityMemory(memory: Insight, body: MemorySpace): Insight {
+    const {
+      score: _score, normalizedScore: _normalized, relevanceTier: _tier, federatedScore: _federated,
+      confidence: _confidence, intent: _intent, matchedVia: _matchedVia, depth: _depth, edgeType: _edgeType, ...listed
+    } = memory
+    return this.annotate(listed, body)
+  }
+
+  private invalidateEntityIndex(memoryBodyId: string): void {
+    this.entityIndexCache.delete(memoryBodyId)
+    this.entityStatusCache.delete(memoryBodyId)
   }
 
   async remember(request: RememberRequest, signal?: AbortSignal): Promise<JsonValue> {
@@ -1272,6 +1459,8 @@ export class MemorySpacesService {
   }
 
   private activateAfterWrite(body: MemorySpace, providerChanged: boolean): void {
+    // Even an unconfirmed write may have reached the Provider; rebuild the index on the next read.
+    this.invalidateEntityIndex(body.id)
     if (!providerChanged) return
     if (!body.active) this.memorySpaces.setActive(body.id, true)
     else this.memorySpaces.touch(body.id)
