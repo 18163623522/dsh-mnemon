@@ -382,6 +382,9 @@ button.readSourceCard:hover { background: var(--mn-hover); }
 .entitySectionBody { min-height: 116px; }
 .entityQuiet { margin: 0 0 8px; padding: 12px 2px; color: var(--mn-faint); font-size: 13px; line-height: 20px; }
 .entityRetry { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; }
+.entityRelatedHead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.entityRelatedHead > div:first-child { flex: 1; min-width: 0; }
+.entityRelatedHead > button { flex: none; margin-top: 2px; }
 .insightSkeleton { position: relative; display: grid; min-height: 108px; align-content: start; gap: 12px; overflow: hidden; margin-bottom: 8px; padding: 16px; border: .5px solid var(--mn-card-line); border-radius: var(--dsw-radius-lg); }
 .insightSkeleton > span { display: block; height: 10px; border-radius: 999px; background: var(--mn-fill); }
 .insightSkeleton > span:nth-child(1) { width: 36%; }

@@ -93,7 +93,7 @@ const relativeReadmeImages = readmeFiles.flatMap((path) => {
 // reopened after DSH swaps in the new client, the restart reminder on every Memory
 // System page and how an update ended, from the Profile's record (#325), bring it to 1,520,447 bytes.
 // The Entities page's two lists, loading placeholders and copy, bundled from the Memory
-// Spaces presentation, bring it to 1,523,952 bytes.
+// Spaces presentation, bring it to 1,524,506 bytes.
 const maximumUnpackedBytes = 1_525_500
 
 if (missing.length > 0 || unexpected.length > 0 || hostLeaks.length > 0 || relativeReadmeImages.length > 0 || pack.unpackedSize > maximumUnpackedBytes) {

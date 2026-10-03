@@ -1162,6 +1162,19 @@ const ENTITY_CARD_PAGE = 6
 /** Memories one entity-memories read returns; more pages load as the list is revealed. */
 const ENTITY_MEMORY_BATCH = 48
 const ENTITY_RELATED_LIMIT = 20
+/** The choice to find related memories lasts for this browser session; each new session starts collapsed. */
+const RELATED_PREFERENCE_KEY = 'dsh-mnemon.memory-spaces.entities.related'
+
+function readRelatedPreference(): boolean {
+  try { return globalThis.sessionStorage?.getItem(RELATED_PREFERENCE_KEY) === 'open' } catch { return false }
+}
+
+function writeRelatedPreference(open: boolean): void {
+  try {
+    if (open) globalThis.sessionStorage?.setItem(RELATED_PREFERENCE_KEY, 'open')
+    else globalThis.sessionStorage?.removeItem(RELATED_PREFERENCE_KEY)
+  } catch { /* Without storage the choice lasts until the page closes. */ }
+}
 
 function useDelayedFlag(active: boolean, delayMs = ENTITY_PLACEHOLDER_DELAY_MS): boolean {
   const [shown, setShown] = useState(false)
@@ -1218,6 +1231,12 @@ export function EntitiesPage(props: { client: MemorySpacesPageClient; revision: 
   const [relatedLoading, setRelatedLoading] = useState(false)
   const [relatedError, setRelatedError] = useState<string | null>(null)
   const [visibleRelatedLimit, setVisibleRelatedLimit] = useState(ENTITY_CARD_PAGE)
+  // Related memories cost a recall per space, so they load only when asked for; the choice is remembered.
+  const [relatedOpen, setRelatedOpen] = useState(readRelatedPreference)
+  const relatedOpenRef = useRef(relatedOpen)
+  // Whether related memories show by themselves, because nothing carries the selection.
+  const relatedAutoRef = useRef(false)
+  const relatedId = useId()
   const railRequests = useRequestVersion()
   const directoryRequests = useRequestVersion()
   const memoryRequests = useRequestVersion()
@@ -1242,37 +1261,55 @@ export function EntitiesPage(props: { client: MemorySpacesPageClient; revision: 
     }
   }, [client, railRequests])
 
-  /** Both lists load at once and arrive independently; a refresh keeps the current cards until they are replaced. */
+  const loadRelated = useCallback((name: string) => {
+    if (client.entityRelated === undefined) return
+    const request = relatedRequests.begin()
+    setRelatedLoading(true); setRelatedError(null)
+    void client.entityRelated(name, ENTITY_RELATED_LIMIT, view).then(next => {
+      if (relatedRequests.isCurrent(request)) setRelated(next)
+    }, (reason: unknown) => {
+      if (relatedRequests.isCurrent(request)) setRelatedError(message(reason))
+    }).finally(() => {
+      if (relatedRequests.isCurrent(request)) setRelatedLoading(false)
+    })
+  }, [client, relatedRequests, view])
+
+  /**
+   * The carrying memories load at once; related memories only when they were asked for, or when
+   * nothing carries the name. A refresh keeps the current cards until they are replaced.
+   */
   const loadSelection = useCallback((name: string, refresh: boolean) => {
     const memoryRequest = memoryRequests.begin()
-    const relatedRequest = relatedRequests.begin()
+    relatedRequests.begin()
     moreRequests.begin()
     setMoreLoading(false)
+    setRelatedLoading(false); setRelatedError(null)
     if (!refresh) {
-      setMemories(null); setRelated(null)
+      setMemories(null)
       setVisibleMemoryLimit(ENTITY_CARD_PAGE); setVisibleRelatedLimit(ENTITY_CARD_PAGE)
+      relatedAutoRef.current = false
     }
+    // Related memories from before a refresh stay while shown, until replaced; collapsed, they are read again when opened.
+    if (!refresh || !(relatedOpenRef.current || relatedAutoRef.current)) setRelated(null)
     setMemoriesLoading(true); setMemoriesError(null)
-    setRelatedLoading(split); setRelatedError(null)
     const memoryRead: Promise<EntityMemoriesView> = split
       ? client.entityMemories!(name, 0, ENTITY_MEMORY_BATCH)
       : client.entities(name, 20).then(view => ({ entity: view.selected ?? name, total: view.insights.length, offset: 0, items: view.insights, complete: view.complete ?? true, sources: view.sources ?? [] }))
-    void memoryRead.then(view => {
-      if (memoryRequests.isCurrent(memoryRequest)) setMemories(view)
+    void memoryRead.then(next => {
+      if (!memoryRequests.isCurrent(memoryRequest)) return
+      setMemories(next)
+      // Nothing carries a name the user asked for: related memories are all the page can offer.
+      const auto = split && next.total === 0
+      if (auto && !relatedOpenRef.current) loadRelated(name)
+      else if (relatedAutoRef.current && !relatedOpenRef.current) setRelated(null)
+      relatedAutoRef.current = auto
     }, (reason: unknown) => {
       if (memoryRequests.isCurrent(memoryRequest)) setMemoriesError(message(reason))
     }).finally(() => {
       if (memoryRequests.isCurrent(memoryRequest)) setMemoriesLoading(false)
     })
-    if (!split) return
-    void client.entityRelated!(name, ENTITY_RELATED_LIMIT, view).then(next => {
-      if (relatedRequests.isCurrent(relatedRequest)) setRelated(next)
-    }, (reason: unknown) => {
-      if (relatedRequests.isCurrent(relatedRequest)) setRelatedError(message(reason))
-    }).finally(() => {
-      if (relatedRequests.isCurrent(relatedRequest)) setRelatedLoading(false)
-    })
-  }, [client, memoryRequests, moreRequests, relatedRequests, split, view])
+    if (split && relatedOpenRef.current) loadRelated(name)
+  }, [client, loadRelated, memoryRequests, moreRequests, relatedRequests, split])
 
   const select = (name: string) => {
     const trimmed = name.trim()
@@ -1322,6 +1359,29 @@ export function EntitiesPage(props: { client: MemorySpacesPageClient; revision: 
     })
   }
 
+  const findRelated = () => {
+    relatedOpenRef.current = true
+    setRelatedOpen(true)
+    writeRelatedPreference(true)
+    if (selected !== undefined && related === null && !relatedLoading) loadRelated(selected)
+  }
+  const hideRelated = () => {
+    relatedOpenRef.current = false
+    setRelatedOpen(false)
+    writeRelatedPreference(false)
+  }
+
+  /** A forgotten memory leaves both lists at once; the refresh that follows replaces them. */
+  const forget = async (insight: Insight) => {
+    await props.onForget(insight)
+    const key = insightKey(insight)
+    setMemories(current => {
+      const items = current?.items.filter(item => insightKey(item) !== key)
+      return current === null || items === undefined || items.length === current.items.length ? current : { ...current, total: Math.max(0, current.total - 1), items }
+    })
+    setRelated(current => current === null ? current : { ...current, items: current.items.filter(item => insightKey(item) !== key) })
+  }
+
   const submit = (event: FormEvent) => { event.preventDefault(); select(entity) }
   const items = rail?.items ?? []
   const filterKey = entityFilter.trim().toLocaleLowerCase()
@@ -1333,14 +1393,17 @@ export function EntitiesPage(props: { client: MemorySpacesPageClient; revision: 
   const hasEntityProvider = sources.length === 0 || sources.some(source => source.mode === 'entities' && source.status !== 'unavailable')
   const railPlaceholder = useDelayedFlag(rail === null && railLoading)
   const memoryPlaceholder = useDelayedFlag(memories === null && memoriesLoading)
-  const relatedPlaceholder = useDelayedFlag(related === null && relatedLoading)
+  // When nothing carries the entity, related memories open by themselves and need no toggle.
+  const relatedAuto = memories !== null && memories.total === 0
+  const relatedShown = split && (relatedOpen || relatedAuto)
+  const relatedPlaceholder = useDelayedFlag(relatedShown && related === null && relatedLoading)
   const railBusy = useDelayedFlag(railLoading)
-  const detailBusy = useDelayedFlag(memoriesLoading || relatedLoading)
+  const detailBusy = useDelayedFlag(memoriesLoading || (relatedShown && relatedLoading))
   const memoryTotal = memories?.total ?? railCount
   const visibleMemories = memories?.items.slice(0, visibleMemoryLimit) ?? []
   const visibleRelated = related?.items.slice(0, visibleRelatedLimit) ?? []
   const nothingFound = memories !== null && memories.total === 0 && (!split || (related !== null && related.items.length === 0))
-  const card = (insight: Insight) => <InsightCard key={insightKey(insight)} insight={insight} writeEnabled={props.writeEnabled} onForget={props.onForget} onRelated={() => props.onExplore(insight.content)} />
+  const card = (insight: Insight) => <InsightCard key={insightKey(insight)} insight={insight} writeEnabled={props.writeEnabled} onForget={forget} onRelated={() => props.onExplore(insight.content)} />
 
   return (
     <div className={css.page}>
@@ -1359,7 +1422,7 @@ export function EntitiesPage(props: { client: MemorySpacesPageClient; revision: 
           {rail !== null && items.length === 0 && <p className={css.muted}>{t('entities.emptyRail')}</p>}
           {rail !== null && items.length > 0 && visibleEntities.length === 0 && entityFilter !== '' && <p className={css.muted}>{t('entities.filterEmpty')}</p>}
         </aside>
-        <section className={appearanceClass(css.entityResults, css.asyncResults)} aria-busy={memoriesLoading || relatedLoading ? true : undefined}>
+        <section className={appearanceClass(css.entityResults, css.asyncResults)} aria-busy={memoriesLoading || (relatedShown && relatedLoading) ? true : undefined}>
           {detailBusy && selected !== undefined && <SectionSpinner label={t('entities.loading')} />}
           {selected === undefined && <EmptyState glyph="◎" title={t('entities.selectTitle')}>{t('entities.selectText')}</EmptyState>}
           {selected !== undefined && nothingFound && <EmptyState glyph="0" title={t('entities.emptyTitle')}>{t('entities.emptyText')}</EmptyState>}
@@ -1375,13 +1438,18 @@ export function EntitiesPage(props: { client: MemorySpacesPageClient; revision: 
               </div>
             </div>
             {split && <div className={css.entitySection}>
-              <div className={css.sectionHeading}><div><h3>{t('entities.relatedTitle')}</h3><span>{t('entities.relatedHint')}</span></div>{related !== null && <strong>{related.items.length}</strong>}</div>
-              <div className={css.entitySectionBody}>
-                {relatedError !== null && <div className={appearanceClass(css.inlineError, css.entityRetry)} role="alert"><span>{relatedError}</span><button type="button" className={css.secondaryButton} onClick={() => loadSelection(selected, true)}>{t('entities.retry')}</button></div>}
-                {relatedPlaceholder && <InsightSkeletons count={2} />}
-                {related !== null && related.items.length === 0 && <p className={css.entityQuiet}>{t('entities.noRelated')}</p>}
-                {visibleRelated.map(card)}
-                {related !== null && <ProgressiveFooter visible={visibleRelated.length} total={related.items.length} pageSize={ENTITY_CARD_PAGE} onMore={() => setVisibleRelatedLimit(value => value + ENTITY_CARD_PAGE)} />}
+              <div className={css.entityRelatedHead}>
+                <div className={css.sectionHeading}><div><h3 id={`${relatedId}-title`}>{t('entities.relatedTitle')}</h3><span>{t('entities.relatedHint')}</span></div>{relatedShown && related !== null && <strong>{related.items.length}</strong>}</div>
+                {!relatedAuto && <button type="button" className={css.secondaryButton} aria-expanded={relatedShown} aria-controls={`${relatedId}-list`} onClick={relatedShown ? hideRelated : findRelated}>{t(relatedShown ? 'entities.hideRelated' : 'entities.findRelated')}</button>}
+              </div>
+              <div id={`${relatedId}-list`} role="region" aria-labelledby={`${relatedId}-title`} className={css.entitySectionBody} hidden={!relatedShown}>
+                {relatedShown && <>
+                  {relatedError !== null && <div className={appearanceClass(css.inlineError, css.entityRetry)} role="alert"><span>{relatedError}</span><button type="button" className={css.secondaryButton} onClick={() => loadRelated(selected)}>{t('entities.retry')}</button></div>}
+                  {relatedPlaceholder && <InsightSkeletons count={2} />}
+                  {related !== null && related.items.length === 0 && <p className={css.entityQuiet}>{t('entities.noRelated')}</p>}
+                  {visibleRelated.map(card)}
+                  {related !== null && <ProgressiveFooter visible={visibleRelated.length} total={related.items.length} pageSize={ENTITY_CARD_PAGE} onMore={() => setVisibleRelatedLimit(value => value + ENTITY_CARD_PAGE)} />}
+                </>}
               </div>
             </div>}
           </>}

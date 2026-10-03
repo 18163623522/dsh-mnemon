@@ -16,6 +16,8 @@ vi.mock('dsh-mnemon/client', async () => {
   })
 })
 afterEach(cleanup)
+// The choice to find related memories lasts a browser session; each test starts collapsed.
+afterEach(() => sessionStorage.clear())
 // CI's packed-plugin job runs these tests in four parallel standalone installs, where this file
 // measured 13 times slower than in the workspace (40.5 s against 3.1 s). Allow for that load.
 configure({ asyncUtilTimeout: 5_000 })
@@ -52,7 +54,7 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void; reje
 }
 
 type Handler = (input: Record<string, unknown>) => unknown | Promise<unknown>
-function page(handlers: Partial<Record<string, Handler>>) {
+function page(handlers: Partial<Record<string, Handler>>, options: { writable?: boolean } = {}) {
   const read = vi.fn(async (operation: string, input?: unknown) => {
     const handler = handlers[operation]
     const value = handler !== undefined ? await handler((input ?? {}) as Record<string, unknown>)
@@ -64,21 +66,24 @@ function page(handlers: Partial<Record<string, Handler>>) {
       : []
     return { revision: 'r1', value: value as never }
   })
-  render(<MemorySpacesSourcePage page="entities" sourceTypeId="memory-spaces" sourceInstanceKey="source:spaces" sourceInstances={[]} locale="en" management={{ sourceInstanceKey: 'source:spaces', revision: 'r1', read, mutate: vi.fn() }} />)
+  const mutate = vi.fn(async () => ({ revision: 'r2', value: {} as never }))
+  render(<MemorySpacesSourcePage page="entities" sourceTypeId="memory-spaces" sourceInstanceKey="source:spaces" sourceInstances={[]} locale="en" writable={options.writable === true} management={{ sourceInstanceKey: 'source:spaces', revision: 'r1', read, mutate }} />)
   return read
 }
 
 function memoriesPage(input: Record<string, unknown>): EntityMemoriesView {
   const offset = Number(input.offset ?? 0)
   const limit = Number(input.limit ?? 48)
-  const items = input.entity === 'SQLite' ? [memory('s1', 'SQLite memory 1'), memory('s2', 'SQLite memory 2')] : atlas
+  const items = input.entity === 'SQLite' ? [memory('s1', 'SQLite memory 1'), memory('s2', 'SQLite memory 2')] : input.entity === 'Atlas' ? atlas : []
   return { entity: String(input.entity), total: items.length, offset, items: items.slice(offset, offset + limit), complete: true, sources: [SOURCE] }
 }
 
 const skeletons = (container: ParentNode) => container.querySelectorAll('[data-placeholder]').length
+const relatedReads = (read: ReturnType<typeof page>) => read.mock.calls.filter(([operation]) => operation === 'entity-related')
+const findRelated = () => screen.getByRole('button', { name: t('entities.findRelated') })
 
 describe('Entities page', { timeout: 30_000 }, () => {
-  it('lists every memory that carries the selected entity, then the memories recall relates to it', async () => {
+  it('lists every memory that carries the selected entity, and finds related memories only when asked', async () => {
     const related: EntityRelatedView = { entity: 'Atlas', items: [memory('r1', 'Release checklist mentions Atlas')], sources: [SOURCE] }
     const read = page({ 'entity-related': () => related })
     fireEvent.click(await screen.findByRole('button', { name: /^Atlas/u }))
@@ -88,11 +93,74 @@ describe('Entities page', { timeout: 30_000 }, () => {
     expect(await screen.findByText('Atlas memory 1')).not.toBeNull()
     expect(screen.queryByText('Atlas memory 7')).toBeNull()
     expect(screen.getByText(t('common.showing', { visible: 6, total: 60 }))).not.toBeNull()
-    expect(await screen.findByRole('heading', { name: t('entities.relatedTitle'), level: 3 })).not.toBeNull()
-    expect(await screen.findByText('Release checklist mentions Atlas')).not.toBeNull()
     expect(screen.getByText(t('entities.sourceReady', { count: 2 }))).not.toBeNull()
     expect(read).toHaveBeenCalledWith('entity-memories', { entity: 'Atlas', offset: 0, limit: 48 })
+    // Related memories stay collapsed and cost no recall until asked for.
+    expect(screen.getByRole('heading', { name: t('entities.relatedTitle'), level: 3 })).not.toBeNull()
+    expect(findRelated().getAttribute('aria-expanded')).toBe('false')
+    expect(relatedReads(read)).toHaveLength(0)
+    fireEvent.click(findRelated())
+    expect(await screen.findByText('Release checklist mentions Atlas')).not.toBeNull()
     expect(read).toHaveBeenCalledWith('entity-related', { entity: 'Atlas', limit: 20, view: expect.any(String) })
+    const hide = screen.getByRole('button', { name: t('entities.hideRelated') })
+    expect(hide.getAttribute('aria-expanded')).toBe('true')
+    // Hiding and opening again shows what was found, without another recall.
+    fireEvent.click(hide)
+    expect(screen.queryByText('Release checklist mentions Atlas')).toBeNull()
+    fireEvent.click(findRelated())
+    expect(await screen.findByText('Release checklist mentions Atlas')).not.toBeNull()
+    expect(relatedReads(read)).toHaveLength(1)
+  })
+
+  it('remembers the choice to find related memories for the next entity until it is hidden', async () => {
+    const read = page({ 'entity-related': input => ({ entity: String(input.entity), items: [memory(`r-${String(input.entity)}`, `Related to ${String(input.entity)}`)], sources: [] }) })
+    fireEvent.click(await screen.findByRole('button', { name: /^Atlas/u }))
+    await screen.findByText('Atlas memory 1')
+    fireEvent.click(findRelated())
+    expect(await screen.findByText('Related to Atlas')).not.toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: /^SQLite/u }))
+    expect(await screen.findByText('Related to SQLite')).not.toBeNull()
+    expect(relatedReads(read)).toHaveLength(2)
+    fireEvent.click(screen.getByRole('button', { name: t('entities.hideRelated') }))
+    fireEvent.click(screen.getByRole('button', { name: /^Atlas/u }))
+    await screen.findByText('Atlas memory 1')
+    expect(findRelated().getAttribute('aria-expanded')).toBe('false')
+    expect(relatedReads(read)).toHaveLength(2)
+  })
+
+  it('finds related memories at once when no memory carries the name', async () => {
+    const read = page({ 'entity-related': () => ({ entity: 'Gateway', items: [memory('g1', 'The gateway fronts every Atlas call')], sources: [] }) })
+    const input = await screen.findByRole('textbox', { name: t('entities.nameAria') })
+    fireEvent.change(input, { target: { value: 'Gateway' } })
+    fireEvent.click(screen.getByRole('button', { name: t('entities.action') }))
+    expect(await screen.findByText(t('entities.noCarrying'))).not.toBeNull()
+    expect(await screen.findByText('The gateway fronts every Atlas call')).not.toBeNull()
+    expect(relatedReads(read)).toHaveLength(1)
+    // With related memories as the only content, there is nothing to collapse.
+    expect(screen.queryByRole('button', { name: t('entities.hideRelated') })).toBeNull()
+  })
+
+  it('drops a forgotten memory at once and keeps the rest in place until the refresh replaces them', async () => {
+    const gateway = [memory('g1', 'The gateway fronts every Atlas call'), memory('g2', 'The gateway logs every request')]
+    const again = deferred<EntityRelatedView>()
+    let attempts = 0
+    const read = page({
+      'status-summary': () => ({ writeEnabled: true, memoryBodies: [], defaultRecallLimit: 12 }),
+      'entity-related': () => (attempts += 1) === 1 ? { entity: 'Gateway', items: gateway, sources: [] } : again.promise,
+    }, { writable: true })
+    fireEvent.change(await screen.findByRole('textbox', { name: t('entities.nameAria') }), { target: { value: 'Gateway' } })
+    fireEvent.click(screen.getByRole('button', { name: t('entities.action') }))
+    const forgotten = await screen.findByText('The gateway logs every request')
+    fireEvent.click(within(forgotten.closest('article')!).getByRole('button', { name: t('card.forget') }))
+    fireEvent.click(await screen.findByRole('button', { name: t('card.confirmForget') }))
+    await waitFor(() => expect(screen.queryByText('The gateway logs every request')).toBeNull())
+    // The refresh reads related memories again; the one left stays shown while it waits.
+    await waitFor(() => expect(relatedReads(read)).toHaveLength(2))
+    expect(screen.getByText('The gateway fronts every Atlas call')).not.toBeNull()
+    again.resolve({ entity: 'Gateway', items: [gateway[0]!], sources: [] })
+    const results = screen.getByRole('region', { name: t('entities.relatedTitle') }).closest('section')!
+    await waitFor(() => expect(results.getAttribute('aria-busy')).toBeNull())
+    expect(screen.getByText('The gateway fronts every Atlas call')).not.toBeNull()
   })
 
   it('shows the spaces from the directory before their entity indexes arrive', async () => {
@@ -152,6 +220,8 @@ describe('Entities page', { timeout: 30_000 }, () => {
       return { entity: 'Atlas', items: [memory('r1', 'Recovered related memory')], sources: [] }
     } })
     fireEvent.click(await screen.findByRole('button', { name: /^Atlas/u }))
+    await screen.findByText('Atlas memory 1')
+    fireEvent.click(findRelated())
     expect(await screen.findByText('recall timed out')).not.toBeNull()
     expect(screen.getByText('Atlas memory 1')).not.toBeNull()
     fireEvent.click(screen.getByRole('button', { name: t('entities.retry') }))
