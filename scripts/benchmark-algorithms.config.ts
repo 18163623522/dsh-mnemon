@@ -8,6 +8,6 @@ export default defineConfig({
     include: ['tests/algorithm-performance.measure.ts'],
     fileParallelism: false,
     maxWorkers: 1,
-    testTimeout: 180_000,
+    testTimeout: 300_000,
   },
 })

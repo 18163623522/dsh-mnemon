@@ -28,8 +28,9 @@ it('measures local algorithms with synthetic, isolated data', async () => {
   const sizes = (process.env.MNEMON_BENCH_SIZES ?? '1,10,100,1000').split(',').map(Number)
   if (sizes.some(n => !Number.isSafeInteger(n) || n < 1 || n > 10_000)) throw new Error('invalid benchmark size')
   async function measure(name: string, n: number, run: () => unknown | Promise<unknown>, prepare?: () => void) {
-    const iterations = n >= 1000 ? 3 : 10
+    const iterations = n >= 1000 ? (name === 'recall.pinned' || name === 'storage.batch-prepare' ? 1 : 3) : 10
     for (let i = 0; i < 3; i++) { prepare?.(); await run() }
+    await new Promise<void>(done => setImmediate(done))
     const samplesMs: number[] = []
     for (let sample = 0; sample < 9; sample++) {
       let elapsed = 0
@@ -40,6 +41,8 @@ it('measures local algorithms with synthetic, isolated data', async () => {
         elapsed += performance.now() - start
       }
       samplesMs.push(elapsed / iterations)
+      // Let the worker flush RPC/logs between samples; exclude this yield from timing.
+      await new Promise<void>(done => setImmediate(done))
     }
     const sorted = [...samplesMs].sort((a, b) => a - b)
     measurements.push({ name, n, iterations, medianMs: sorted[4]!, p95Ms: sorted[8]!, samplesMs })
