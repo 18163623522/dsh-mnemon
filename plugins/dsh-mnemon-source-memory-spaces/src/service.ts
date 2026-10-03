@@ -6,7 +6,7 @@ import type { JsonValue } from './contracts.ts'
 import type { MemoryMutationCompletion } from 'dsh-mnemon/contracts'
 import { memoryInputInteger as integer } from 'dsh-mnemon/extension-sdk'
 import type { ResolvedMemorySpacesConfig as ResolvedConfig } from './config.ts'
-import { MemorySpaceRegistry } from './memory-spaces.ts'
+import { MemorySpaceRegistry, validateMemorySpaceId } from './memory-spaces.ts'
 import type { MnemonRunner } from './runner.ts'
 import { finalizeLlmPlacement, prepareMemoryPlacement, rulesOnlyPlacement } from './provider-placement.ts'
 import { EMPTY_MEMORY_PROVIDER_CATALOG, MemoryProviderCatalog } from './providers/catalog.ts'
@@ -726,21 +726,31 @@ export class MemorySpacesService {
     const selected = recoveryPlan === undefined
       ? quality.selected
       : prioritizeRecoveryEvidence(quality.selected, recoveryPlan)
-    const qualityStats = (memoryBodyId: string): RecallQualityStats => {
-      const evaluated = quality.evaluated.filter(candidate => candidate.candidate.memoryBodyId === memoryBodyId)
-      const selected = quality.selected.filter(candidate => candidate.candidate.memoryBodyId === memoryBodyId)
-      return {
-        policyId: quality.policyId,
-        ...(quality.fallbackFrom === undefined ? {} : { fallbackFrom: quality.fallbackFrom }),
-        fetched: evaluated.length,
-        retained: evaluated.filter(candidate => candidate.decision.action === 'keep').length,
-        selected: selected.length,
-        droppedLowScore: evaluated.filter(candidate => candidate.decision.action === 'drop' && candidate.decision.reason === 'low-score').length,
-        droppedNonPositiveScore: evaluated.filter(candidate => candidate.decision.action === 'drop' && candidate.decision.reason === 'non-positive-score').length,
-        droppedInvalidScore: evaluated.filter(candidate => candidate.decision.action === 'drop' && candidate.decision.reason === 'invalid-score').length,
-        unscored: evaluated.filter(candidate => candidate.decision.reason === 'unscored').length,
-        unscaled: evaluated.filter(candidate => candidate.decision.reason === 'unscaled-score').length,
+    const qualityStats = new Map<string, RecallQualityStats>()
+    for (const { body } of batches) qualityStats.set(body.id, {
+      policyId: quality.policyId,
+      ...(quality.fallbackFrom === undefined ? {} : { fallbackFrom: quality.fallbackFrom }),
+      fetched: 0, retained: 0, selected: 0,
+      droppedLowScore: 0, droppedNonPositiveScore: 0, droppedInvalidScore: 0,
+      unscored: 0, unscaled: 0,
+    })
+    // Each candidate contributes once, rather than rescanning all candidates per space.
+    for (const { candidate, decision } of quality.evaluated) {
+      const stats = qualityStats.get(candidate.memoryBodyId)
+      if (stats === undefined) continue
+      stats.fetched += 1
+      if (decision.action === 'keep') stats.retained += 1
+      if (decision.action === 'drop') {
+        if (decision.reason === 'low-score') stats.droppedLowScore += 1
+        if (decision.reason === 'non-positive-score') stats.droppedNonPositiveScore += 1
+        if (decision.reason === 'invalid-score') stats.droppedInvalidScore += 1
       }
+      if (decision.reason === 'unscored') stats.unscored += 1
+      if (decision.reason === 'unscaled-score') stats.unscaled += 1
+    }
+    for (const { candidate } of quality.selected) {
+      const stats = qualityStats.get(candidate.memoryBodyId)
+      if (stats !== undefined) stats.selected += 1
     }
     return {
       query,
@@ -751,7 +761,7 @@ export class MemorySpacesService {
         ...(decision.normalizedScore === undefined ? {} : { normalizedScore: decision.normalizedScore }),
       })),
       sources: batches.map(batch => {
-        const stats = qualityStats(batch.body.id)
+        const stats = qualityStats.get(batch.body.id)!
         if (batch.source.status === 'unavailable' || batch.source.status === 'unsupported') return { ...batch.source, quality: stats }
         return { ...batch.source, status: stats.retained === 0 ? 'empty' : 'ready', itemCount: stats.retained, quality: stats }
       }),
@@ -938,11 +948,15 @@ export class MemorySpacesService {
    */
   async rememberMany(requests: readonly RememberRequest[], signal?: AbortSignal): Promise<JsonValue[]> {
     this.assertWritable()
-    const prepared = requests.map(request => this.prepareRemember(request))
+    // Preparation is synchronous. Share destination resolution only within this batch.
+    const destinations = new Map<string, MemorySpace>()
+    const prepared = requests.map(request => this.prepareRemember(request, destinations))
     const results = new Array<JsonValue>(prepared.length)
     const groups = new Map<string, Array<PreparedRemember & { index: number }>>()
     for (const [index, entry] of prepared.entries()) {
-      groups.set(entry.body.id, [...(groups.get(entry.body.id) ?? []), { ...entry, index }])
+      const group = groups.get(entry.body.id)
+      if (group === undefined) groups.set(entry.body.id, [{ ...entry, index }])
+      else group.push({ ...entry, index })
     }
 
     for (const group of groups.values()) {
@@ -962,8 +976,9 @@ export class MemorySpacesService {
           providerChanged ||= mutationResultCommitted(result)
         }
       }
+      const batched = new Set(batch)
       for (const entry of group) {
-        if (batch.includes(entry)) continue
+        if (batched.has(entry)) continue
         const result = await provider.remember(body, entry.request, signal)
         results[entry.index] = this.annotateResult(result, body)
         providerChanged ||= mutationResultCommitted(result)
@@ -1169,11 +1184,15 @@ export class MemorySpacesService {
   }
 
   private readSpaces(ids?: string[]): MemorySpace[] {
-    const active = this.memorySpaces.active()
-    if (ids === undefined || ids.length === 0) return active
+    if (ids === undefined || ids.length === 0) return this.memorySpaces.active()
     const requested = [...new Set(ids.map(id => id.trim()).filter(id => id !== ''))]
+    const available = new Map<string, MemorySpace>()
+    // One live catalog snapshot for the pinned read; preserve first-match lookup semantics.
+    for (const body of this.memorySpaces.list()) if (!available.has(body.id)) available.set(body.id, body)
     return requested.map(id => {
-      const body = this.memorySpaces.get(id)
+      const normalized = validateMemorySpaceId(id)
+      const body = available.get(normalized)
+      if (body === undefined) throw new Error(`unknown memory space: ${normalized}`)
       if (!body.active) throw new Error(`memory space is not active for reading: ${id}`)
       if (!this.isNativeSpace(body) && !this.memorySpaces.providerServiceEnabled(body.provider.id)) throw new Error(`${body.provider.label} is disabled on the dsh-mnemon page under Plugins`)
       return body
@@ -1203,8 +1222,10 @@ export class MemorySpacesService {
     return active[0]!
   }
 
-  private prepareRemember(request: RememberRequest): PreparedRemember {
-    const body = this.writeSpace(request.memoryBodyId)
+  private prepareRemember(request: RememberRequest, destinations?: Map<string, MemorySpace>): PreparedRemember {
+    const key = request.memoryBodyId?.trim() ?? ''
+    const body = destinations?.get(key) ?? this.writeSpace(request.memoryBodyId)
+    destinations?.set(key, body)
     // Runtime entries are capped at 8 KiB. Keep the service boundary large
     // enough for the Host to archive any valid hot-memory entry byte-for-byte;
     // the UI remains at its existing 8,000-character limit.
