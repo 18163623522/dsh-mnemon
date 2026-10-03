@@ -14,7 +14,6 @@ import { type MemoryProviderAdapter, type ProviderSpaceStatus, type ProviderSear
 import { MemoryProviderAdapterRegistry } from './providers/registry.ts'
 import { lexicalRequiredMatchCount, lexicalSearchTokens, lexicalTokenMatchCount } from './search-tokens.ts'
 import { ENTITY_INDEX_LIST_LIMIT, ENTITY_RAIL_LIMIT, buildSpaceEntityIndex, memoriesWithEntity, mergeEntityCounts, type SpaceEntityIndex } from './entity-index.ts'
-import { normalizeEntityKey } from './entity-key.ts'
 import {
   applyRecallQualityPolicy,
   prepareRecallQualityPolicy,
@@ -30,6 +29,7 @@ import {
   EDGE_TYPES,
   INTENTS,
   SOURCES,
+  normalizeEntityKey,
   type Category,
   type CreateMemorySpaceRequest,
   type EdgeType,

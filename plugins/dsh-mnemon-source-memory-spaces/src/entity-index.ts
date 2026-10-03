@@ -1,5 +1,4 @@
-import type { Insight } from './contracts.ts'
-import { normalizeEntityKey } from './entity-key.ts'
+import { normalizeEntityKey, type Insight } from './contracts.ts'
 
 /**
  * The most memories one space's derived index asks list() for. Mnemon Native

@@ -260,6 +260,14 @@ export const INTENTS = ['WHY', 'WHEN', 'ENTITY', 'GENERAL'] as const satisfies r
 
 export type RecallRelevanceTier = 'high' | 'medium' | 'low' | 'unknown'
 
+/**
+ * One spelling-insensitive key per entity. The Host's entity index and the Client's graph
+ * both count an entity's memories by it, so their numbers agree.
+ */
+export function normalizeEntityKey(entity: string): string {
+  return entity.normalize('NFKC').trim().toLocaleLowerCase()
+}
+
 export interface Insight {
   id: string
   content: string
