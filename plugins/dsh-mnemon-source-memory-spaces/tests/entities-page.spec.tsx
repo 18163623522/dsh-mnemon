@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, configure, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { translateEn } from 'dsh-mnemon/client'
 import copy from '../presentation/locales.json' with { type: 'json' }
@@ -16,6 +16,9 @@ vi.mock('dsh-mnemon/client', async () => {
   })
 })
 afterEach(cleanup)
+// CI's packed-plugin job runs these tests in four parallel standalone installs, where this file
+// measured 13 times slower than in the workspace (40.5 s against 3.1 s). Allow for that load.
+configure({ asyncUtilTimeout: 5_000 })
 
 import { MemorySpacesSourcePage } from '../src/client.ts'
 import type { EntityMemoriesView, EntityRelatedView, EntityView, Insight } from '../src/contracts.ts'
@@ -74,7 +77,7 @@ function memoriesPage(input: Record<string, unknown>): EntityMemoriesView {
 
 const skeletons = (container: ParentNode) => container.querySelectorAll('[data-placeholder]').length
 
-describe('Entities page', () => {
+describe('Entities page', { timeout: 30_000 }, () => {
   it('lists every memory that carries the selected entity, then the memories recall relates to it', async () => {
     const related: EntityRelatedView = { entity: 'Atlas', items: [memory('r1', 'Release checklist mentions Atlas')], sources: [SOURCE] }
     const read = page({ 'entity-related': () => related })
@@ -114,15 +117,17 @@ describe('Entities page', () => {
   })
 
   it('loads the next page only when the revealed list reaches the memories already read', async () => {
-    const read = page({})
+    // A Host may answer with fewer memories than asked for; the page reads on from where it is.
+    const read = page({ 'entity-memories': input => memoriesPage({ ...input, limit: Math.min(Number(input.limit ?? 48), 12) }) })
     fireEvent.click(await screen.findByRole('button', { name: /^Atlas/u }))
-    await screen.findByText('Atlas memory 1')
-    for (let step = 0; step < 7; step += 1) fireEvent.click(screen.getByRole('button', { name: t('common.showMore', { count: 6 }) }))
-    expect(await screen.findByText('Atlas memory 48')).not.toBeNull()
+    await screen.findByText('Atlas memory 6')
+    fireEvent.click(screen.getByRole('button', { name: t('common.showMore', { count: 6 }) }))
+    expect(await screen.findByText('Atlas memory 12')).not.toBeNull()
     expect(read.mock.calls.filter(([operation]) => operation === 'entity-memories')).toHaveLength(1)
     fireEvent.click(screen.getByRole('button', { name: t('common.showMore', { count: 6 }) }))
-    expect(await screen.findByText('Atlas memory 54')).not.toBeNull()
-    expect(read).toHaveBeenCalledWith('entity-memories', { entity: 'Atlas', offset: 48, limit: 48 })
+    expect(await screen.findByText('Atlas memory 18')).not.toBeNull()
+    expect(read).toHaveBeenCalledWith('entity-memories', { entity: 'Atlas', offset: 12, limit: 48 })
+    expect(screen.getByText(t('common.showing', { visible: 18, total: 60 }))).not.toBeNull()
   })
 
   it('shows placeholders only for a read that takes a while', async () => {
