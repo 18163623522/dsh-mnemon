@@ -146,7 +146,7 @@ Agent 写入用户画像时，`branches` 必须省略或为空。对工作记忆
 |---|---|
 | ![内容：刚存入的记忆出现在列表中](../../assets/webui-v0.5.19/zh-CN/memory-content.jpg) | ![实体：选中 ClickHouse，列出提到它的记忆](../../assets/webui-v0.5.19/zh-CN/memory-entities.jpg) |
 
-**内容**在 Provider 可以枚举时列出记忆，查询型 Provider 需要输入关键词后才显示内容。**实体**只使用真正的实体索引，目前是 Mnemon Native、Hindsight 与 Holographic；选中一个实体，会跨空间汇集提到它的记忆。
+**内容**在 Provider 可以枚举时列出记忆，查询型 Provider 需要输入关键词后才显示内容。**实体**只使用真正的实体索引，目前是 Mnemon Native、Hindsight 与 Holographic。每个实体的计数，是各激活空间中带有该实体的记忆数，列表包含全部实体。选中一个实体，会按重要性列出正是这些记忆；其下是**相关记忆**：在不带该实体的记忆中，召回认为与它相关的那些。带有该实体的记忆会立即显示，相关记忆在召回完成后跟上。
 
 #### 存入记忆
 
