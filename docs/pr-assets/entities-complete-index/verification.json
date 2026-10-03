@@ -2,7 +2,7 @@
   "verifiedAt": "2026-10-04",
   "revision": {
     "baseline": "2729237a4871a01c66d3bc2fc8ce56a1eec0a602",
-    "fix": "87e8518d397ac60472ad9d2784a8330ef075bc72"
+    "fix": "a0ded7ec2e49ba2489bfc1ee960a85812151a05e"
   },
   "environment": {
     "os": "macOS 15.6 arm64",
@@ -97,22 +97,39 @@
         "Atlas": {
           "railCount": 22,
           "listCount": 22,
-          "related": 5,
+          "related": null,
           "footers": [
-            "当前显示 6 / 22",
-            "当前显示 5 / 5"
+            "当前显示 6 / 22"
           ],
-          "firstCardMs": 90
+          "firstCardMs": 97,
+          "relatedSection": {
+            "button": "查找相关记忆",
+            "expanded": false
+          }
         },
         "WebUI": {
           "railCount": 4,
           "listCount": 4,
-          "related": 4,
+          "related": null,
           "footers": [
-            "当前显示 4 / 4",
             "当前显示 4 / 4"
           ],
-          "firstCardMs": 98
+          "firstCardMs": 91,
+          "relatedSection": {
+            "button": "查找相关记忆",
+            "expanded": false
+          },
+          "findRelated": {
+            "related": 4,
+            "relatedMs": 829,
+            "button": "收起"
+          }
+        },
+        "nextEntityAfterFindRelated": {
+          "entity": "Atlas",
+          "listCount": 22,
+          "related": 5,
+          "expanded": true
         }
       },
       "017": {
@@ -128,22 +145,39 @@
         "Atlas": {
           "railCount": 22,
           "listCount": 22,
-          "related": 5,
+          "related": null,
           "footers": [
-            "当前显示 6 / 22",
-            "当前显示 5 / 5"
+            "当前显示 6 / 22"
           ],
-          "firstCardMs": 99
+          "firstCardMs": 99,
+          "relatedSection": {
+            "button": "查找相关记忆",
+            "expanded": false
+          }
         },
         "WebUI": {
           "railCount": 4,
           "listCount": 4,
-          "related": 4,
+          "related": null,
           "footers": [
-            "当前显示 4 / 4",
             "当前显示 4 / 4"
           ],
-          "firstCardMs": 96
+          "firstCardMs": 95,
+          "relatedSection": {
+            "button": "查找相关记忆",
+            "expanded": false
+          },
+          "findRelated": {
+            "related": 4,
+            "relatedMs": 719,
+            "button": "收起"
+          }
+        },
+        "nextEntityAfterFindRelated": {
+          "entity": "Atlas",
+          "listCount": 22,
+          "related": 5,
+          "expanded": true
         }
       }
     }
@@ -247,12 +281,12 @@
       "dsh-mnemon": {
         "railCount": 22,
         "listed": 22,
-        "related": 4
+        "foundRelated": 4
       },
       "UI": {
         "railCount": 6,
         "listed": 6,
-        "related": 4
+        "foundRelated": 4
       },
       "DSH": {
         "railCount": 11,
@@ -266,14 +300,15 @@
     "note": "126 merges spellings that differ only in case; the 129 distinct entities count them separately"
   },
   "tests": {
-    "memorySpaces": "213 passed, 2 skipped; new: 10 entity-index and 6 Entities page tests",
+    "memorySpaces": "216 passed, 2 skipped; new: 10 entity-index and 9 Entities page tests",
     "root": "1,611 passed, 6 skipped; presentation baseline updated",
-    "verify": "pnpm run verify passes; package 1,523,952 unpacked bytes"
+    "verify": "pnpm run verify passes; package 1,524,506 unpacked bytes"
   },
   "screenshots": {
     "before-atlas.jpg": "5dd1497e1e37d8d468b71efbcc896dd8616c0f080f02a1bed20c915b4af6d630",
     "before-webui.jpg": "ddd4f6f6d8fdc9b1c0e93a2478ecb3f7aef3b21880c05a09a4535df021a0010a",
     "after-atlas.jpg": "3c6d33a79a9582fc18886205d0aebd796a54fda5766eeb62c54bd68dfd92118f",
-    "after-related.jpg": "3b8f42e45bf1ec66e02d8253dd40d4becc591b1618fdd0664848e98e3730dd4c"
+    "after-collapsed.jpg": "47d128b7b324e215be01405d325c6b3b1086860bf6018537c761f38fef02a92e",
+    "after-related.jpg": "0a3871de447ed296e408018d8a59c96695065efedd55ee80cb4a11e10bd98e7f"
   }
 }
