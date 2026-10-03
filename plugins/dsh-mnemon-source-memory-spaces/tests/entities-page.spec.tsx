@@ -89,7 +89,7 @@ describe('Entities page', () => {
     expect(await screen.findByText('Release checklist mentions Atlas')).not.toBeNull()
     expect(screen.getByText(t('entities.sourceReady', { count: 2 }))).not.toBeNull()
     expect(read).toHaveBeenCalledWith('entity-memories', { entity: 'Atlas', offset: 0, limit: 48 })
-    expect(read).toHaveBeenCalledWith('entity-related', { entity: 'Atlas', limit: 20 })
+    expect(read).toHaveBeenCalledWith('entity-related', { entity: 'Atlas', limit: 20, view: expect.any(String) })
   })
 
   it('shows the spaces from the directory before their entity indexes arrive', async () => {

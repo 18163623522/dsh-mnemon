@@ -22,7 +22,7 @@ export function memorySpacesPageClient(management: MnemonSourceManagementClient)
     list: request => client.read('list', input(request ?? {})),
     entities: (entity, limit) => client.read('entities', input({ entity, limit })),
     entityMemories: (entity, offset, limit) => client.read('entity-memories', input({ entity, offset, limit })),
-    entityRelated: (entity, limit) => client.read('entity-related', input({ entity, limit })),
+    entityRelated: (entity, limit, view) => client.read('entity-related', input({ entity, limit, view })),
     search: request => client.read('search', input(request)),
     related: (id, memoryBodyId) => client.read('related', input({ id, memoryBodyId })),
     reconnectBody: memoryBodyId => client.read('body-reconnect', { memoryBodyId }),

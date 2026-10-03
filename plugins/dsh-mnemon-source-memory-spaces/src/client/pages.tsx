@@ -1226,6 +1226,8 @@ export function EntitiesPage(props: { client: MemorySpacesPageClient; revision: 
   const relatedRequests = useRequestVersion()
   const selectedRef = useRef<string | undefined>(undefined)
   const revisionRef = useRef(props.revision)
+  // One id per page view, so its next selection cancels the related read it is still waiting for; other tabs keep theirs.
+  const [view] = useState(() => globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`)
   const split = client.entityMemories !== undefined && client.entityRelated !== undefined
 
   const loadRail = useCallback(async () => {
@@ -1264,14 +1266,14 @@ export function EntitiesPage(props: { client: MemorySpacesPageClient; revision: 
       if (memoryRequests.isCurrent(memoryRequest)) setMemoriesLoading(false)
     })
     if (!split) return
-    void client.entityRelated!(name, ENTITY_RELATED_LIMIT).then(view => {
-      if (relatedRequests.isCurrent(relatedRequest)) setRelated(view)
+    void client.entityRelated!(name, ENTITY_RELATED_LIMIT, view).then(next => {
+      if (relatedRequests.isCurrent(relatedRequest)) setRelated(next)
     }, (reason: unknown) => {
       if (relatedRequests.isCurrent(relatedRequest)) setRelatedError(message(reason))
     }).finally(() => {
       if (relatedRequests.isCurrent(relatedRequest)) setRelatedLoading(false)
     })
-  }, [client, memoryRequests, moreRequests, relatedRequests, split])
+  }, [client, memoryRequests, moreRequests, relatedRequests, split, view])
 
   const select = (name: string) => {
     const trimmed = name.trim()

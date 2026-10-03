@@ -100,8 +100,11 @@ function stringArray(value: JsonValue | undefined): string[] | undefined {
   return value.filter((entry): entry is string => typeof entry === 'string')
 }
 
-/** How long the entity reads reuse one Provider health result, so a rail and a selection share it. */
-const ENTITY_STATUS_REUSE_MS = 1_500
+/**
+ * How long a selection reuses the Provider health its index was checked with.
+ * The rail always checks again; a write through this Source drops both at once.
+ */
+const ENTITY_SELECTION_STATUS_REUSE_MS = 10_000
 /** How long an index that statistics cannot check is reused; a write through this Source still drops it. */
 const ENTITY_INDEX_UNCHECKED_REUSE_MS = 10_000
 
@@ -339,7 +342,10 @@ export class MemorySpacesService {
   private spacesInFlight: Promise<MemorySpaceCatalog> | undefined
   /** One entity index per active entity space, valid while its fingerprint holds. */
   private readonly entityIndexCache = new Map<string, CachedEntityIndex>()
-  private readonly entityStatusCache = new Map<string, { at: number; status: Promise<ProviderSpaceStatus> }>()
+  /** settledAt stays undefined while the read runs, which every caller shares. */
+  private readonly entityStatusCache = new Map<string, { settledAt: number | undefined; status: Promise<ProviderSpaceStatus> }>()
+  /** The related read each page view is waiting for; a newer selection cancels the older one. */
+  private readonly entityRelatedViews = new Map<string, AbortController>()
   private providersDisposed = false
   /** The CLI version a full status last read, and the binary it read it from. */
   private cliVersion: { binary: string; version: string } | undefined
@@ -966,7 +972,7 @@ export class MemorySpacesService {
    */
   async entities(entity?: string, limit?: number, signal?: AbortSignal): Promise<EntityView> {
     const selected = entity === undefined ? '' : entityName(entity)
-    const read = await this.readEntityIndexes(signal)
+    const read = await this.readEntityIndexes(signal, 0)
     const { items } = mergeEntityCounts(read.indexes)
     const view: EntityView = {
       items: items.slice(0, ENTITY_RAIL_LIMIT),
@@ -984,7 +990,7 @@ export class MemorySpacesService {
   async entityMemories(entity: string, offset?: number, limit?: number, signal?: AbortSignal): Promise<EntityMemoriesView> {
     const selected = entityName(entity)
     if (selected === '') throw new Error('entity is required')
-    const read = await this.readEntityIndexes(signal)
+    const read = await this.readEntityIndexes(signal, ENTITY_SELECTION_STATUS_REUSE_MS)
     return this.entityPage(read, selected, integer(offset, 0, 0, 1_000_000), integer(limit, 50, 1, 200))
   }
 
@@ -993,22 +999,34 @@ export class MemorySpacesService {
    * Those are left out before the quality policy selects, so they cannot use up
    * its places and leave the related list empty.
    */
-  async entityRelated(entity: string, limit?: number, signal?: AbortSignal): Promise<EntityRelatedView> {
+  async entityRelated(entity: string, limit?: number, signal?: AbortSignal, view?: string): Promise<EntityRelatedView> {
     const selected = entityName(entity)
     if (selected === '') throw new Error('entity is required')
-    const read = await this.readEntityIndexes(signal)
-    const key = normalizeEntityKey(selected)
-    const carrying = new Set<string>()
-    for (const [bodyId, index] of read.byBody) for (const position of index.byKey.get(key) ?? []) carrying.add(memoryKey(bodyId, index.memories[position]!.id))
-    const display = mergeEntityCounts(read.indexes).names.get(key) ?? selected
-    const readableIds = read.readable.map(body => body.id)
-    if (readableIds.length === 0) return { entity: display, items: [], sources: [] }
-    const result = await this.search(
-      { query: selected, intent: 'ENTITY', limit: integer(limit, 20, 1, 50), memoryBodyIds: readableIds },
-      signal,
-      { exclude: carrying },
-    )
-    return { entity: display, items: result.results, sources: result.sources }
+    // Recall queues behind the store lock; a view's newer selection should not wait for one it left.
+    const superseding = view === undefined ? undefined : new AbortController()
+    if (view !== undefined) {
+      this.entityRelatedViews.get(view)?.abort(new Error('superseded by a newer entity selection'))
+      this.entityRelatedViews.set(view, superseding!)
+    }
+    const combined = superseding === undefined ? signal : signal === undefined ? superseding.signal : AbortSignal.any([signal, superseding.signal])
+    try {
+      const read = await this.readEntityIndexes(combined, ENTITY_SELECTION_STATUS_REUSE_MS)
+      const key = normalizeEntityKey(selected)
+      const carrying = new Set<string>()
+      for (const [bodyId, index] of read.byBody) for (const position of index.byKey.get(key) ?? []) carrying.add(memoryKey(bodyId, index.memories[position]!.id))
+      const display = mergeEntityCounts(read.indexes).names.get(key) ?? selected
+      const readableIds = read.readable.map(body => body.id)
+      if (readableIds.length === 0) return { entity: display, items: [], sources: [] }
+      const result = await this.search(
+        { query: selected, intent: 'ENTITY', limit: integer(limit, 20, 1, 50), memoryBodyIds: readableIds },
+        combined,
+        { exclude: carrying },
+      )
+      combined?.throwIfAborted()
+      return { entity: display, items: result.results, sources: result.sources }
+    } finally {
+      if (view !== undefined && this.entityRelatedViews.get(view) === superseding) this.entityRelatedViews.delete(view)
+    }
   }
 
   private entityPage(read: EntityIndexRead, selected: string, offset: number, limit: number): EntityMemoriesView {
@@ -1029,7 +1047,7 @@ export class MemorySpacesService {
    * concurrently. A space keeps its index while its Provider statistics and
    * metadata stay the same; a write through this Source drops it.
    */
-  private async readEntityIndexes(signal?: AbortSignal): Promise<EntityIndexRead> {
+  private async readEntityIndexes(signal: AbortSignal | undefined, statusMaxAgeMs: number): Promise<EntityIndexRead> {
     signal?.throwIfAborted()
     const active = this.memorySpaces.active()
     const capable = new Set(active.filter(body => body.provider.capabilities.entities).map(body => body.id))
@@ -1038,7 +1056,7 @@ export class MemorySpacesService {
       if (!body.provider.capabilities.entities) {
         return { body, recall: false, source: readSource(body, 'unsupported', 'unsupported', 0, { hint: 'This provider does not expose an entity index.' }) }
       }
-      const status = await this.entitySpaceStatus(body)
+      const status = await this.entitySpaceStatus(body, statusMaxAgeMs)
       if (!status.healthy) return { body, recall: false, source: readSource(body, 'entities', 'unavailable', 0, { hint: status.error ?? 'Provider unavailable.' }) }
       const recall = body.provider.capabilities.search
       if (this.providerFor(body).entityIndex === undefined && !body.provider.capabilities.browse) {
@@ -1066,15 +1084,19 @@ export class MemorySpacesService {
     }
   }
 
-  /** Provider health for the entity reads, shared by requests that arrive together. */
-  private entitySpaceStatus(body: MemorySpace): Promise<ProviderSpaceStatus> {
-    const now = Date.now()
+  /** Provider health for the entity reads: a read in flight is shared, a finished one reused for less than maxAgeMs. */
+  private entitySpaceStatus(body: MemorySpace, maxAgeMs: number): Promise<ProviderSpaceStatus> {
     const recent = this.entityStatusCache.get(body.id)
-    if (recent !== undefined && now - recent.at < ENTITY_STATUS_REUSE_MS) return recent.status
-    const status = this.providerFor(body).status(body)
+    if (recent !== undefined && (recent.settledAt === undefined || Date.now() - recent.settledAt < maxAgeMs)) return recent.status
+    const entry: { settledAt: number | undefined; status: Promise<ProviderSpaceStatus> } = { settledAt: undefined, status: Promise.resolve(undefined as never) }
+    entry.status = this.providerFor(body).status(body)
       .catch((error: unknown): ProviderSpaceStatus => ({ healthy: false, error: error instanceof Error ? error.message : String(error) }))
-    this.entityStatusCache.set(body.id, { at: now, status })
-    return status
+      .then(status => {
+        entry.settledAt = Date.now()
+        return status
+      })
+    this.entityStatusCache.set(body.id, entry)
+    return entry.status
   }
 
   private entityIndexFor(body: MemorySpace, status: ProviderSpaceStatus): Promise<SpaceEntityIndex> {

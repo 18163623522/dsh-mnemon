@@ -122,21 +122,50 @@ describe('Memory Spaces entity reads', () => {
     vi.useFakeTimers({ toFake: ['Date'] })
     const { service, process, state } = fixture()
     await service.entities()
+    expect([statuses(process), dumps(process)]).toEqual([1, 1])
+
+    // A selection soon after reuses the health check its index was read with.
     vi.setSystemTime(Date.now() + 5_000)
     await service.entityMemories('Atlas')
-    expect(statuses(process)).toBe(2)
-    expect(dumps(process)).toBe(1)
+    expect([statuses(process), dumps(process)]).toEqual([1, 1])
+
+    // The rail always checks again; unchanged statistics keep the index.
+    await service.entities()
+    expect([statuses(process), dumps(process)]).toEqual([2, 1])
 
     // A write from outside DSH, such as the Mnemon CLI, moves the operation log.
     state.oplog += 1
-    vi.setSystemTime(Date.now() + 5_000)
     await service.entities()
-    expect(dumps(process)).toBe(2)
+    expect([statuses(process), dumps(process)]).toEqual([3, 2])
 
     // A write through this Source drops the index at once, without waiting for statistics.
     await service.remember({ content: 'Atlas ships weekly.', entities: ['Atlas'], memoryBodyId: 'work' })
+    await service.entityMemories('Atlas')
+    expect([statuses(process), dumps(process)]).toEqual([4, 3])
+
+    // An older health check no longer stands in for a selection.
+    vi.setSystemTime(Date.now() + 11_000)
+    await service.entityMemories('Atlas')
+    expect([statuses(process), dumps(process)]).toEqual([5, 3])
+  })
+
+  it('cancels the related read a page view left for a newer selection, and only that one', async () => {
+    const { service, process } = fixture()
     await service.entities()
-    expect(dumps(process)).toBe(3)
+    let release!: () => void
+    const blocked = new Promise<void>(resolve => { release = resolve })
+    const recall = process.getMockImplementation()!
+    process.mockImplementation(async (command, args, options) => {
+      if (args.includes('recall') && !args.includes('--readonly') && args.includes('Atlas')) await blocked
+      return recall(command, args, options)
+    })
+    const first = service.entityRelated('Atlas', 20, undefined, 'view-1')
+    const other = service.entityRelated('SQLite', 20, undefined, 'view-2')
+    const second = service.entityRelated('SQLite', 20, undefined, 'view-1')
+    release()
+    await expect(first).rejects.toThrow('superseded')
+    await expect(second).resolves.toMatchObject({ entity: 'SQLite' })
+    await expect(other).resolves.toMatchObject({ entity: 'SQLite' })
   })
 
   it('shows an unhealthy space as unavailable and lists nothing from it', async () => {

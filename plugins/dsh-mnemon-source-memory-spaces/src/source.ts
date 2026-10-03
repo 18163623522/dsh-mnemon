@@ -169,6 +169,8 @@ async function manageMemorySpaces(service: MemorySpacesService, request: MemoryS
         text(input.entity, 'entity', 500)!,
         input.limit === undefined ? undefined : integer(input.limit, 20, 1, 50),
         request.signal,
+        // A page view's id: its newer selection cancels the related read it is still waiting for.
+        text(input.view, 'view', 200, false),
       ))
       case 'search': return managementResult(service, await service.search({
         query: text(input.query, 'query', 2_000)!,
